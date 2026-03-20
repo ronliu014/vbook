@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find E:/projects/my_app/vbook -type f -name .* -o -type f -name *)",
+      "Bash(dir /a \"E:/projects/my_app/vbook\")",
+      "Bash(uv init:*)",
+      "Bash(pip --version)",
+      "Read(//usr/local/bin/**)",
+      "Bash(find /c /d /e -name uv.exe)",
+      "Bash(where uv:*)",
+      "Read(//c/Users/liujinlong/**)",
+      "Bash(echo \"PATH: $PATH\")",
+      "Bash(pip install:*)",
+      "Bash(uv add:*)",
+      "Bash(uv run:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv pip:*)",
+      "Bash(vbook --help)",
+      "Bash(vbook process:*)",
+      "Bash(vbook:*)"
+    ]
+  }
+}
