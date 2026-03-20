@@ -54,3 +54,38 @@ def test_whisper_backend_returns_transcript():
     assert isinstance(result, TranscriptResult)
     assert result.segments[0].text == "你好世界"
     assert result.language == "zh"
+
+from vbook.backends.llm.litellm_backend import LiteLLMBackend
+from vbook.stages.analyze import AnalyzeStage
+import json
+
+def test_llm_backend_analyze():
+    with patch("litellm.completion") as mock_completion:
+        mock_completion.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content='{"outline": []}'))]
+        )
+        backend = LiteLLMBackend(model="ollama/qwen2.5:14b", base_url="http://localhost:11434")
+        result = backend.analyze("some text", "generate outline")
+    assert result == '{"outline": []}'
+
+def test_analyze_stage_outputs_json(tmp_path):
+    transcript_file = tmp_path / "transcript.json"
+    transcript_file.write_text(
+        json.dumps({"full_text": "这是测试内容", "segments": [], "language": "zh"}),
+        encoding="utf-8"
+    )
+
+    with patch("litellm.completion") as mock_completion:
+        mock_completion.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content=json.dumps({
+                "title": "测试视频",
+                "outline": [{"title": "第一节", "summary": "内容", "key_timestamps": [0]}],
+                "keywords": ["测试"],
+            })))]
+        )
+        backend = LiteLLMBackend(model="ollama/qwen2.5:14b")
+        stage = AnalyzeStage(llm_backend=backend, cache_dir=tmp_path)
+        result = stage.run(context={"transcript_path": str(transcript_file)})
+
+    assert result.status == StageStatus.SUCCESS
+    assert "analysis_path" in result.output
