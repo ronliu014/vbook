@@ -1,0 +1,20 @@
+# {{ analysis.title }}
+
+**关键词：** {{ analysis.keywords | join(", ") }}
+
+---
+
+## 知识大纲
+
+{% for section in analysis.outline %}
+### {{ loop.index }}. {{ section.title }}
+
+{{ section.summary }}
+
+{% if section.screenshots %}
+{% for shot in section.screenshots %}
+![{{ section.title }}]({{ assets_dir }}/{{ shot }})
+{% endfor %}
+{% endif %}
+
+{% endfor %}
