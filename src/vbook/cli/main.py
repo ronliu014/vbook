@@ -1,5 +1,6 @@
 import click
 from rich.console import Console
+from .process import process
 
 console = Console()
 
@@ -8,3 +9,5 @@ console = Console()
 def cli():
     """vbook - 将视频转换为知识文档"""
     pass
+
+cli.add_command(process)
