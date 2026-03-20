@@ -34,3 +34,23 @@ def test_audio_extract_sets_correct_path(tmp_path):
         result = stage.run(context={})
 
     assert result.output["audio_path"].endswith("audio.wav")
+
+from vbook.backends.stt.whisper import WhisperSTTBackend
+from vbook.backends.base import TranscriptResult
+
+def test_whisper_backend_returns_transcript():
+    mock_segment = MagicMock()
+    mock_segment.start = 0.0
+    mock_segment.end = 5.0
+    mock_segment.text = "  你好世界  "
+
+    with patch("vbook.backends.stt.whisper.WhisperModel") as MockModel:
+        instance = MockModel.return_value
+        instance.transcribe.return_value = ([mock_segment], MagicMock(language="zh"))
+
+        backend = WhisperSTTBackend(model="small", device="cpu")
+        result = backend.transcribe("/tmp/audio.wav")
+
+    assert isinstance(result, TranscriptResult)
+    assert result.segments[0].text == "你好世界"
+    assert result.language == "zh"

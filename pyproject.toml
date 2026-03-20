@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "click>=8.3.1",
+    "faster-whisper>=1.2.1",
     "ffmpeg-python>=0.2.0",
     "pydantic>=2.12.5",
     "pyyaml>=6.0.3",
