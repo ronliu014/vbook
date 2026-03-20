@@ -1,6 +1,8 @@
 import click
 from rich.console import Console
 from .process import process
+from .init_cmd import init_cmd
+from .status import status
 
 console = Console()
 
@@ -11,3 +13,5 @@ def cli():
     pass
 
 cli.add_command(process)
+cli.add_command(init_cmd)
+cli.add_command(status)
