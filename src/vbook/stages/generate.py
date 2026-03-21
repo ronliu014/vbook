@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 from ..pipeline.stage import Stage, StageResult, StageStatus
 from ..output.markdown import MarkdownGenerator
@@ -17,6 +18,18 @@ class GenerateStage(Stage):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         assets_dir = self.output_dir / "assets"
         assets_dir.mkdir(exist_ok=True)
+
+        screenshots_map = context.get("screenshots_map", {})
+        if screenshots_map:
+            screenshots_dir = Path(context.get("screenshots_dir", ""))
+            for section_idx, filenames in screenshots_map.items():
+                idx = int(section_idx)
+                if idx < len(analysis.get("outline", [])):
+                    analysis["outline"][idx]["screenshots"] = filenames
+                for filename in filenames:
+                    src = screenshots_dir / filename
+                    if src.exists():
+                        shutil.copy2(str(src), str(assets_dir / filename))
 
         gen = MarkdownGenerator()
         md_content = gen.render(analysis, assets_dir=Path("assets"))

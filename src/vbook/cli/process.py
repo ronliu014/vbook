@@ -10,6 +10,7 @@ from ..backends.llm.litellm_backend import LiteLLMBackend
 from ..stages.audio_extract import AudioExtractStage
 from ..stages.transcribe import TranscribeStage
 from ..stages.analyze import AnalyzeStage
+from ..stages.screenshot import ScreenshotStage
 from ..stages.generate import GenerateStage
 
 console = Console()
@@ -57,6 +58,7 @@ def _process_single(video_path: Path, output: str, cfg, force: bool):
         AudioExtractStage(video_path=video_path, cache_dir=cache_dir),
         TranscribeStage(stt_backend=stt, cache_dir=cache_dir),
         AnalyzeStage(llm_backend=llm, cache_dir=cache_dir),
+        ScreenshotStage(video_path=video_path, cache_dir=cache_dir),
         GenerateStage(output_dir=output_dir, cache_dir=cache_dir),
     ]
 

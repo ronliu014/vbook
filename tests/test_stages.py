@@ -143,3 +143,82 @@ def test_whisper_remote_backend_http_error(tmp_path):
         )
         with pytest.raises(Exception):
             backend.transcribe(str(audio_file))
+
+
+from vbook.stages.screenshot import ScreenshotStage
+
+
+def test_screenshot_stage_extracts_frames(tmp_path):
+    """Mock ffmpeg, verify frames extracted per key_timestamps, output screenshots map."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    analysis = {
+        "title": "测试视频",
+        "outline": [
+            {"title": "第一节", "summary": "内容", "key_timestamps": [10.0, 30.5]},
+            {"title": "第二节", "summary": "更多内容", "key_timestamps": [60.0]},
+        ],
+        "keywords": ["测试"],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    video_file = tmp_path / "test.mp4"
+    video_file.write_bytes(b"fake video")
+
+    with patch("vbook.stages.screenshot.ffmpeg") as mock_ffmpeg:
+        mock_stream = MagicMock()
+        mock_ffmpeg.input.return_value = mock_stream
+        mock_stream.output.return_value.overwrite_output.return_value.run = MagicMock()
+
+        stage = ScreenshotStage(video_path=video_file, cache_dir=cache_dir)
+        result = stage.run(context={
+            "video_path": str(video_file),
+            "analysis_path": str(analysis_path),
+        })
+
+    assert result.status == StageStatus.SUCCESS
+    assert "screenshots_dir" in result.output
+    assert "screenshots_map" in result.output
+
+    screenshots_map = result.output["screenshots_map"]
+    assert len(screenshots_map["0"]) == 2
+    assert len(screenshots_map["1"]) == 1
+    assert screenshots_map["0"][0] == "section_0_frame_0.jpg"
+    assert screenshots_map["0"][1] == "section_0_frame_1.jpg"
+    assert screenshots_map["1"][0] == "section_1_frame_0.jpg"
+
+    # Verify ffmpeg was called 3 times (once per timestamp)
+    assert mock_ffmpeg.input.call_count == 3
+
+
+def test_screenshot_stage_no_timestamps(tmp_path):
+    """Sections without key_timestamps should be skipped."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    analysis = {
+        "title": "测试视频",
+        "outline": [
+            {"title": "第一节", "summary": "内容"},
+            {"title": "第二节", "summary": "更多", "key_timestamps": []},
+        ],
+        "keywords": ["测试"],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    video_file = tmp_path / "test.mp4"
+    video_file.write_bytes(b"fake video")
+
+    with patch("vbook.stages.screenshot.ffmpeg") as mock_ffmpeg:
+        stage = ScreenshotStage(video_path=video_file, cache_dir=cache_dir)
+        result = stage.run(context={
+            "video_path": str(video_file),
+            "analysis_path": str(analysis_path),
+        })
+
+    assert result.status == StageStatus.SUCCESS
+    assert result.output["screenshots_map"] == {}
+    mock_ffmpeg.input.assert_not_called()
