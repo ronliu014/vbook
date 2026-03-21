@@ -222,3 +222,82 @@ def test_screenshot_stage_no_timestamps(tmp_path):
     assert result.status == StageStatus.SUCCESS
     assert result.output["screenshots_map"] == {}
     mock_ffmpeg.input.assert_not_called()
+
+
+from vbook.stages.generate import GenerateStage
+
+
+def test_generate_stage_copies_screenshots_and_injects(tmp_path):
+    """GenerateStage should copy screenshots to assets/ and inject filenames into sections."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    screenshots_dir = cache_dir / "screenshots"
+    screenshots_dir.mkdir()
+
+    # Create fake screenshot files
+    (screenshots_dir / "section_0_frame_0.jpg").write_bytes(b"img0")
+    (screenshots_dir / "section_0_frame_1.jpg").write_bytes(b"img1")
+    (screenshots_dir / "section_1_frame_0.jpg").write_bytes(b"img2")
+
+    analysis = {
+        "title": "测试视频",
+        "outline": [
+            {"title": "第一节", "summary": "内容", "key_timestamps": [10.0, 30.5]},
+            {"title": "第二节", "summary": "更多内容", "key_timestamps": [60.0]},
+        ],
+        "keywords": ["测试"],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    output_dir = tmp_path / "output"
+
+    stage = GenerateStage(output_dir=output_dir, cache_dir=cache_dir)
+    result = stage.run(context={
+        "analysis_path": str(analysis_path),
+        "screenshots_dir": str(screenshots_dir),
+        "screenshots_map": {
+            "0": ["section_0_frame_0.jpg", "section_0_frame_1.jpg"],
+            "1": ["section_1_frame_0.jpg"],
+        },
+    })
+
+    assert result.status == StageStatus.SUCCESS
+
+    # Verify screenshots copied to assets/
+    assets_dir = output_dir / "assets"
+    assert (assets_dir / "section_0_frame_0.jpg").exists()
+    assert (assets_dir / "section_0_frame_1.jpg").exists()
+    assert (assets_dir / "section_1_frame_0.jpg").exists()
+
+    # Verify markdown contains image references
+    md_content = Path(result.output["markdown_path"]).read_text(encoding="utf-8")
+    assert "![第一节](assets/section_0_frame_0.jpg)" in md_content
+    assert "![第一节](assets/section_0_frame_1.jpg)" in md_content
+    assert "![第二节](assets/section_1_frame_0.jpg)" in md_content
+
+
+def test_generate_stage_without_screenshots(tmp_path):
+    """GenerateStage should work normally when no screenshots are provided."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    analysis = {
+        "title": "测试视频",
+        "outline": [
+            {"title": "第一节", "summary": "内容", "key_timestamps": [10.0]},
+        ],
+        "keywords": ["测试"],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    output_dir = tmp_path / "output"
+
+    stage = GenerateStage(output_dir=output_dir, cache_dir=cache_dir)
+    result = stage.run(context={"analysis_path": str(analysis_path)})
+
+    assert result.status == StageStatus.SUCCESS
+    md_content = Path(result.output["markdown_path"]).read_text(encoding="utf-8")
+    assert "第一节" in md_content
+    assert "![" not in md_content
