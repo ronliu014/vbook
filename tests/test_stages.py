@@ -89,3 +89,57 @@ def test_analyze_stage_outputs_json(tmp_path):
 
     assert result.status == StageStatus.SUCCESS
     assert "analysis_path" in result.output
+
+
+from vbook.backends.stt.whisper_remote import WhisperRemoteBackend
+
+
+def test_whisper_remote_backend_returns_transcript(tmp_path):
+    audio_file = tmp_path / "audio.wav"
+    audio_file.write_bytes(b"fake audio data")
+
+    fake_response = MagicMock()
+    fake_response.status_code = 200
+    fake_response.json.return_value = {
+        "language": "zh",
+        "segments": [
+            {"start": 0.0, "end": 3.5, "text": "你好世界"},
+            {"start": 3.5, "end": 7.0, "text": "这是测试"},
+        ],
+    }
+
+    with patch("httpx.post", return_value=fake_response) as mock_post:
+        backend = WhisperRemoteBackend(
+            base_url="http://gpu-server:8000",
+            model="medium",
+            language="zh",
+        )
+        result = backend.transcribe(str(audio_file))
+
+    assert isinstance(result, TranscriptResult)
+    assert len(result.segments) == 2
+    assert result.segments[0].text == "你好世界"
+    assert result.segments[1].start == 3.5
+    assert result.language == "zh"
+
+    call_args = mock_post.call_args
+    assert "gpu-server:8000/v1/audio/transcriptions" in call_args[0][0]
+
+
+def test_whisper_remote_backend_http_error(tmp_path):
+    audio_file = tmp_path / "audio.wav"
+    audio_file.write_bytes(b"fake audio data")
+
+    fake_response = MagicMock()
+    fake_response.status_code = 500
+    fake_response.text = "Internal Server Error"
+    fake_response.raise_for_status.side_effect = Exception("HTTP 500")
+
+    with patch("httpx.post", return_value=fake_response):
+        backend = WhisperRemoteBackend(
+            base_url="http://gpu-server:8000",
+            model="medium",
+            language="zh",
+        )
+        with pytest.raises(Exception):
+            backend.transcribe(str(audio_file))

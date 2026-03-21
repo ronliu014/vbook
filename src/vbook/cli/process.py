@@ -5,6 +5,7 @@ from ..config.loader import load_config
 from ..pipeline.engine import PipelineEngine
 from ..utils.path import resolve_output_dir, get_cache_dir
 from ..backends.stt.whisper import WhisperSTTBackend
+from ..backends.stt.whisper_remote import WhisperRemoteBackend
 from ..backends.llm.litellm_backend import LiteLLMBackend
 from ..stages.audio_extract import AudioExtractStage
 from ..stages.transcribe import TranscribeStage
@@ -43,7 +44,10 @@ def _process_single(video_path: Path, output: str, cfg, force: bool):
         import shutil
         shutil.rmtree(cache_dir)
 
-    stt = WhisperSTTBackend(**cfg.backends.whisper_local)
+    if cfg.backends.stt == "whisper_remote":
+        stt = WhisperRemoteBackend(**cfg.backends.whisper_remote)
+    else:
+        stt = WhisperSTTBackend(**cfg.backends.whisper_local)
     llm = LiteLLMBackend(
         model=f"ollama/{cfg.backends.ollama_qwen['model']}",
         base_url=cfg.backends.ollama_qwen.get("base_url"),

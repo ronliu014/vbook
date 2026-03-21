@@ -18,6 +18,11 @@ class BackendsConfig(BaseModel):
     stt: str = "whisper_local"
     llm: str = "ollama_qwen"
     whisper_local: dict = Field(default_factory=lambda: {"model": "medium", "device": "cpu"})
+    whisper_remote: dict = Field(default_factory=lambda: {
+        "base_url": "http://localhost:8000",
+        "model": "medium",
+        "language": "zh",
+    })
     ollama_qwen: dict = Field(default_factory=lambda: {"base_url": "http://localhost:11434", "model": "qwen2.5:14b"})
 
 class VbookConfig(BaseModel):
