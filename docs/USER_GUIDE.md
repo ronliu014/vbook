@@ -136,8 +136,8 @@ backends:
     language: zh
 
   ollama_qwen:
-    base_url: http://<SERVER_IP>:11434
-    model: qwen2.5:14b
+    base_url: http://<SERVER_IP>:7866
+    model: qwen3.5:9b
 ```
 
 ### 第三步：处理视频
@@ -211,8 +211,8 @@ backends:
 
   # Ollama + Qwen 配置
   ollama_qwen:
-    base_url: http://192.168.1.100:11434
-    model: qwen2.5:14b         # 模型：qwen2.5:7b, qwen2.5:14b, qwen2.5:32b
+    base_url: http://192.168.1.100:7866
+    model: qwen3.5:9b          # 模型：qwen3.5:4b, qwen3.5:9b, qwen3.5:35b
 ```
 
 ### 配置字段说明
@@ -526,7 +526,7 @@ ffmpeg -i input.avi -c:v copy -c:a copy output.mp4
 ### Q5: 生成的大纲质量如何？
 
 **A:** 取决于：
-- LLM 模型质量（qwen2.5:14b 效果较好）
+- LLM 模型质量（qwen3.5:9b 效果较好）
 - 转录文本质量
 - 视频内容结构化程度
 
@@ -589,7 +589,7 @@ ffmpeg -version
 
 **解决：**
 1. 检查服务器 IP 是否正确
-2. 检查服务是否运行：`curl http://<IP>:11434/api/tags`
+2. 检查服务是否运行：`curl http://<IP>:7866/api/tags`
 3. 检查防火墙是否放行端口
 4. 检查网络连通性：`ping <SERVER_IP>`
 
@@ -609,7 +609,7 @@ ffmpeg -version
 **解决：**
 1. 检查转录文本：`cat output/video/.vbook_cache/transcript.json`
 2. 如果转录质量差，尝试更大的 Whisper 模型（large）
-3. 如果转录正常，尝试更大的 LLM 模型（qwen2.5:32b）
+3. 如果转录正常，尝试更大的 LLM 模型（qwen3.5:35b）
 
 ### 问题 6：处理速度很慢
 

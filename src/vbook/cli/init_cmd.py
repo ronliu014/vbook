@@ -19,7 +19,7 @@ def init_cmd(source, output, config):
             "stt": "whisper_local",
             "llm": "ollama_qwen",
             "whisper_local": {"model": "medium", "device": "cpu"},
-            "ollama_qwen": {"base_url": "http://localhost:11434", "model": "qwen2.5:14b"},
+            "ollama_qwen": {"base_url": "http://localhost:7866", "model": "qwen3.5:9b"},
         },
     }
     config_path = Path(config)

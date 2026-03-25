@@ -64,7 +64,7 @@ def test_llm_backend_analyze():
         mock_completion.return_value = MagicMock(
             choices=[MagicMock(message=MagicMock(content='{"outline": []}'))]
         )
-        backend = LiteLLMBackend(model="ollama/qwen2.5:14b", base_url="http://localhost:11434")
+        backend = LiteLLMBackend(model="ollama/qwen3.5:9b", base_url="http://localhost:7866")
         result = backend.analyze("some text", "generate outline")
     assert result == '{"outline": []}'
 
@@ -83,7 +83,7 @@ def test_analyze_stage_outputs_json(tmp_path):
                 "keywords": ["测试"],
             })))]
         )
-        backend = LiteLLMBackend(model="ollama/qwen2.5:14b")
+        backend = LiteLLMBackend(model="ollama/qwen3.5:9b")
         stage = AnalyzeStage(llm_backend=backend, cache_dir=tmp_path)
         result = stage.run(context={"transcript_path": str(transcript_file)})
 

@@ -23,7 +23,7 @@ class BackendsConfig(BaseModel):
         "model": "medium",
         "language": "zh",
     })
-    ollama_qwen: dict = Field(default_factory=lambda: {"base_url": "http://localhost:11434", "model": "qwen2.5:14b"})
+    ollama_qwen: dict = Field(default_factory=lambda: {"base_url": "http://localhost:7866", "model": "qwen3.5:9b"})
 
 class VbookConfig(BaseModel):
     source: SourceConfig = Field(default_factory=SourceConfig)

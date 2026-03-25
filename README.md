@@ -77,8 +77,8 @@ backends:
     model: medium
     device: cpu
   ollama_qwen:
-    base_url: http://localhost:11434
-    model: qwen2.5:14b
+    base_url: http://localhost:7866
+    model: qwen3.5:9b
 ```
 
 ## 系统要求

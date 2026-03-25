@@ -14,7 +14,7 @@
 │                                             │
 │  ┌─────────────────┐  ┌──────────────────┐  │
 │  │  Ollama + Qwen  │  │  Whisper API     │  │
-│  │  :11434         │  │  :8000           │  │
+│  │  :7866         │  │  :8000           │  │
 │  │  (LLM 分析)     │  │  (语音转录)       │  │
 │  └─────────────────┘  └──────────────────┘  │
 │           GPU                  GPU          │
@@ -52,20 +52,20 @@ ollama --version
 ### 1.2 拉取 Qwen 模型
 
 ```bash
-# 拉取 Qwen 2.5 14B 模型（约 9GB，需要等待）
-ollama pull qwen2.5:14b
+# 拉取 Qwen 3.5 9B 模型（约 9GB，需要等待）
+ollama pull qwen3.5:9b
 
 # 验证模型已下载
 ollama list
 
 # 快速测试
-ollama run qwen2.5:14b "你好，请用一句话介绍自己"
+ollama run qwen3.5:9b "你好，请用一句话介绍自己"
 ```
 
 **模型选择建议：**
-- `qwen2.5:14b` - 推荐，质量好（需要 ~10GB 内存）
-- `qwen2.5:7b` - 备选，内存不足时使用（需要 ~5GB 内存）
-- `qwen2.5:32b` - 最佳质量（需要 ~20GB 内存）
+- `qwen3.5:9b` - 推荐，质量好（需要 ~6GB VRAM）
+- `qwen3.5:4b` - 备选，内存不足时使用（需要 ~3GB VRAM）
+- `qwen3.5:35b` - 最佳质量（需要 ~22GB VRAM）
 
 ### 1.3 配置为网络服务
 
@@ -79,7 +79,7 @@ sudo systemctl edit ollama
 
 # 在打开的编辑器中添加以下内容：
 [Service]
-Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_HOST=0.0.0.0:7866"
 
 # 保存并退出，然后重启服务
 sudo systemctl restart ollama
@@ -95,7 +95,7 @@ sudo systemctl status ollama
 sudo systemctl stop ollama
 
 # 手动启动并监听所有网卡
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
+OLLAMA_HOST=0.0.0.0:7866 ollama serve
 ```
 
 ### 1.4 验证远程访问
@@ -104,11 +104,11 @@ OLLAMA_HOST=0.0.0.0:11434 ollama serve
 
 ```bash
 # 测试 API 可访问性
-curl http://<SERVER_IP>:11434/api/tags
+curl http://<SERVER_IP>:7866/api/tags
 
 # 测试生成功能
-curl http://<SERVER_IP>:11434/api/generate -d '{
-  "model": "qwen2.5:14b",
+curl http://<SERVER_IP>:7866/api/generate -d '{
+  "model": "qwen3.5:9b",
   "prompt": "你好",
   "stream": false
 }'
@@ -122,10 +122,10 @@ curl http://<SERVER_IP>:11434/api/generate -d '{
 
 ```bash
 # Ubuntu/Debian (ufw)
-sudo ufw allow 11434/tcp
+sudo ufw allow 7866/tcp
 
 # CentOS/RHEL (firewalld)
-sudo firewall-cmd --permanent --add-port=11434/tcp
+sudo firewall-cmd --permanent --add-port=7866/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -319,8 +319,8 @@ backends:
     language: zh
 
   ollama_qwen:
-    base_url: http://<SERVER_IP>:11434  # 替换为服务器 IP
-    model: qwen2.5:14b
+    base_url: http://<SERVER_IP>:7866  # 替换为服务器 IP
+    model: qwen3.5:9b
 ```
 
 ### 3. 测试配置
@@ -342,11 +342,11 @@ cat test_output/test_video/summary.md
 | 步骤 | 命令 | 预期结果 |
 |------|------|---------|
 | 1. 安装 Ollama | `ollama --version` | 显示版本号 |
-| 2. 拉取 Qwen | `ollama list` | 显示 qwen2.5:14b |
-| 3. Ollama 监听 0.0.0.0 | `curl http://<IP>:11434/api/tags` | 返回模型列表 JSON |
+| 2. 拉取 Qwen | `ollama list` | 显示 qwen3.5:9b |
+| 3. Ollama 监听 0.0.0.0 | `curl http://<IP>:7866/api/tags` | 返回模型列表 JSON |
 | 4. 安装 Whisper API | `curl http://<IP>:8000/docs` | 返回 API 文档页 |
 | 5. 测试转录 | POST `/v1/audio/transcriptions` | 返回转录文本 |
-| 6. 防火墙放行 | 端口 11434, 8000 | 从 Windows 可访问 |
+| 6. 防火墙放行 | 端口 7866, 8000 | 从 Windows 可访问 |
 | 7. 安装 FFmpeg | `ffmpeg -version` | 显示版本信息 |
 | 8. vbook 配置 | 编辑 `vbook.yaml` | 指向服务器 IP |
 | 9. 端到端测试 | `vbook process test.mp4` | 生成 summary.md |
@@ -360,7 +360,7 @@ cat test_output/test_video/summary.md
 **症状：** `curl: (7) Failed to connect`
 
 **解决方案：**
-1. 检查 Ollama 是否监听 0.0.0.0：`sudo netstat -tlnp | grep 11434`
+1. 检查 Ollama 是否监听 0.0.0.0：`sudo netstat -tlnp | grep 7866`
 2. 检查防火墙：`sudo ufw status` 或 `sudo firewall-cmd --list-ports`
 3. 检查服务状态：`sudo systemctl status ollama`
 
@@ -389,7 +389,7 @@ cat test_output/test_video/summary.md
 ### GPU 内存优化
 
 如果 GPU 内存不足，可以：
-- 使用更小的模型：`qwen2.5:7b` 或 `whisper small`
+- 使用更小的模型：`qwen3.5:4b` 或 `whisper small`
 - 限制并发处理数量
 - 调整 batch size（如果 API 支持）
 
@@ -405,7 +405,7 @@ cat test_output/test_video/summary.md
 
 ```bash
 # Ollama 预热
-curl http://<IP>:11434/api/generate -d '{"model":"qwen2.5:14b","prompt":"test"}'
+curl http://<IP>:7866/api/generate -d '{"model":"qwen3.5:9b","prompt":"test"}'
 
 # Whisper 预热
 curl -X POST http://<IP>:8000/v1/audio/transcriptions \
@@ -419,7 +419,7 @@ curl -X POST http://<IP>:8000/v1/audio/transcriptions \
 ### GPU 服务器最低配置
 
 - **GPU**: NVIDIA GPU with CUDA support
-  - Qwen 14B: 10GB+ VRAM
+  - Qwen 9B: 6GB+ VRAM
   - Whisper medium: 4GB+ VRAM
   - 建议：RTX 3090 (24GB) 或更高
 - **内存**: 16GB+ RAM

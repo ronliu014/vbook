@@ -14,7 +14,7 @@
 │                                             │
 │  ┌─────────────────┐  ┌──────────────────┐  │
 │  │  Ollama + Qwen  │  │  Whisper API     │  │
-│  │  :11434         │  │  :8000           │  │
+│  │  :7866         │  │  :8000           │  │
 │  │  (LLM 分析)     │  │  (语音转录)       │  │
 │  └─────────────────┘  └──────────────────┘  │
 │           GPU                  GPU          │
@@ -40,7 +40,7 @@
 ### 硬件要求
 
 - **GPU**: NVIDIA GPU with CUDA support
-  - Qwen 14B: 10GB+ VRAM
+  - Qwen 3.5 9B: 6GB+ VRAM
   - Whisper medium: 4GB+ VRAM
   - 推荐：RTX 3090 (24GB) 或更高
 - **内存**: 16GB+ RAM
@@ -88,23 +88,23 @@ ollama --version
 ### 1.2 拉取 Qwen 模型
 
 ```powershell
-# 拉取 Qwen 2.5 14B 模型（约 9GB，需要等待）
-ollama pull qwen2.5:14b
+# 拉取 Qwen 3.5 9B 模型（约 6GB，需要等待）
+ollama pull qwen3.5:9b
 
 # 验证模型已下载
 ollama list
 
 # 快速测试
-ollama run qwen2.5:14b "你好，请用一句话介绍自己"
+ollama run qwen3.5:9b "你好，请用一句话介绍自己"
 ```
 
 **模型选择建议：**
 
 | 模型 | VRAM 需求 | 质量 | 适用场景 |
 |------|----------|------|---------|
-| `qwen2.5:7b` | ~5GB | 中等 | 内存不足时 |
-| `qwen2.5:14b` | ~10GB | 推荐 | 默认选择 |
-| `qwen2.5:32b` | ~20GB | 最佳 | 高端 GPU |
+| `qwen3.5:4b` | ~3GB | 中等 | 内存不足时 |
+| `qwen3.5:9b` | ~6GB | 推荐 | 默认选择 |
+| `qwen3.5:35b` | ~24GB | 最佳 | 高端 GPU |
 
 ### 1.3 配置远程访问
 
@@ -115,7 +115,7 @@ ollama run qwen2.5:14b "你好，请用一句话介绍自己"
 1. 打开 **系统属性** → **高级** → **环境变量**
 2. 在 **系统变量** 中点击 **新建**
 3. 变量名：`OLLAMA_HOST`
-4. 变量值：`0.0.0.0:11434`
+4. 变量值：`0.0.0.0:7866`
 5. 点击 **确定** 保存
 6. **重启 Ollama 服务**（任务栏右键 Ollama 图标 → Quit → 重新打开 Ollama）
 
@@ -123,7 +123,7 @@ ollama run qwen2.5:14b "你好，请用一句话介绍自己"
 
 ```powershell
 # 设置系统环境变量
-[System.Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:11434", "Machine")
+[System.Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:7866", "Machine")
 
 # 重启 Ollama 服务
 taskkill /f /im ollama.exe 2>$null
@@ -138,7 +138,7 @@ Start-Process "ollama" "serve"
 taskkill /f /im ollama.exe 2>$null
 
 # 设置环境变量并启动
-$env:OLLAMA_HOST = "0.0.0.0:11434"
+$env:OLLAMA_HOST = "0.0.0.0:7866"
 ollama serve
 ```
 
@@ -148,21 +148,21 @@ ollama serve
 
 ```powershell
 # 测试 API 可访问性
-curl http://<SERVER_IP>:11434/api/tags
+curl http://<SERVER_IP>:7866/api/tags
 
 # 测试生成功能
-curl http://<SERVER_IP>:11434/api/generate -d '{"model":"qwen2.5:14b","prompt":"你好","stream":false}'
+curl http://<SERVER_IP>:7866/api/generate -d '{"model":"qwen3.5:9b","prompt":"你好","stream":false}'
 ```
 
-**或在浏览器中访问：** `http://<SERVER_IP>:11434/`，应显示 "Ollama is running"。
+**或在浏览器中访问：** `http://<SERVER_IP>:7866/`，应显示 "Ollama is running"。
 
 ### 1.5 防火墙配置
 
 **PowerShell（以管理员身份运行）：**
 
 ```powershell
-# 添加入站规则允许 11434 端口
-New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 11434 -Action Allow
+# 添加入站规则允许 7866 端口
+New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 7866 -Action Allow
 
 # 验证规则
 Get-NetFirewallRule -DisplayName "Ollama API" | Format-Table
@@ -173,7 +173,7 @@ Get-NetFirewallRule -DisplayName "Ollama API" | Format-Table
 1. 打开 **Windows Defender 防火墙** → **高级设置**
 2. 点击 **入站规则** → **新建规则**
 3. 选择 **端口** → 下一步
-4. 选择 **TCP**，输入端口 `11434` → 下一步
+4. 选择 **TCP**，输入端口 `7866` → 下一步
 5. 选择 **允许连接** → 下一步
 6. 勾选 **域**、**专用**、**公用** → 下一步
 7. 名称输入 `Ollama API` → 完成
@@ -413,15 +413,15 @@ backends:
     language: zh
 
   ollama_qwen:
-    base_url: http://<SERVER_IP>:11434
-    model: qwen2.5:14b
+    base_url: http://<SERVER_IP>:7866
+    model: qwen3.5:9b
 ```
 
 ### 3. 测试连接
 
 ```bash
 # 测试 Ollama
-curl http://<SERVER_IP>:11434/api/tags
+curl http://<SERVER_IP>:7866/api/tags
 
 # 测试 Whisper
 curl http://<SERVER_IP>:8000/docs
@@ -435,10 +435,10 @@ curl http://<SERVER_IP>:8000/docs
 |------|----------|---------|
 | 1. GPU 驱动 | `nvidia-smi` | 显示 GPU 型号和 CUDA 版本 |
 | 2. 安装 Ollama | `ollama --version` | 显示版本号 |
-| 3. 拉取 Qwen | `ollama list` | 显示 qwen2.5:14b |
-| 4. Ollama 远程访问 | 浏览器 `http://<IP>:11434/` | 显示 "Ollama is running" |
+| 3. 拉取 Qwen | `ollama list` | 显示 qwen3.5:9b |
+| 4. Ollama 远程访问 | 浏览器 `http://<IP>:7866/` | 显示 "Ollama is running" |
 | 5. 安装 Whisper API | 浏览器 `http://<IP>:8000/docs` | 显示 API 文档 |
-| 6. 防火墙 11434 | `curl http://<IP>:11434/api/tags` | 返回模型列表 |
+| 6. 防火墙 7866 | `curl http://<IP>:7866/api/tags` | 返回模型列表 |
 | 7. 防火墙 8000 | `curl http://<IP>:8000/docs` | 返回 API 文档 |
 | 8. vbook 配置 | 编辑 `vbook.yaml` | 填入服务器 IP |
 | 9. 端到端测试 | `vbook process test.mp4` | 生成 summary.md |
@@ -449,7 +449,7 @@ curl http://<SERVER_IP>:8000/docs
 
 ### Ollama 无法远程访问
 
-**症状：** 浏览器或 curl 无法连接 `http://<IP>:11434`
+**症状：** 浏览器或 curl 无法连接 `http://<IP>:7866`
 
 **排查步骤：**
 
@@ -458,12 +458,12 @@ curl http://<SERVER_IP>:8000/docs
 tasklist /fi "imagename eq ollama.exe"
 
 # 2. 检查监听地址
-netstat -an | findstr "11434"
-# 应显示 0.0.0.0:11434 而非 127.0.0.1:11434
+netstat -an | findstr "7866"
+# 应显示 0.0.0.0:7866 而非 127.0.0.1:7866
 
 # 3. 检查环境变量
 echo %OLLAMA_HOST%
-# 应显示 0.0.0.0:11434
+# 应显示 0.0.0.0:7866
 
 # 4. 检查防火墙
 Get-NetFirewallRule -DisplayName "Ollama API"
@@ -528,7 +528,7 @@ docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi
 ping <SERVER_IP>
 
 # 2. 测试端口
-Test-NetConnection -ComputerName <SERVER_IP> -Port 11434
+Test-NetConnection -ComputerName <SERVER_IP> -Port 7866
 Test-NetConnection -ComputerName <SERVER_IP> -Port 8000
 ```
 
@@ -552,7 +552,7 @@ nvidia-smi
 # Whisper 需要在启动时指定 device
 
 # 或使用更小的模型
-ollama pull qwen2.5:7b  # 替代 14b
+ollama pull qwen3.5:4b  # 替代 9b
 # Whisper 使用 small 替代 medium
 ```
 
@@ -562,7 +562,7 @@ ollama pull qwen2.5:7b  # 替代 14b
 
 ```powershell
 # Ollama 预热
-curl http://localhost:11434/api/generate -d '{\"model\":\"qwen2.5:14b\",\"prompt\":\"test\",\"stream\":false}'
+curl http://localhost:7866/api/generate -d '{\"model\":\"qwen3.5:9b\",\"prompt\":\"test\",\"stream\":false}'
 
 # Whisper 预热（准备一个短音频文件）
 curl -X POST http://localhost:8000/v1/audio/transcriptions -F "file=@short_audio.wav" -F "model=medium"

@@ -478,7 +478,7 @@ def test_summarize_stage(tmp_path):
             choices=[MagicMock(message=MagicMock(content="摘要内容"))]
         )
 
-        backend = LiteLLMBackend(model="ollama/qwen2.5:14b")
+        backend = LiteLLMBackend(model="ollama/qwen3.5:9b")
         stage = SummarizeStage(llm_backend=backend, cache_dir=tmp_path)
         result = stage.run(context={"transcript_path": str(transcript_file)})
 

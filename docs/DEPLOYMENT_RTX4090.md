@@ -12,7 +12,7 @@
 
 | 项目 | 配置 |
 |------|------|
-| **GPU** | NVIDIA GeForce RTX 4090 × 2（仅使用 GPU 0） |
+| **GPU** | NVIDIA GeForce RTX 4090 × 2（使用 GPU 0） |
 | **GPU VRAM** | 24GB（已用 ~5.1GB，可用 ~19GB） |
 | **CPU** | 16 核 32 线程 @ 3.10GHz |
 | **内存** | 107GB 可用 @ 2400MHz |
@@ -26,18 +26,18 @@
 ```
 RTX 4090 GPU 0（24GB VRAM）
 ├── 已占用:           ~5.1GB
-├── Ollama qwen2.5:14b:  ~10GB
+├── Ollama qwen3.5:9b:   ~6GB
 ├── Whisper medium:       ~2GB
-├── 剩余:              ~6.9GB（余量充足）
+├── 剩余:              ~10.9GB（余量充足）
 └── 总计:              24GB
 ```
 
 | 服务 | 模型 | VRAM | 端口 | 理由 |
 |------|------|------|------|------|
-| **Ollama** | qwen2.5:14b | ~10GB | 11434 | 14b 是单卡能跑的最大规格，质量好 |
+| **Ollama** | qwen3.5:9b | ~6GB | 7866 | 原生多模态，性能优于 qwen2.5:14b，VRAM 占用更少 |
 | **Whisper** | medium | ~2GB | 8000 | 中文 95%+ 准确率，速度快 |
 
-> **升级说明：** 如果转录质量不满意，Whisper 可升级到 `large-v3`（+2GB VRAM）。Qwen 无法升级到 32b（VRAM 不足）。
+> **升级说明：** Qwen 3.5 相比 2.5 架构全面升级，9b 模型内置视觉理解能力，256K 上下文窗口，201 种语言支持。如果转录质量不满意，Whisper 可升级到 `large-v3`（+2GB VRAM），VRAM 余量充足。
 
 ---
 
@@ -73,19 +73,82 @@ ollama --version
 以**管理员身份**打开 PowerShell：
 
 ```powershell
-# 监听所有网卡（支持远程访问）
-[System.Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:11434", "Machine")
+# 监听所有网卡，使用自定义端口 7866
+[System.Environment]::SetEnvironmentVariable("OLLAMA_HOST", "0.0.0.0:7866", "Machine")
 
 # 强制使用 GPU 0
 [System.Environment]::SetEnvironmentVariable("CUDA_VISIBLE_DEVICES", "0", "Machine")
+
+# 自定义模型存储路径（可选，避免占用 C 盘空间）
+[System.Environment]::SetEnvironmentVariable("OLLAMA_MODELS", "D:\ollama\models", "Machine")
 ```
 
-**重启 Ollama：**
+**使用 Ollama 管理脚本启动：**
+
+将以下脚本保存为 `ollama-manage.ps1`（建议放在 `C:\scripts\` 目录下）：
 
 ```powershell
-taskkill /f /im ollama.exe 2>$null
-Start-Sleep -Seconds 3
-Start-Process "ollama" "serve"
+<#
+.SYNOPSIS
+Ollama One-Click Manager (GPU + Port + Custom Model Path)
+#>
+
+# ====================== 配置区 ======================
+$GPU_ID = "0"
+$OLLAMA_HOST = "0.0.0.0"
+$OLLAMA_PORT = "7866"
+$OLLAMA_MODELS_PATH = "D:\ollama\models"
+# ====================================================
+
+function Stop-OllamaCustom {
+    Write-Host "`n[-] Stopping Ollama..." -ForegroundColor Red
+    taskkill /F /IM ollama.exe 2>&1 | Out-Null
+    taskkill /F /IM ollama-app.exe 2>&1 | Out-Null
+    Write-Host "[OK] Ollama stopped"
+    Start-Sleep -Milliseconds 1000
+}
+
+function Start-OllamaCustom {
+    Write-Host "`n[+] Starting Ollama..." -ForegroundColor Cyan
+    Write-Host "    GPU: $GPU_ID"
+    Write-Host "    Listen: $OLLAMA_HOST : $OLLAMA_PORT"
+    Write-Host "    Model Path: $OLLAMA_MODELS_PATH`n"
+
+    # 核心环境变量
+    $env:CUDA_VISIBLE_DEVICES = $GPU_ID
+    $env:OLLAMA_HOST = "$OLLAMA_HOST`:$OLLAMA_PORT"
+    $env:OLLAMA_MODELS = $OLLAMA_MODELS_PATH
+
+    ollama serve
+}
+
+function Restart-OllamaCustom {
+    Stop-OllamaCustom
+    Start-OllamaCustom
+}
+
+# ====================== Menu ======================
+Write-Host "==================== Ollama Manager ===================="
+Write-Host "1 - Start (GPU $GPU_ID + Port $OLLAMA_PORT)"
+Write-Host "2 - Stop"
+Write-Host "3 - Restart"
+Write-Host "========================================================="
+$choice = Read-Host "Enter selection [1/2/3]"
+
+switch ($choice) {
+    1 { Start-OllamaCustom }
+    2 { Stop-OllamaCustom }
+    3 { Restart-OllamaCustom }
+    default { Write-Host "Invalid option"; exit }
+}
+```
+
+**启动方式：**
+
+```powershell
+# 右键 ollama-manage.ps1 → "使用 PowerShell 运行"
+# 或在 PowerShell 中执行：
+.\ollama-manage.ps1
 ```
 
 ---
@@ -93,14 +156,14 @@ Start-Process "ollama" "serve"
 ### 第 4 步：拉取 Qwen 模型（10-30 分钟）
 
 ```powershell
-# 拉取模型（约 9GB，取决于网速）
-ollama pull qwen2.5:14b
+# 拉取模型（约 6GB，取决于网速）
+ollama pull qwen3.5:9b
 
 # 验证
 ollama list
 
 # 测试
-ollama run qwen2.5:14b "你好，请用一句话介绍Python语言"
+ollama run qwen3.5:9b "你好，请用一句话介绍Python语言"
 ```
 
 看到中文回复即为成功。按 `/bye` 退出对话。
@@ -200,7 +263,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 以**管理员身份**打开 PowerShell：
 
 ```powershell
-New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 11434 -Action Allow
+New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 7866 -Action Allow
 New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
 ```
 
@@ -212,7 +275,7 @@ New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP 
 
 ```powershell
 # 验证 Ollama
-curl http://localhost:11434/api/tags
+curl http://localhost:7866/api/tags
 
 # 验证 Whisper API
 curl http://localhost:8000/health
@@ -221,7 +284,7 @@ curl http://localhost:8000/health
 nvidia-smi
 ```
 
-`nvidia-smi` 输出中应看到 GPU 0 的显存占用增加（Ollama ~10GB + Whisper ~2GB）。
+`nvidia-smi` 输出中应看到 GPU 0 的显存占用增加（Ollama ~6GB + Whisper ~2GB）。
 
 ---
 
@@ -231,13 +294,13 @@ nvidia-smi
 
 ```powershell
 # 测试 Ollama
-curl http://<SERVER_IP>:11434/api/tags
+curl http://<SERVER_IP>:7866/api/tags
 
 # 测试 Whisper API
 curl http://<SERVER_IP>:8000/health
 
 # 浏览器测试
-# http://<SERVER_IP>:11434/        → 显示 "Ollama is running"
+# http://<SERVER_IP>:7866/        → 显示 "Ollama is running"
 # http://<SERVER_IP>:8000/docs     → 显示 API 文档
 ```
 
@@ -247,7 +310,17 @@ curl http://<SERVER_IP>:8000/health
 
 #### Ollama
 
-Ollama Windows 安装版默认开机自启，无需额外配置。
+推荐使用任务计划程序配合 `ollama-manage.ps1` 脚本实现开机自启：
+
+1. 打开 `taskschd.msc`
+2. 创建基本任务 → 名称 `Ollama Serve`
+3. 触发器：计算机启动时
+4. 操作：启动程序
+   - 程序：`powershell.exe`
+   - 参数：`-ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\scripts\ollama-manage.ps1"`
+5. 勾选 **使用最高权限运行**
+
+> **注意：** 如果使用任务计划程序，需要修改脚本去掉末尾的交互式菜单，直接调用 `Start-Ollama-Background`。
 
 #### Whisper API
 
@@ -289,14 +362,14 @@ C:\nssm\nssm.exe status WhisperAPI
 
 - [ ] `nvidia-smi` 显示两块 RTX 4090
 - [ ] `ollama --version` 显示版本号
-- [ ] `OLLAMA_HOST` 环境变量设为 `0.0.0.0:11434`
+- [ ] `OLLAMA_HOST` 环境变量设为 `0.0.0.0:7866`
 - [ ] `CUDA_VISIBLE_DEVICES` 环境变量设为 `0`
-- [ ] `ollama list` 显示 qwen2.5:14b
-- [ ] `ollama run qwen2.5:14b "你好"` 返回中文回复
+- [ ] `ollama list` 显示 qwen3.5:9b
+- [ ] `ollama run qwen3.5:9b "你好"` 返回中文回复
 - [ ] `C:\whisper-api\server.py` 文件已创建
 - [ ] Whisper API 启动成功（`http://localhost:8000/health` 返回 ok）
-- [ ] 防火墙已放行 11434 和 8000 端口
-- [ ] 从开发机可访问 `http://<SERVER_IP>:11434/`
+- [ ] 防火墙已放行 7866 和 8000 端口
+- [ ] 从开发机可访问 `http://<SERVER_IP>:7866/`
 - [ ] 从开发机可访问 `http://<SERVER_IP>:8000/health`
 - [ ] 已设置开机自启
 
@@ -320,10 +393,17 @@ nvidia-smi
 ### 重启服务
 
 ```powershell
-# 重启 Ollama
+# 重启 Ollama（使用管理脚本）
+.\ollama-manage.ps1
+# 选择 3（重启）
+
+# 或手动重启
 taskkill /f /im ollama.exe
 Start-Sleep -Seconds 3
-Start-Process "ollama" "serve"
+$env:CUDA_VISIBLE_DEVICES = "0"
+$env:OLLAMA_HOST = "0.0.0.0:7866"
+$env:OLLAMA_MODELS = "D:\ollama\models"
+ollama serve
 
 # 重启 Whisper API（如果用 NSSM）
 C:\nssm\nssm.exe restart WhisperAPI
@@ -333,7 +413,7 @@ C:\nssm\nssm.exe restart WhisperAPI
 
 ```powershell
 # 更新 Qwen 模型
-ollama pull qwen2.5:14b
+ollama pull qwen3.5:9b
 
 # 如需升级 Whisper 到 large-v3，修改 server.py 中：
 # model = WhisperModel("large-v3", device="cuda")
@@ -346,10 +426,10 @@ ollama pull qwen2.5:14b
 
 | 问题 | 排查命令 | 解决方案 |
 |------|---------|---------|
-| Ollama 无法远程访问 | `netstat -an \| findstr 11434` | 确认显示 `0.0.0.0:11434`，否则重设 OLLAMA_HOST |
+| Ollama 无法远程访问 | `netstat -an \| findstr 7866` | 确认显示 `0.0.0.0:7866`，否则重设 OLLAMA_HOST/OLLAMA_PORT |
 | Whisper 启动失败 | 查看控制台错误 | 通常是 CUDA 版本问题，重装 faster-whisper |
 | GPU 内存不足 | `nvidia-smi` | 关闭其他 GPU 程序，或换更小模型 |
-| 远程连不上 | `Test-NetConnection <IP> -Port 11434` | 检查防火墙规则 |
+| 远程连不上 | `Test-NetConnection <IP> -Port 7866` | 检查防火墙规则 |
 | 模型下载慢 | - | 配置代理或使用镜像源 |
 
 ---
@@ -358,6 +438,6 @@ ollama pull qwen2.5:14b
 
 回到开发机，告诉我服务器 IP 地址，我会帮你：
 
-1. 配置 `vbook.yaml`
+1. 配置 `vbook.yaml`（指向服务器 IP，端口 7866）
 2. 运行端到端测试
 3. 验证输出质量
