@@ -21,7 +21,10 @@
       "Bash(python -m pytest --collect-only -q)",
       "Bash(/e/projects/my_app/vbook/.venv/Scripts/python -m pytest --collect-only -q 2>&1)",
       "Bash(/e/projects/my_app/vbook/.venv/Scripts/python -m pytest --cov=vbook --cov-report=term)",
-      "Bash(ffmpeg -version)"
+      "Bash(ffmpeg -version)",
+      "Bash(python:*)",
+      "Bash(pip show:*)",
+      "Bash(ls:*)"
     ]
   }
 }
