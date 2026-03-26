@@ -1,3 +1,4 @@
+import logging
 import pytest
 from pathlib import Path
 from vbook.pipeline.stage import Stage, StageResult, StageStatus
@@ -63,3 +64,34 @@ def test_engine_retries_on_failure(tmp_path):
     results = engine.run([stage], context={})
     assert results["flaky_stage"].status == StageStatus.SUCCESS
     assert stage.call_count == 3
+
+def test_engine_logs_stage_start_and_complete(tmp_path, caplog):
+    class FakeStage(Stage):
+        name = "fake"
+        def run(self, context):
+            return StageResult(status=StageStatus.SUCCESS, output={})
+        def can_skip(self, tracker):
+            return False
+
+    with caplog.at_level(logging.DEBUG, logger="vbook"):
+        engine = PipelineEngine(cache_dir=tmp_path, max_retries=1)
+        engine.run([FakeStage()], context={})
+
+    messages = [r.message for r in caplog.records]
+    assert any("fake" in m for m in messages)
+
+def test_retry_logs_on_failure(caplog):
+    from vbook.utils.retry import with_retry
+
+    attempts = []
+    def flaky():
+        attempts.append(1)
+        if len(attempts) < 2:
+            raise ValueError("transient error")
+        return "ok"
+
+    with caplog.at_level(logging.WARNING, logger="vbook"):
+        result = with_retry(flaky, max_retries=3, base_delay=0)
+
+    assert result == "ok"
+    assert any("transient error" in r.message for r in caplog.records)
