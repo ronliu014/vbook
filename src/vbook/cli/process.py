@@ -29,7 +29,25 @@ logger = get_logger(__name__)
 @click.option("--force", "-f", is_flag=True, help="强制重新处理所有阶段")
 @click.option("--verbose", "-v", is_flag=True, help="启用详细日志输出")
 def process(target, output, config, force, verbose):
-    """处理视频文件或目录"""
+    """处理视频文件或目录
+
+    \b
+    TARGET 可以是单个视频文件或包含视频的目录。
+    支持 .mp4 和 .mkv 格式。
+
+    \b
+    示例:
+      vbook process video.mp4 -c vbook.yaml
+      vbook process video.mp4 -c vbook.yaml -o ./output
+      vbook process ./videos/ -c vbook.yaml
+      vbook process video.mp4 -c vbook.yaml --verbose --force
+
+    \b
+    注意:
+      必须通过 -c 指定配置文件（如 vbook.yaml），否则使用内置默认值
+      （默认连接 localhost，可能不是你想要的）。
+      用 vbook init 生成初始配置文件。
+    """
     target_path = Path(target)
     cfg = load_config(config_path=Path(config) if config else None)
 
@@ -49,7 +67,7 @@ def _process_single(video_path: Path, output: str, cfg, force: bool, verbose: bo
     output_dir = resolve_output_dir(video_path, source_root, output_root)
     cache_dir = get_cache_dir(output_dir, cfg.processing.intermediate_dir)
 
-    setup_logging(output_dir=output_dir, verbose=verbose)
+    setup_logging(output_dir=output_dir, verbose=verbose, level=cfg.logging.level)
 
     if force and cache_dir.exists():
         import shutil

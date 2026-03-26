@@ -10,7 +10,17 @@ console = Console()
 @click.option("--output", "-o", required=True, type=click.Path(), help="输出根目录")
 @click.option("--config", "-c", default="vbook.yaml", help="配置文件路径")
 def init_cmd(source, output, config):
-    """初始化 vbook 配置文件"""
+    """初始化 vbook 配置文件
+
+    \b
+    生成 vbook.yaml 配置文件，包含视频源目录、输出目录和后端设置。
+    生成后请编辑配置文件，将后端地址改为你的实际服务地址。
+
+    \b
+    示例:
+      vbook init -s ./videos -o ./output
+      vbook init -s ./videos -o ./output -c my_config.yaml
+    """
     config_data = {
         "source": {"video_dirs": [str(Path(source).resolve())]},
         "output": {"root": str(Path(output).resolve()), "structure": "mirror"},

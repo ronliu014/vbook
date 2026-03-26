@@ -14,6 +14,9 @@ class ProcessingConfig(BaseModel):
     keep_intermediate: bool = True
     max_retries: int = 3
 
+class LoggingConfig(BaseModel):
+    level: str = "INFO"
+
 class BackendsConfig(BaseModel):
     stt: str = "whisper_local"
     llm: str = "ollama_qwen"
@@ -29,4 +32,5 @@ class VbookConfig(BaseModel):
     source: SourceConfig = Field(default_factory=SourceConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     processing: ProcessingConfig = Field(default_factory=ProcessingConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
     backends: BackendsConfig = Field(default_factory=BackendsConfig)

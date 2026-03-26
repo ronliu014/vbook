@@ -13,12 +13,13 @@ def test_setup_logging_creates_log_file(tmp_path):
     output_dir.mkdir()
     setup_logging(output_dir=output_dir, verbose=False)
 
-    log_file = output_dir / "vbook.log"
+    log_files = list(output_dir.glob("vbook_*.log"))
+    assert len(log_files) >= 1
+
     logger = get_logger("vbook.test_file")
     logger.info("test message")
 
-    assert log_file.exists()
-    content = log_file.read_text(encoding="utf-8")
+    content = log_files[0].read_text(encoding="utf-8")
     assert "test message" in content
 
 def test_setup_logging_verbose_sets_debug_level(tmp_path):
@@ -35,5 +36,6 @@ def test_setup_logging_creates_project_log(tmp_path, monkeypatch):
     output_dir.mkdir()
     setup_logging(output_dir=output_dir, verbose=False)
 
-    project_log = tmp_path / "logs" / "vbook.log"
-    assert project_log.exists()
+    project_log_dir = tmp_path / "logs"
+    log_files = list(project_log_dir.glob("vbook_*.log"))
+    assert len(log_files) >= 1
