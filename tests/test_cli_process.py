@@ -63,4 +63,25 @@ def test_process_loads_glossary_and_creates_proofread_stage(tmp_path):
     assert "proofread" in stage_names
     # proofread should be after transcribe and before analyze
     assert stage_names.index("proofread") == stage_names.index("transcribe") + 1
-    assert stage_names.index("proofread") == stage_names.index("analyze") - 1
+    assert stage_names.index("proofread") < stage_names.index("analyze")
+
+def test_process_includes_scene_detect_stage(tmp_path):
+    from click.testing import CliRunner
+    from unittest.mock import patch, MagicMock
+    from vbook.cli.main import cli
+
+    video = tmp_path / "test.mp4"
+    video.write_bytes(b"fake video")
+
+    with patch("vbook.cli.process.PipelineEngine") as MockEngine:
+        MockEngine.return_value.run.return_value = {}
+        runner = CliRunner()
+        result = runner.invoke(cli, ["process", str(video)])
+
+    call_args = MockEngine.return_value.run.call_args
+    stages = call_args[0][0]
+    stage_names = [s.name for s in stages]
+    assert "scene_detect" in stage_names
+    # scene_detect should be after proofread and before analyze
+    assert stage_names.index("scene_detect") < stage_names.index("analyze")
+    assert stage_names.index("scene_detect") > stage_names.index("transcribe")

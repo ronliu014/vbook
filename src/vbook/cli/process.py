@@ -17,6 +17,7 @@ from vbook.stages.audio_extract import AudioExtractStage
 from vbook.stages.transcribe import TranscribeStage
 from vbook.stages.proofread import ProofreadStage
 from vbook.stages.analyze import AnalyzeStage
+from vbook.stages.scene_detect import SceneDetectStage
 from vbook.stages.screenshot import ScreenshotStage
 from vbook.stages.generate import GenerateStage
 from vbook.utils.glossary import load_glossary, extract_hotwords
@@ -88,12 +89,25 @@ def _process_single(video_path: Path, output: str, cfg, force: bool, verbose: bo
     glossary = load_glossary(cfg.processing.glossary)
     hotwords = extract_hotwords(glossary)
 
+    ss_cfg = cfg.processing.screenshot
+
     stages = [
         AudioExtractStage(video_path=video_path, cache_dir=cache_dir),
         TranscribeStage(stt_backend=stt, cache_dir=cache_dir, hotwords=hotwords),
         ProofreadStage(llm_backend=llm, cache_dir=cache_dir, glossary=glossary),
+        SceneDetectStage(
+            video_path=video_path,
+            cache_dir=cache_dir,
+            sample_interval=ss_cfg.sample_interval,
+            threshold=ss_cfg.threshold,
+        ),
         AnalyzeStage(llm_backend=llm, cache_dir=cache_dir),
-        ScreenshotStage(video_path=video_path, cache_dir=cache_dir),
+        ScreenshotStage(
+            video_path=video_path,
+            cache_dir=cache_dir,
+            search_window=ss_cfg.search_window,
+            dedup_window=ss_cfg.dedup_window,
+        ),
         GenerateStage(output_dir=output_dir, cache_dir=cache_dir),
     ]
 
