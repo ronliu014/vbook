@@ -9,11 +9,18 @@ class OutputConfig(BaseModel):
     root: Optional[Path] = None
     structure: str = "mirror"
 
+class ScreenshotConfig(BaseModel):
+    sample_interval: float = 5.0
+    threshold: float = 0.3
+    search_window: float = 10.0
+    dedup_window: float = 5.0
+
 class ProcessingConfig(BaseModel):
     intermediate_dir: str = ".vbook_cache"
     keep_intermediate: bool = True
     max_retries: int = 3
     glossary: Optional[str] = None
+    screenshot: ScreenshotConfig = Field(default_factory=ScreenshotConfig)
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"

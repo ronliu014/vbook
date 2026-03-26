@@ -38,3 +38,11 @@ def test_config_glossary_from_yaml(tmp_path):
     config_file.write_text("processing:\n  glossary: glossary/investment.yaml\n")
     cfg = load_config(config_path=config_file)
     assert cfg.processing.glossary == "glossary/investment.yaml"
+
+def test_config_screenshot_defaults():
+    from vbook.config.schema import VbookConfig
+    cfg = VbookConfig()
+    assert cfg.processing.screenshot.sample_interval == 5.0
+    assert cfg.processing.screenshot.threshold == 0.3
+    assert cfg.processing.screenshot.search_window == 10.0
+    assert cfg.processing.screenshot.dedup_window == 5.0
