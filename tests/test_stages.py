@@ -357,3 +357,35 @@ def test_transcribe_stage_passes_hotwords(tmp_path):
 
     call_kwargs = mock_backend.transcribe.call_args
     assert call_kwargs.kwargs.get("hotwords") == ["PE比"] or call_kwargs[1].get("hotwords") == ["PE比"]
+
+
+def test_analyze_stage_parses_visual_cues(tmp_path):
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    transcript = {
+        "language": "zh",
+        "segments": [{"start": 0, "end": 10, "text": "看这张图"}],
+        "full_text": "看这张图",
+    }
+    transcript_path = cache_dir / "transcript.json"
+    transcript_path.write_text(json.dumps(transcript, ensure_ascii=False), encoding="utf-8")
+
+    llm_response = json.dumps({
+        "title": "测试",
+        "outline": [{"title": "第一节", "summary": "内容", "key_timestamps": [10.0]}],
+        "keywords": ["测试"],
+        "visual_cues": [{"timestamp": 5.0, "cue_text": "看这张图", "description": "图表"}],
+    }, ensure_ascii=False)
+
+    mock_llm = MagicMock()
+    mock_llm.analyze.return_value = llm_response
+
+    from vbook.stages.analyze import AnalyzeStage
+    stage = AnalyzeStage(llm_backend=mock_llm, cache_dir=cache_dir)
+    result = stage.run(context={"transcript_path": str(transcript_path)})
+
+    assert result.status == StageStatus.SUCCESS
+    analysis = json.loads(Path(result.output["analysis_path"]).read_text(encoding="utf-8"))
+    assert "visual_cues" in analysis
+    assert analysis["visual_cues"][0]["timestamp"] == 5.0
