@@ -15,9 +15,11 @@ from vbook.backends.stt.whisper_remote import WhisperRemoteBackend
 from vbook.backends.llm.litellm_backend import LiteLLMBackend
 from vbook.stages.audio_extract import AudioExtractStage
 from vbook.stages.transcribe import TranscribeStage
+from vbook.stages.proofread import ProofreadStage
 from vbook.stages.analyze import AnalyzeStage
 from vbook.stages.screenshot import ScreenshotStage
 from vbook.stages.generate import GenerateStage
+from vbook.utils.glossary import load_glossary, extract_hotwords
 
 console = Console()
 logger = get_logger(__name__)
@@ -82,9 +84,14 @@ def _process_single(video_path: Path, output: str, cfg, force: bool, verbose: bo
         base_url=cfg.backends.ollama_qwen.get("base_url"),
     )
 
+    # Load glossary
+    glossary = load_glossary(cfg.processing.glossary)
+    hotwords = extract_hotwords(glossary)
+
     stages = [
         AudioExtractStage(video_path=video_path, cache_dir=cache_dir),
-        TranscribeStage(stt_backend=stt, cache_dir=cache_dir),
+        TranscribeStage(stt_backend=stt, cache_dir=cache_dir, hotwords=hotwords),
+        ProofreadStage(llm_backend=llm, cache_dir=cache_dir, glossary=glossary),
         AnalyzeStage(llm_backend=llm, cache_dir=cache_dir),
         ScreenshotStage(video_path=video_path, cache_dir=cache_dir),
         GenerateStage(output_dir=output_dir, cache_dir=cache_dir),
