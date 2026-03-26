@@ -36,7 +36,8 @@ def test_audio_extract_sets_correct_path(tmp_path):
     assert result.output["audio_path"].endswith("audio.wav")
 
 from vbook.backends.stt.whisper import WhisperSTTBackend
-from vbook.backends.base import TranscriptResult
+from vbook.backends.base import TranscriptResult, TranscriptSegment
+from vbook.stages.transcribe import TranscribeStage
 
 def test_whisper_backend_returns_transcript():
     mock_segment = MagicMock()
@@ -303,3 +304,56 @@ def test_generate_stage_without_screenshots(tmp_path):
     md_content = Path(result.output["markdown_path"]).read_text(encoding="utf-8")
     assert "第一节" in md_content
     assert "![" not in md_content
+
+
+def test_whisper_backend_passes_hotwords():
+    mock_segment = MagicMock()
+    mock_segment.start = 0.0
+    mock_segment.end = 5.0
+    mock_segment.text = "PE比很高"
+
+    with patch("vbook.backends.stt.whisper.WhisperModel") as MockModel:
+        instance = MockModel.return_value
+        instance.transcribe.return_value = ([mock_segment], MagicMock(language="zh"))
+
+        backend = WhisperSTTBackend(model="small", device="cpu")
+        result = backend.transcribe("/tmp/audio.wav", hotwords=["PE比", "满仓"])
+
+    call_kwargs = instance.transcribe.call_args
+    assert call_kwargs.kwargs.get("hotwords") == "PE比 满仓" or "PE比" in str(call_kwargs)
+
+
+def test_whisper_remote_ignores_hotwords(tmp_path):
+    """Remote backend should accept hotwords param without error (graceful ignore)."""
+    audio_file = tmp_path / "audio.wav"
+    audio_file.write_bytes(b"fake audio data")
+
+    fake_response = MagicMock()
+    fake_response.status_code = 200
+    fake_response.json.return_value = {
+        "language": "zh",
+        "segments": [{"start": 0.0, "end": 3.5, "text": "你好"}],
+    }
+
+    with patch("httpx.post", return_value=fake_response):
+        backend = WhisperRemoteBackend(base_url="http://gpu-server:7867")
+        result = backend.transcribe(str(audio_file), hotwords=["PE比"])
+
+    assert result.segments[0].text == "你好"
+
+
+def test_transcribe_stage_passes_hotwords(tmp_path):
+    mock_backend = MagicMock()
+    mock_backend.transcribe.return_value = TranscriptResult(
+        segments=[TranscriptSegment(start=0, end=5, text="test")],
+        language="zh",
+    )
+
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    stage = TranscribeStage(stt_backend=mock_backend, cache_dir=cache_dir, hotwords=["PE比"])
+    result = stage.run(context={"audio_path": "/tmp/audio.wav"})
+
+    call_kwargs = mock_backend.transcribe.call_args
+    assert call_kwargs.kwargs.get("hotwords") == ["PE比"] or call_kwargs[1].get("hotwords") == ["PE比"]

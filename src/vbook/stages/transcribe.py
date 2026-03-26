@@ -6,16 +6,17 @@ from ..backends.base import STTBackend
 class TranscribeStage(Stage):
     name = "transcribe"
 
-    def __init__(self, stt_backend: STTBackend, cache_dir: Path):
+    def __init__(self, stt_backend: STTBackend, cache_dir: Path, hotwords: list[str] | None = None):
         self.stt_backend = stt_backend
         self.cache_dir = cache_dir
+        self.hotwords = hotwords
 
     def run(self, context: dict) -> StageResult:
         audio_path = context.get("audio_path")
         if not audio_path:
             raise ValueError("audio_path not found in context")
 
-        result = self.stt_backend.transcribe(audio_path)
+        result = self.stt_backend.transcribe(audio_path, hotwords=self.hotwords)
 
         transcript_path = self.cache_dir / "transcript.json"
         transcript_data = {

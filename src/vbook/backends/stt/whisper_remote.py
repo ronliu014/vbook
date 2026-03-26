@@ -1,5 +1,8 @@
 import httpx
 from ..base import STTBackend, TranscriptResult, TranscriptSegment
+from ...utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class WhisperRemoteBackend(STTBackend):
@@ -15,7 +18,9 @@ class WhisperRemoteBackend(STTBackend):
         self.model = model
         self.language = language
 
-    def transcribe(self, audio_path: str) -> TranscriptResult:
+    def transcribe(self, audio_path: str, hotwords: list[str] | None = None) -> TranscriptResult:
+        if hotwords:
+            logger.warning("远程 Whisper API 不支持 hotwords 参数，将忽略")
         url = f"{self.base_url}/v1/audio/transcriptions"
 
         with open(audio_path, "rb") as f:

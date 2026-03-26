@@ -18,7 +18,7 @@ class TranscriptResult:
 
 class STTBackend(ABC):
     @abstractmethod
-    def transcribe(self, audio_path: str) -> TranscriptResult:
+    def transcribe(self, audio_path: str, hotwords: list[str] | None = None) -> TranscriptResult:
         pass
 
 class LLMBackend(ABC):
