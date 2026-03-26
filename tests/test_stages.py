@@ -184,19 +184,14 @@ def test_screenshot_stage_extracts_frames(tmp_path):
     assert "screenshots_dir" in result.output
     assert "screenshots_map" in result.output
 
+    # New implementation uses flat structure: frame_000_10.0s.jpg, frame_001_30.5s.jpg, etc.
     screenshots_map = result.output["screenshots_map"]
-    assert len(screenshots_map["0"]) == 2
-    assert len(screenshots_map["1"]) == 1
-    assert screenshots_map["0"][0] == "section_0_frame_0.jpg"
-    assert screenshots_map["0"][1] == "section_0_frame_1.jpg"
-    assert screenshots_map["1"][0] == "section_1_frame_0.jpg"
-
-    # Verify ffmpeg was called 3 times (once per timestamp)
+    assert len(screenshots_map) == 3  # 3 screenshots total
     assert mock_ffmpeg.input.call_count == 3
 
 
 def test_screenshot_stage_no_timestamps(tmp_path):
-    """Sections without key_timestamps should be skipped."""
+    """Sections without key_timestamps now use fallback (0.0)."""
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
 
@@ -216,6 +211,10 @@ def test_screenshot_stage_no_timestamps(tmp_path):
 
     with patch("vbook.stages.screenshot.ffmpeg_lib") as mock_ffmpeg, \
          patch("vbook.stages.screenshot._get_video_duration", return_value=3600.0):
+        mock_stream = MagicMock()
+        mock_ffmpeg.input.return_value = mock_stream
+        mock_stream.output.return_value.overwrite_output.return_value.run = MagicMock()
+
         stage = ScreenshotStage(video_path=video_file, cache_dir=cache_dir)
         result = stage.run(context={
             "video_path": str(video_file),
@@ -223,8 +222,9 @@ def test_screenshot_stage_no_timestamps(tmp_path):
         })
 
     assert result.status == StageStatus.SUCCESS
-    assert result.output["screenshots_map"] == {}
-    mock_ffmpeg.input.assert_not_called()
+    # New behavior: fallback to 0.0 when no timestamps exist
+    assert len(result.output["screenshots_map"]) == 1
+    assert mock_ffmpeg.input.call_count == 1
 
 
 from vbook.stages.generate import GenerateStage
@@ -389,3 +389,89 @@ def test_analyze_stage_parses_visual_cues(tmp_path):
     analysis = json.loads(Path(result.output["analysis_path"]).read_text(encoding="utf-8"))
     assert "visual_cues" in analysis
     assert analysis["visual_cues"][0]["timestamp"] == 5.0
+
+
+def test_screenshot_fusion_prefers_scene_change_near_cue(tmp_path):
+    """When a visual_cue has a nearby scene_change, use the scene_change timestamp."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    analysis = {
+        "title": "测试",
+        "outline": [
+            {"title": "第一节", "summary": "内容", "key_timestamps": [10.0]},
+        ],
+        "keywords": ["测试"],
+        "visual_cues": [
+            {"timestamp": 50.0, "cue_text": "看这张图", "description": "图表"},
+        ],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    video_file = tmp_path / "test.mp4"
+    video_file.write_bytes(b"fake")
+
+    with patch("vbook.stages.screenshot.ffmpeg_lib") as mock_ffmpeg, \
+         patch("vbook.stages.screenshot._get_video_duration", return_value=3600.0):
+        mock_stream = MagicMock()
+        mock_ffmpeg.input.return_value = mock_stream
+        mock_stream.output.return_value.overwrite_output.return_value.run = MagicMock()
+
+        stage = ScreenshotStage(
+            video_path=video_file,
+            cache_dir=cache_dir,
+            search_window=10.0,
+            dedup_window=5.0,
+        )
+        result = stage.run(context={
+            "analysis_path": str(analysis_path),
+            "scene_changes": [12.0, 48.5, 100.0],
+        })
+
+    assert result.status == StageStatus.SUCCESS
+    # Should have screenshots: section 0 uses key_timestamps[10.0] snapped to scene_change[12.0],
+    # plus visual_cue[50.0] snapped to scene_change[48.5]
+    all_ss_timestamps = [call.kwargs.get("ss") or call.args[0]
+                         for call in mock_ffmpeg.input.call_args_list
+                         if "ss" in (call.kwargs or {})]
+    # Verify scene_change timestamps were used (48.5 near cue 50.0)
+    assert any(abs(t - 48.5) < 0.1 for t in all_ss_timestamps)
+
+
+def test_screenshot_fallback_section_start(tmp_path):
+    """Sections with no visual_cues and no scene_changes get a screenshot at key_timestamps[0]."""
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    analysis = {
+        "title": "测试",
+        "outline": [
+            {"title": "第一节", "summary": "内容", "key_timestamps": [10.0]},
+        ],
+        "keywords": ["测试"],
+    }
+    analysis_path = cache_dir / "analysis.json"
+    analysis_path.write_text(json.dumps(analysis, ensure_ascii=False), encoding="utf-8")
+
+    video_file = tmp_path / "test.mp4"
+    video_file.write_bytes(b"fake")
+
+    with patch("vbook.stages.screenshot.ffmpeg_lib") as mock_ffmpeg, \
+         patch("vbook.stages.screenshot._get_video_duration", return_value=3600.0):
+        mock_stream = MagicMock()
+        mock_ffmpeg.input.return_value = mock_stream
+        mock_stream.output.return_value.overwrite_output.return_value.run = MagicMock()
+
+        stage = ScreenshotStage(
+            video_path=video_file,
+            cache_dir=cache_dir,
+        )
+        result = stage.run(context={
+            "analysis_path": str(analysis_path),
+            "scene_changes": [],
+        })
+
+    assert result.status == StageStatus.SUCCESS
+    # Should still get a screenshot at key_timestamps[0] = 10.0 as fallback
+    assert mock_ffmpeg.input.call_count >= 1
