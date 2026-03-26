@@ -7,7 +7,7 @@ class WhisperRemoteBackend(STTBackend):
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8000",
+        base_url: str = "http://localhost:7867",
         model: str = "medium",
         language: str = "zh",
     ):

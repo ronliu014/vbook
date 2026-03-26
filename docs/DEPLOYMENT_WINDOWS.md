@@ -14,7 +14,7 @@
 │                                             │
 │  ┌─────────────────┐  ┌──────────────────┐  │
 │  │  Ollama + Qwen  │  │  Whisper API     │  │
-│  │  :7866         │  │  :8000           │  │
+│  │  :7866         │  │  :7867           │  │
 │  │  (LLM 分析)     │  │  (语音转录)       │  │
 │  └─────────────────┘  └──────────────────┘  │
 │           GPU                  GPU          │
@@ -215,7 +215,7 @@ docker --version
 docker run -d `
   --name whisper-api `
   --gpus all `
-  -p 8000:8000 `
+  -p 7867:7867 `
   -e WHISPER__MODEL=medium `
   -e WHISPER__DEVICE=cuda `
   --restart unless-stopped `
@@ -243,14 +243,14 @@ docker logs -f whisper-api
 
 ```powershell
 # 创建虚拟环境
-python -m venv C:\whisper-api
-C:\whisper-api\Scripts\Activate.ps1
+python -m venv D:\whisper
+D:\whisper\Scripts\Activate.ps1
 
 # 安装 faster-whisper-server
 pip install faster-whisper-server
 
 # 启动服务
-faster-whisper-server --host 0.0.0.0 --port 8000 --model-size medium --device cuda
+faster-whisper-server --host 0.0.0.0 --port 7867 --model-size medium --device cuda
 ```
 
 **如果 `faster-whisper-server` 安装失败，可以使用替代方案：**
@@ -262,7 +262,7 @@ pip install faster-whisper uvicorn fastapi python-multipart
 # 创建简易 API 服务脚本
 ```
 
-创建文件 `C:\whisper-api\server.py`：
+创建文件 `D:\whisper\server.py`：
 
 ```python
 import json
@@ -307,14 +307,14 @@ async def transcribe(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=7867)
 ```
 
 **启动服务：**
 
 ```powershell
-cd C:\whisper-api
-C:\whisper-api\Scripts\Activate.ps1
+cd D:\whisper
+D:\whisper\Scripts\Activate.ps1
 python server.py
 ```
 
@@ -324,17 +324,17 @@ python server.py
 
 ```powershell
 # 测试 API 文档页面（浏览器访问）
-# http://<SERVER_IP>:8000/docs
+# http://<SERVER_IP>:7867/docs
 
 # 测试转录功能（需要准备一个测试音频文件）
-curl -X POST "http://<SERVER_IP>:8000/v1/audio/transcriptions" -F "file=@test_audio.wav" -F "model=medium" -F "language=zh"
+curl -X POST "http://<SERVER_IP>:7867/v1/audio/transcriptions" -F "file=@test_audio.wav" -F "model=medium" -F "language=zh"
 ```
 
 ### 2.3 防火墙配置
 
 ```powershell
 # PowerShell（管理员）
-New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
+New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP -LocalPort 7867 -Action Allow
 ```
 
 ### 2.4 设置 Whisper API 开机自启
@@ -346,7 +346,7 @@ New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP 
 # 解压到 C:\nssm
 
 # 安装为 Windows 服务
-C:\nssm\nssm.exe install WhisperAPI "C:\whisper-api\Scripts\python.exe" "C:\whisper-api\server.py"
+C:\nssm\nssm.exe install WhisperAPI "D:\whisper\Scripts\python.exe" "D:\whisper\server.py"
 
 # 启动服务
 C:\nssm\nssm.exe start WhisperAPI
@@ -362,9 +362,9 @@ C:\nssm\nssm.exe status WhisperAPI
 3. 名称：`Whisper API Server`
 4. 触发器：**计算机启动时**
 5. 操作：**启动程序**
-   - 程序：`C:\whisper-api\Scripts\python.exe`
-   - 参数：`C:\whisper-api\server.py`
-   - 起始目录：`C:\whisper-api`
+   - 程序：`D:\whisper\Scripts\python.exe`
+   - 参数：`D:\whisper\server.py`
+   - 起始目录：`D:\whisper`
 6. 勾选 **使用最高权限运行**
 7. 完成
 
@@ -408,7 +408,7 @@ backends:
   llm: ollama_qwen
 
   whisper_remote:
-    base_url: http://<SERVER_IP>:8000
+    base_url: http://<SERVER_IP>:7867
     model: medium
     language: zh
 
@@ -424,7 +424,7 @@ backends:
 curl http://<SERVER_IP>:7866/api/tags
 
 # 测试 Whisper
-curl http://<SERVER_IP>:8000/docs
+curl http://<SERVER_IP>:7867/docs
 ```
 
 ---
@@ -437,9 +437,9 @@ curl http://<SERVER_IP>:8000/docs
 | 2. 安装 Ollama | `ollama --version` | 显示版本号 |
 | 3. 拉取 Qwen | `ollama list` | 显示 qwen3.5:9b |
 | 4. Ollama 远程访问 | 浏览器 `http://<IP>:7866/` | 显示 "Ollama is running" |
-| 5. 安装 Whisper API | 浏览器 `http://<IP>:8000/docs` | 显示 API 文档 |
+| 5. 安装 Whisper API | 浏览器 `http://<IP>:7867/docs` | 显示 API 文档 |
 | 6. 防火墙 7866 | `curl http://<IP>:7866/api/tags` | 返回模型列表 |
-| 7. 防火墙 8000 | `curl http://<IP>:8000/docs` | 返回 API 文档 |
+| 7. 防火墙 7867 | `curl http://<IP>:7867/docs` | 返回 API 文档 |
 | 8. vbook 配置 | 编辑 `vbook.yaml` | 填入服务器 IP |
 | 9. 端到端测试 | `vbook process test.mp4` | 生成 summary.md |
 
@@ -483,7 +483,7 @@ Get-NetFirewallRule -DisplayName "Ollama API"
 
 ```powershell
 # 1. 查看 Docker 日志
-docker logs whisper-api
+docker logs whisper-api  # 仅 Docker 部署方式
 
 # 2. 或查看 Python 控制台输出（如果用 Python 方式部署）
 
@@ -529,7 +529,7 @@ ping <SERVER_IP>
 
 # 2. 测试端口
 Test-NetConnection -ComputerName <SERVER_IP> -Port 7866
-Test-NetConnection -ComputerName <SERVER_IP> -Port 8000
+Test-NetConnection -ComputerName <SERVER_IP> -Port 7867
 ```
 
 **解决方案：**
@@ -565,7 +565,7 @@ ollama pull qwen3.5:4b  # 替代 9b
 curl http://localhost:7866/api/generate -d '{\"model\":\"qwen3.5:9b\",\"prompt\":\"test\",\"stream\":false}'
 
 # Whisper 预热（准备一个短音频文件）
-curl -X POST http://localhost:8000/v1/audio/transcriptions -F "file=@short_audio.wav" -F "model=medium"
+curl -X POST http://localhost:7867/v1/audio/transcriptions -F "file=@short_audio.wav" -F "model=medium"
 ```
 
 ### 网络优化

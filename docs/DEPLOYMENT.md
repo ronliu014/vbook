@@ -14,7 +14,7 @@
 │                                             │
 │  ┌─────────────────┐  ┌──────────────────┐  │
 │  │  Ollama + Qwen  │  │  Whisper API     │  │
-│  │  :7866         │  │  :8000           │  │
+│  │  :7866         │  │  :7867           │  │
 │  │  (LLM 分析)     │  │  (语音转录)       │  │
 │  └─────────────────┘  └──────────────────┘  │
 │           GPU                  GPU          │
@@ -147,7 +147,7 @@ docker pull fedirz/faster-whisper-server:latest
 docker run -d \
   --name whisper-api \
   --gpus all \
-  -p 8000:8000 \
+  -p 7867:7867 \
   -e WHISPER__MODEL=medium \
   -e WHISPER__DEVICE=cuda \
   --restart unless-stopped \
@@ -170,7 +170,7 @@ pip install faster-whisper-server
 # 启动服务
 faster-whisper-server \
   --host 0.0.0.0 \
-  --port 8000 \
+  --port 7867 \
   --model-size medium \
   --device cuda
 ```
@@ -181,10 +181,10 @@ faster-whisper-server \
 
 ```bash
 # 测试 API 文档页面
-curl http://<SERVER_IP>:8000/docs
+curl http://<SERVER_IP>:7867/docs
 
 # 测试转录功能（需要准备一个测试音频文件）
-curl -X POST http://<SERVER_IP>:8000/v1/audio/transcriptions \
+curl -X POST http://<SERVER_IP>:7867/v1/audio/transcriptions \
   -F "file=@test_audio.wav" \
   -F "model=medium" \
   -F "language=zh"
@@ -211,7 +211,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/whisper-api
-ExecStart=/opt/whisper-api/bin/faster-whisper-server --host 0.0.0.0 --port 8000 --model-size medium --device cuda
+ExecStart=/opt/whisper-api/bin/faster-whisper-server --host 0.0.0.0 --port 7867 --model-size medium --device cuda
 Restart=always
 RestartSec=10
 
@@ -232,10 +232,10 @@ sudo systemctl status whisper-api
 
 ```bash
 # Ubuntu/Debian (ufw)
-sudo ufw allow 8000/tcp
+sudo ufw allow 7867/tcp
 
 # CentOS/RHEL (firewalld)
-sudo firewall-cmd --permanent --add-port=8000/tcp
+sudo firewall-cmd --permanent --add-port=7867/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -314,7 +314,7 @@ backends:
   llm: ollama_qwen
 
   whisper_remote:
-    base_url: http://<SERVER_IP>:8000   # 替换为服务器 IP
+    base_url: http://<SERVER_IP>:7867   # 替换为服务器 IP
     model: medium
     language: zh
 
@@ -344,9 +344,9 @@ cat test_output/test_video/summary.md
 | 1. 安装 Ollama | `ollama --version` | 显示版本号 |
 | 2. 拉取 Qwen | `ollama list` | 显示 qwen3.5:9b |
 | 3. Ollama 监听 0.0.0.0 | `curl http://<IP>:7866/api/tags` | 返回模型列表 JSON |
-| 4. 安装 Whisper API | `curl http://<IP>:8000/docs` | 返回 API 文档页 |
+| 4. 安装 Whisper API | `curl http://<IP>:7867/docs` | 返回 API 文档页 |
 | 5. 测试转录 | POST `/v1/audio/transcriptions` | 返回转录文本 |
-| 6. 防火墙放行 | 端口 7866, 8000 | 从 Windows 可访问 |
+| 6. 防火墙放行 | 端口 7866, 7867 | 从 Windows 可访问 |
 | 7. 安装 FFmpeg | `ffmpeg -version` | 显示版本信息 |
 | 8. vbook 配置 | 编辑 `vbook.yaml` | 指向服务器 IP |
 | 9. 端到端测试 | `vbook process test.mp4` | 生成 summary.md |
@@ -378,7 +378,7 @@ cat test_output/test_video/summary.md
 **症状：** `TranscribeStage` 失败
 
 **解决方案：**
-1. 验证 Whisper API 可访问：`curl http://<IP>:8000/docs`
+1. 验证 Whisper API 可访问：`curl http://<IP>:7867/docs`
 2. 检查配置文件中的 `base_url` 是否正确
 3. 查看 vbook 错误日志，确认具体错误信息
 
@@ -408,7 +408,7 @@ cat test_output/test_video/summary.md
 curl http://<IP>:7866/api/generate -d '{"model":"qwen3.5:9b","prompt":"test"}'
 
 # Whisper 预热
-curl -X POST http://<IP>:8000/v1/audio/transcriptions \
+curl -X POST http://<IP>:7867/v1/audio/transcriptions \
   -F "file=@short_audio.wav" -F "model=medium"
 ```
 

@@ -19,7 +19,7 @@ class BackendsConfig(BaseModel):
     llm: str = "ollama_qwen"
     whisper_local: dict = Field(default_factory=lambda: {"model": "medium", "device": "cpu"})
     whisper_remote: dict = Field(default_factory=lambda: {
-        "base_url": "http://localhost:8000",
+        "base_url": "http://localhost:7867",
         "model": "medium",
         "language": "zh",
     })

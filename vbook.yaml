@@ -1,0 +1,25 @@
+source:
+  video_dirs:
+    - E:/projects/my_app/vbook/test_videos
+
+output:
+  root: E:/projects/my_app/vbook/test_output
+  structure: mirror
+
+processing:
+  intermediate_dir: .vbook_cache
+  keep_intermediate: true
+  max_retries: 3
+
+backends:
+  stt: whisper_remote
+  llm: ollama_qwen
+
+  whisper_remote:
+    base_url: http://sdwebui.lingrendev.com:7867
+    model: medium
+    language: zh
+
+  ollama_qwen:
+    base_url: http://sdwebui.lingrendev.com:7866
+    model: qwen3.5:9b

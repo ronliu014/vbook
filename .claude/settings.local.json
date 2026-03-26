@@ -24,7 +24,13 @@
       "Bash(ffmpeg -version)",
       "Bash(python:*)",
       "Bash(pip show:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(curl -s http://sdwebui.lingrendev.com:7866/api/tags)",
+      "Bash(curl -s http://sdwebui.lingrendev.com:7867/health)",
+      "Bash(where ffmpeg:*)",
+      "Bash(cd:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c \":*)"
     ]
   }
 }

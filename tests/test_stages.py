@@ -110,7 +110,7 @@ def test_whisper_remote_backend_returns_transcript(tmp_path):
 
     with patch("httpx.post", return_value=fake_response) as mock_post:
         backend = WhisperRemoteBackend(
-            base_url="http://gpu-server:8000",
+            base_url="http://gpu-server:7867",
             model="medium",
             language="zh",
         )
@@ -123,7 +123,7 @@ def test_whisper_remote_backend_returns_transcript(tmp_path):
     assert result.language == "zh"
 
     call_args = mock_post.call_args
-    assert "gpu-server:8000/v1/audio/transcriptions" in call_args[0][0]
+    assert "gpu-server:7867/v1/audio/transcriptions" in call_args[0][0]
 
 
 def test_whisper_remote_backend_http_error(tmp_path):
@@ -137,7 +137,7 @@ def test_whisper_remote_backend_http_error(tmp_path):
 
     with patch("httpx.post", return_value=fake_response):
         backend = WhisperRemoteBackend(
-            base_url="http://gpu-server:8000",
+            base_url="http://gpu-server:7867",
             model="medium",
             language="zh",
         )
@@ -167,7 +167,8 @@ def test_screenshot_stage_extracts_frames(tmp_path):
     video_file = tmp_path / "test.mp4"
     video_file.write_bytes(b"fake video")
 
-    with patch("vbook.stages.screenshot.ffmpeg") as mock_ffmpeg:
+    with patch("vbook.stages.screenshot.ffmpeg_lib") as mock_ffmpeg, \
+         patch("vbook.stages.screenshot._get_video_duration", return_value=3600.0):
         mock_stream = MagicMock()
         mock_ffmpeg.input.return_value = mock_stream
         mock_stream.output.return_value.overwrite_output.return_value.run = MagicMock()
@@ -212,7 +213,8 @@ def test_screenshot_stage_no_timestamps(tmp_path):
     video_file = tmp_path / "test.mp4"
     video_file.write_bytes(b"fake video")
 
-    with patch("vbook.stages.screenshot.ffmpeg") as mock_ffmpeg:
+    with patch("vbook.stages.screenshot.ffmpeg_lib") as mock_ffmpeg, \
+         patch("vbook.stages.screenshot._get_video_duration", return_value=3600.0):
         stage = ScreenshotStage(video_path=video_file, cache_dir=cache_dir)
         result = stage.run(context={
             "video_path": str(video_file),

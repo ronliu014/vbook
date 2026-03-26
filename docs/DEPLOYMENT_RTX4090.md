@@ -35,7 +35,7 @@ RTX 4090 GPU 0（24GB VRAM）
 | 服务 | 模型 | VRAM | 端口 | 理由 |
 |------|------|------|------|------|
 | **Ollama** | qwen3.5:9b | ~6GB | 7866 | 原生多模态，性能优于 qwen2.5:14b，VRAM 占用更少 |
-| **Whisper** | medium | ~2GB | 8000 | 中文 95%+ 准确率，速度快 |
+| **Whisper** | medium | ~2GB | 7867 | 中文 95%+ 准确率，速度快 |
 
 > **升级说明：** Qwen 3.5 相比 2.5 架构全面升级，9b 模型内置视觉理解能力，256K 上下文窗口，201 种语言支持。如果转录质量不满意，Whisper 可升级到 `large-v3`（+2GB VRAM），VRAM 余量充足。
 
@@ -85,7 +85,7 @@ ollama --version
 
 **使用 Ollama 管理脚本启动：**
 
-将以下脚本保存为 `ollama-manage.ps1`（建议放在 `C:\scripts\` 目录下）：
+将以下脚本保存为 `manage.ps1`（建议放在 `C:\scripts\` 目录下）：
 
 ```powershell
 <#
@@ -93,12 +93,15 @@ ollama --version
 Ollama One-Click Manager (GPU + Port + Custom Model Path)
 #>
 
-# ====================== 配置区 ======================
+# ====================== 配置区（只改这里）======================
 $GPU_ID = "0"
 $OLLAMA_HOST = "0.0.0.0"
 $OLLAMA_PORT = "7866"
-$OLLAMA_MODELS_PATH = "D:\ollama\models"
-# ====================================================
+$OLLAMA_MODELS_PATH = "D:\ollama\models"  # <-- 模型存储路径
+# ==============================================================
+
+# ====================== 自动设置窗口标题（新增）======================
+$host.ui.RawUI.WindowTitle = "Ollama API Service | GPU:$GPU_ID | Port:$OLLAMA_PORT | Models:D:\ollama\models"
 
 function Stop-OllamaCustom {
     Write-Host "`n[-] Stopping Ollama..." -ForegroundColor Red
@@ -114,11 +117,12 @@ function Start-OllamaCustom {
     Write-Host "    Listen: $OLLAMA_HOST : $OLLAMA_PORT"
     Write-Host "    Model Path: $OLLAMA_MODELS_PATH`n"
 
-    # 核心环境变量
+    # 关键环境变量（只对当前脚本生效）
     $env:CUDA_VISIBLE_DEVICES = $GPU_ID
     $env:OLLAMA_HOST = "$OLLAMA_HOST`:$OLLAMA_PORT"
-    $env:OLLAMA_MODELS = $OLLAMA_MODELS_PATH
+    $env:OLLAMA_MODELS = $OLLAMA_MODELS_PATH  # <-- 强制修改模型路径
 
+    # 启动
     ollama serve
 }
 
@@ -146,9 +150,9 @@ switch ($choice) {
 **启动方式：**
 
 ```powershell
-# 右键 ollama-manage.ps1 → "使用 PowerShell 运行"
+# 右键 manage.ps1 → "使用 PowerShell 运行"
 # 或在 PowerShell 中执行：
-.\ollama-manage.ps1
+.\manage.ps1
 ```
 
 ---
@@ -174,8 +178,8 @@ ollama run qwen3.5:9b "你好，请用一句话介绍Python语言"
 
 ```powershell
 # 创建虚拟环境
-python -m venv C:\whisper-api
-C:\whisper-api\Scripts\Activate.ps1
+python -m venv D:\whisper
+D:\whisper\Scripts\Activate.ps1
 
 # 安装依赖
 pip install faster-whisper uvicorn fastapi python-multipart
@@ -185,21 +189,25 @@ pip install faster-whisper uvicorn fastapi python-multipart
 
 ### 第 6 步：创建 Whisper API 服务（5 分钟）
 
-创建文件 `C:\whisper-api\server.py`，内容如下：
+创建文件 `D:\whisper\server.py`，内容如下：
 
 ```python
+# 注意：这里不再设置 os.environ["CUDA_VISIBLE_DEVICES"]
+# 全部由 manager.ps1 传入
+
 import os
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] = "1"
+
 import tempfile
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Form
 from faster_whisper import WhisperModel
 
-# 强制使用 GPU 0
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 app = FastAPI(title="Whisper API for vbook")
 model = WhisperModel("medium", device="cuda")
-print("Whisper model loaded on GPU 0")
+print("Whisper model loaded successfully")
 
 @app.post("/v1/audio/transcriptions")
 async def transcribe(
@@ -211,47 +219,135 @@ async def transcribe(
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         content = await file.read()
         tmp.write(content)
+        tmp.flush()
         tmp_path = tmp.name
 
-    segments_gen, info = model.transcribe(tmp_path, language=language)
-    segments = []
-    full_text_parts = []
-    for seg in segments_gen:
-        segments.append({
-            "start": seg.start,
-            "end": seg.end,
-            "text": seg.text.strip(),
-        })
-        full_text_parts.append(seg.text.strip())
+    try:
+        segments_gen, info = model.transcribe(tmp_path, language=language)
+        segments = []
+        full_text_parts = []
+        for seg in segments_gen:
+            segments.append({
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text.strip(),
+            })
+            full_text_parts.append(seg.text.strip())
 
-    Path(tmp_path).unlink(missing_ok=True)
-
-    return {
-        "language": info.language,
-        "text": "\n".join(full_text_parts),
-        "segments": segments,
-    }
+        return {
+            "language": info.language,
+            "text": "\n".join(full_text_parts),
+            "segments": segments,
+        }
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": "medium", "device": "cuda:0"}
+    return {"status": "ok", "model": "medium", "device": "cuda"}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=7867)
+```
+
+创建文件 `D:\whisper\manager.ps1`，内容如下：
+
+```powershell
+<#
+    Whisper API Service Manager (Single Window)
+    GPU ID & Port managed here
+#>
+
+# ====================== 配置区（你只改这里）======================
+$GPU_ID = "0"          # 改这里即可：0 / 1 / 2 等
+$port = 7867           # 端口
+$scriptPath = "D:\whisper\server.py"
+$venvActivate = "D:\whisper\Scripts\Activate.ps1"
+# ===============================================================
+
+# 窗口标题自动显示 GPU + 端口
+$host.ui.RawUI.WindowTitle = "Whisper API Service | GPU:$GPU_ID | Port:$port"
+
+$env:PYTHONIOENCODING = "utf-8"
+# 把 GPU 传入环境变量，给 Python 使用
+$env:CUDA_VISIBLE_DEVICES = $GPU_ID
+
+function Get-ServiceStatus {
+    $process = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    return $process -ne $null
+}
+
+function Start-Service {
+    if (Get-ServiceStatus) {
+        Write-Host "Service is already running." -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "Starting Whisper API Service..." -ForegroundColor Cyan
+    Write-Host "Using GPU: $GPU_ID | Port: $port" -ForegroundColor Green
+    
+    # 当前窗口激活环境 + 启动服务（不新开窗口）
+    & $venvActivate
+    python $scriptPath
+}
+
+function Stop-Service {
+    $process = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    if (-not $process) {
+        Write-Host "Service is not running." -ForegroundColor Yellow
+        return
+    }
+    taskkill /pid $process.OwningProcess /F > $null 2>&1
+    Write-Host "Service stopped successfully." -ForegroundColor Green
+}
+
+function Restart-Service {
+    Write-Host "Restarting service..." -ForegroundColor Cyan
+    Stop-Service
+    Start-Sleep -Milliseconds 500
+    Start-Service
+}
+
+Clear-Host
+Write-Host "===== Whisper API Service Manager ====="
+Write-Host "1. Start Service"
+Write-Host "2. Stop Service"
+Write-Host "3. Restart Service"
+Write-Host "4. Check Status"
+Write-Host "========================================"
+$choice = Read-Host "Enter your choice (1-4)"
+
+switch ($choice) {
+    1 { Start-Service }
+    2 { Stop-Service }
+    3 { Restart-Service }
+    4 {
+        if (Get-ServiceStatus) {
+            Write-Host "Service Status: Running" -ForegroundColor Green
+        } else {
+            Write-Host "Service Status: Stopped" -ForegroundColor Gray
+        }
+        Read-Host "`nPress Enter to exit"
+    }
+    default {
+        Write-Host "Invalid input." -ForegroundColor Red
+        Read-Host "`nPress Enter to exit"
+    }
+}
 ```
 
 **启动服务：**
 
 ```powershell
-C:\whisper-api\Scripts\Activate.ps1
-python C:\whisper-api\server.py
+D:\whisper\Scripts\Activate.ps1
+python D:\whisper\manager.ps1
 ```
 
 首次启动会自动下载 Whisper medium 模型（~1.5GB），等待出现：
 
 ```
-INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Uvicorn running on http://0.0.0.0:7867
 ```
 
 即表示启动成功。
@@ -264,7 +360,7 @@ INFO:     Uvicorn running on http://0.0.0.0:8000
 
 ```powershell
 New-NetFirewallRule -DisplayName "Ollama API" -Direction Inbound -Protocol TCP -LocalPort 7866 -Action Allow
-New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
+New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP -LocalPort 7867 -Action Allow
 ```
 
 ---
@@ -278,7 +374,7 @@ New-NetFirewallRule -DisplayName "Whisper API" -Direction Inbound -Protocol TCP 
 curl http://localhost:7866/api/tags
 
 # 验证 Whisper API
-curl http://localhost:8000/health
+curl http://localhost:7867/health
 
 # 验证 GPU 使用情况
 nvidia-smi
@@ -297,11 +393,11 @@ nvidia-smi
 curl http://<SERVER_IP>:7866/api/tags
 
 # 测试 Whisper API
-curl http://<SERVER_IP>:8000/health
+curl http://<SERVER_IP>:7867/health
 
 # 浏览器测试
 # http://<SERVER_IP>:7866/        → 显示 "Ollama is running"
-# http://<SERVER_IP>:8000/docs     → 显示 API 文档
+# http://<SERVER_IP>:7867/docs     → 显示 API 文档
 ```
 
 ---
@@ -310,14 +406,14 @@ curl http://<SERVER_IP>:8000/health
 
 #### Ollama
 
-推荐使用任务计划程序配合 `ollama-manage.ps1` 脚本实现开机自启：
+推荐使用任务计划程序配合 `manage.ps1` 脚本实现开机自启：
 
 1. 打开 `taskschd.msc`
 2. 创建基本任务 → 名称 `Ollama Serve`
 3. 触发器：计算机启动时
 4. 操作：启动程序
    - 程序：`powershell.exe`
-   - 参数：`-ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\scripts\ollama-manage.ps1"`
+   - 参数：`-ExecutionPolicy Bypass -WindowStyle Hidden -File "D:\ollama\manage.ps1"`
 5. 勾选 **使用最高权限运行**
 
 > **注意：** 如果使用任务计划程序，需要修改脚本去掉末尾的交互式菜单，直接调用 `Start-Ollama-Background`。
@@ -331,7 +427,7 @@ curl http://<SERVER_IP>:8000/health
 
 ```powershell
 # 安装为 Windows 服务
-C:\nssm\nssm.exe install WhisperAPI "C:\whisper-api\Scripts\python.exe" "C:\whisper-api\server.py"
+C:\nssm\nssm.exe install WhisperAPI "D:\whisper\Scripts\python.exe" "D:\whisper\server.py"
 
 # 设置 GPU 环境变量
 C:\nssm\nssm.exe set WhisperAPI AppEnvironmentExtra "CUDA_VISIBLE_DEVICES=0"
@@ -349,9 +445,9 @@ C:\nssm\nssm.exe status WhisperAPI
 2. 创建基本任务 → 名称 `Whisper API`
 3. 触发器：计算机启动时
 4. 操作：启动程序
-   - 程序：`C:\whisper-api\Scripts\python.exe`
-   - 参数：`C:\whisper-api\server.py`
-   - 起始目录：`C:\whisper-api`
+   - 程序：`D:\whisper\Scripts\python.exe`
+   - 参数：`D:\whisper\server.py`
+   - 起始目录：`D:\whisper`
 5. 勾选 **使用最高权限运行**
 
 ---
@@ -366,11 +462,11 @@ C:\nssm\nssm.exe status WhisperAPI
 - [ ] `CUDA_VISIBLE_DEVICES` 环境变量设为 `0`
 - [ ] `ollama list` 显示 qwen3.5:9b
 - [ ] `ollama run qwen3.5:9b "你好"` 返回中文回复
-- [ ] `C:\whisper-api\server.py` 文件已创建
-- [ ] Whisper API 启动成功（`http://localhost:8000/health` 返回 ok）
-- [ ] 防火墙已放行 7866 和 8000 端口
+- [ ] `D:\whisper\server.py` 文件已创建
+- [ ] Whisper API 启动成功（`http://localhost:7867/health` 返回 ok）
+- [ ] 防火墙已放行 7866 和 7867 端口
 - [ ] 从开发机可访问 `http://<SERVER_IP>:7866/`
-- [ ] 从开发机可访问 `http://<SERVER_IP>:8000/health`
+- [ ] 从开发机可访问 `http://<SERVER_IP>:7867/health`
 - [ ] 已设置开机自启
 
 ---
@@ -394,7 +490,7 @@ nvidia-smi
 
 ```powershell
 # 重启 Ollama（使用管理脚本）
-.\ollama-manage.ps1
+.\manage.ps1
 # 选择 3（重启）
 
 # 或手动重启

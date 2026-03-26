@@ -131,7 +131,7 @@ backends:
   llm: ollama_qwen
 
   whisper_remote:
-    base_url: http://<SERVER_IP>:8000
+    base_url: http://<SERVER_IP>:7867
     model: medium
     language: zh
 
@@ -205,7 +205,7 @@ backends:
 
   # 远程 Whisper 配置（HTTP API）
   whisper_remote:
-    base_url: http://192.168.1.100:8000
+    base_url: http://192.168.1.100:7867
     model: medium
     language: zh               # 语言：zh, en, ja, etc.
 
