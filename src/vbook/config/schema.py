@@ -13,6 +13,7 @@ class ProcessingConfig(BaseModel):
     intermediate_dir: str = ".vbook_cache"
     keep_intermediate: bool = True
     max_retries: int = 3
+    glossary: Optional[str] = None
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"
