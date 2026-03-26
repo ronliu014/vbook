@@ -1,0 +1,33 @@
+# glossary/investment.yaml
+domain: 投资
+terms:
+  - term: PE比
+    description: 市盈率，Price-to-Earnings Ratio
+  - term: PB比
+    description: 市净率，Price-to-Book Ratio
+  - term: ROE
+    description: 净资产收益率，Return on Equity
+  - term: 底背离
+    description: 价格创新低但指标未创新低的技术形态
+  - term: 顶背离
+    description: 价格创新高但指标未创新高的技术形态
+  - term: 满仓
+    description: 将全部资金投入持仓
+  - term: 半仓
+    description: 将一半资金投入持仓
+  - term: 止损
+    description: 设定亏损上限，达到后卖出以控制风险
+  - term: 止盈
+    description: 设定盈利目标，达到后卖出以锁定利润
+  - term: 做多
+    description: 买入资产，预期价格上涨后获利
+  - term: 做空
+    description: 借入资产卖出，预期价格下跌后买回获利
+  - term: 均线
+    description: 移动平均线，Moving Average
+  - term: K线
+    description: 蜡烛图，显示开盘价、收盘价、最高价、最低价
+  - term: 涨停
+    description: 股价达到当日最大涨幅限制
+  - term: 跌停
+    description: 股价达到当日最大跌幅限制
