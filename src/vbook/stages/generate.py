@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from ..pipeline.stage import Stage, StageResult, StageStatus
 from ..output.markdown import MarkdownGenerator
+from ..output.mindmap import generate_markmap
 
 class GenerateStage(Stage):
     name = "generate"
@@ -37,7 +38,12 @@ class GenerateStage(Stage):
         md_path = self.output_dir / "summary.md"
         md_path.write_text(md_content, encoding="utf-8")
 
+        # Generate mindmap
+        mindmap_content = generate_markmap(analysis)
+        mindmap_path = self.output_dir / "mindmap.md"
+        mindmap_path.write_text(mindmap_content, encoding="utf-8")
+
         return StageResult(
             status=StageStatus.SUCCESS,
-            output={"markdown_path": str(md_path)},
+            output={"markdown_path": str(md_path), "mindmap_path": str(mindmap_path)},
         )
