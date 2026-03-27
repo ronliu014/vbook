@@ -1,4 +1,5 @@
 # src/vbook/stages/proofread.py
+import copy
 import json
 from pathlib import Path
 from typing import Optional
@@ -44,35 +45,38 @@ class ProofreadStage(Stage):
 
         result = json.loads(raw)
 
-        # Apply corrections to segments
+        # Apply corrections to segments (on a copy to avoid corrupting data on retry)
+        updated_segments = copy.deepcopy(segments)
         for corrected_seg in result.get("segments", []):
-            idx = corrected_seg["index"]
-            if 0 <= idx < len(segments):
-                segments[idx]["text"] = corrected_seg["text"]
+            idx = corrected_seg.get("index")
+            if idx is not None and 0 <= idx < len(updated_segments):
+                updated_segments[idx]["text"] = corrected_seg.get("text", updated_segments[idx]["text"])
 
-        # Update full_text
-        transcript_data["full_text"] = "\n".join(seg["text"] for seg in segments)
+        corrections = result.get("corrections", [])
 
-        # Write updated transcript
+        # Log corrections first (before writing files, so format errors don't leave partial writes)
+        if corrections:
+            logger.info("校对完成，修正 %d 处术语", len(corrections))
+            for c in corrections:
+                logger.debug("  [%d] %s → %s (%s)",
+                             c.get("index", "?"), c.get("original", "?"),
+                             c.get("corrected", "?"), c.get("reason", "?"))
+        else:
+            logger.info("校对完成，无需修正")
+
+        # All validation passed — now write files
+        transcript_data["segments"] = updated_segments
+        transcript_data["full_text"] = "\n".join(seg["text"] for seg in updated_segments)
         transcript_path.write_text(
             json.dumps(transcript_data, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 
-        # Write corrections log
-        corrections = result.get("corrections", [])
         corrections_path = self.cache_dir / "corrections.json"
         corrections_path.write_text(
             json.dumps(corrections, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-
-        if corrections:
-            logger.info("校对完成，修正 %d 处术语", len(corrections))
-            for c in corrections:
-                logger.debug("  [%d] %s → %s (%s)", c["index"], c["original"], c["corrected"], c["reason"])
-        else:
-            logger.info("校对完成，无需修正")
 
         return StageResult(
             status=StageStatus.SUCCESS,
