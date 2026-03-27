@@ -19,19 +19,22 @@ class WhisperRemoteBackend(STTBackend):
         self.language = language
 
     def transcribe(self, audio_path: str, hotwords: list[str] | None = None) -> TranscriptResult:
-        if hotwords:
-            logger.warning("远程 Whisper API 不支持 hotwords 参数，将忽略")
         url = f"{self.base_url}/v1/audio/transcriptions"
+
+        form_data = {
+            "model": self.model,
+            "language": self.language,
+            "response_format": "verbose_json",
+        }
+        if hotwords:
+            form_data["hotwords"] = " ".join(hotwords)
+            logger.info("远程 Whisper hotwords: %s", form_data["hotwords"])
 
         with open(audio_path, "rb") as f:
             resp = httpx.post(
                 url,
                 files={"file": (audio_path, f, "audio/wav")},
-                data={
-                    "model": self.model,
-                    "language": self.language,
-                    "response_format": "verbose_json",
-                },
+                data=form_data,
                 timeout=600.0,
             )
         resp.raise_for_status()
