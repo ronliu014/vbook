@@ -98,15 +98,15 @@ def _process_single(video_path: Path, output: str, cfg, force: bool, verbose: bo
         SceneDetectStage(
             video_path=video_path,
             cache_dir=cache_dir,
-            sample_interval=ss_cfg.sample_interval,
-            threshold=ss_cfg.threshold,
+            sample_interval=ss_cfg.resolved_sample_interval,
+            threshold=ss_cfg.resolved_threshold,
         ),
         AnalyzeStage(llm_backend=llm, cache_dir=cache_dir),
         ScreenshotStage(
             video_path=video_path,
             cache_dir=cache_dir,
-            search_window=ss_cfg.search_window,
-            dedup_window=ss_cfg.dedup_window,
+            search_window=ss_cfg.resolved_search_window,
+            dedup_window=ss_cfg.resolved_dedup_window,
         ),
         GenerateStage(output_dir=output_dir, cache_dir=cache_dir),
     ]

@@ -9,11 +9,43 @@ class OutputConfig(BaseModel):
     root: Optional[Path] = None
     structure: str = "mirror"
 
+SCREENSHOT_PRESETS = {
+    "ppt": {"sample_interval": 2.0, "threshold": 0.15, "search_window": 10.0, "dedup_window": 5.0},
+    "lecture": {"sample_interval": 3.0, "threshold": 0.25, "search_window": 10.0, "dedup_window": 5.0},
+    "demo": {"sample_interval": 1.0, "threshold": 0.10, "search_window": 5.0, "dedup_window": 3.0},
+    "mixed": {"sample_interval": 2.0, "threshold": 0.20, "search_window": 8.0, "dedup_window": 5.0},
+}
+
 class ScreenshotConfig(BaseModel):
-    sample_interval: float = 2.0
-    threshold: float = 0.15
-    search_window: float = 10.0
-    dedup_window: float = 5.0
+    preset: Optional[str] = None
+    sample_interval: Optional[float] = None
+    threshold: Optional[float] = None
+    search_window: Optional[float] = None
+    dedup_window: Optional[float] = None
+
+    def _resolve(self, field: str, default: float) -> float:
+        explicit = getattr(self, field)
+        if explicit is not None:
+            return explicit
+        if self.preset and self.preset in SCREENSHOT_PRESETS:
+            return SCREENSHOT_PRESETS[self.preset][field]
+        return SCREENSHOT_PRESETS["mixed"][field]
+
+    @property
+    def resolved_sample_interval(self) -> float:
+        return self._resolve("sample_interval", 2.0)
+
+    @property
+    def resolved_threshold(self) -> float:
+        return self._resolve("threshold", 0.20)
+
+    @property
+    def resolved_search_window(self) -> float:
+        return self._resolve("search_window", 8.0)
+
+    @property
+    def resolved_dedup_window(self) -> float:
+        return self._resolve("dedup_window", 5.0)
 
 class ProcessingConfig(BaseModel):
     intermediate_dir: str = ".vbook_cache"

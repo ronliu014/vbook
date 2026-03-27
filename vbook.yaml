@@ -12,10 +12,7 @@ processing:
   max_retries: 3
   glossary: glossary/investment.yaml
   screenshot:
-    sample_interval: 2.0
-    threshold: 0.15
-    search_window: 10.0
-    dedup_window: 5.0
+    preset: ppt
 
 logging:
   level: INFO
