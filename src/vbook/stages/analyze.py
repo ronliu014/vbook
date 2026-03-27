@@ -11,11 +11,21 @@ class AnalyzeStage(Stage):
         self.llm_backend = llm_backend
         self.cache_dir = cache_dir
 
+    @staticmethod
+    def _format_timestamped_text(segments: list[dict]) -> str:
+        lines = []
+        for seg in segments:
+            start = seg.get("start", 0)
+            minutes, seconds = divmod(int(start), 60)
+            lines.append(f"[{minutes}:{seconds:02d}] {seg['text']}")
+        return "\n".join(lines)
+
     def run(self, context: dict) -> StageResult:
         transcript_path = context.get("transcript_path")
         transcript_data = json.loads(Path(transcript_path).read_text(encoding="utf-8"))
 
-        raw = self.llm_backend.analyze(transcript_data["full_text"], ANALYZE_PROMPT)
+        timestamped_text = self._format_timestamped_text(transcript_data.get("segments", []))
+        raw = self.llm_backend.analyze(timestamped_text, ANALYZE_PROMPT)
 
         # 提取JSON（防止LLM返回markdown代码块）
         if "```" in raw:

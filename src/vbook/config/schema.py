@@ -10,8 +10,8 @@ class OutputConfig(BaseModel):
     structure: str = "mirror"
 
 class ScreenshotConfig(BaseModel):
-    sample_interval: float = 5.0
-    threshold: float = 0.3
+    sample_interval: float = 2.0
+    threshold: float = 0.15
     search_window: float = 10.0
     dedup_window: float = 5.0
 

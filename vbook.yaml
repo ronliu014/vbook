@@ -10,6 +10,15 @@ processing:
   intermediate_dir: .vbook_cache
   keep_intermediate: true
   max_retries: 3
+  glossary: glossary/investment.yaml
+  screenshot:
+    sample_interval: 2.0
+    threshold: 0.15
+    search_window: 10.0
+    dedup_window: 5.0
+
+logging:
+  level: INFO
 
 backends:
   stt: whisper_remote
