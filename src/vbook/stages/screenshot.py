@@ -4,6 +4,7 @@ import ffmpeg as ffmpeg_lib
 from ffmpeg import Error as FfmpegError
 from ..pipeline.stage import Stage, StageResult, StageStatus
 from ..utils.logger import get_logger
+from ..utils.image_similarity import deduplicate_images
 
 logger = get_logger(__name__)
 
@@ -102,7 +103,7 @@ class ScreenshotStage(Stage):
         logger.info("截图时间点: %d 个 (来自 %d 个候选)", len(final_timestamps), len(candidates))
 
         # Take screenshots
-        screenshots_map = {}
+        screenshot_files = []
         for i, ts in enumerate(final_timestamps):
             filename = f"frame_{i:03d}_{ts:.1f}s.jpg"
             output_path = screenshots_dir / filename
@@ -114,10 +115,21 @@ class ScreenshotStage(Stage):
                     .overwrite_output()
                     .run(quiet=True)
                 )
-                screenshots_map[str(i)] = [filename]
+                screenshot_files.append(output_path)
             except FfmpegError:
                 logger.warning("截图失败: %.1fs", ts)
                 continue
+
+        # Content-based deduplication
+        logger.info("开始内容去重: %d 张截图", len(screenshot_files))
+        unique_files = deduplicate_images(screenshot_files, similarity_threshold=0.95)
+        logger.info("去重完成: 保留 %d 张 (移除 %d 张相似截图)",
+                    len(unique_files), len(screenshot_files) - len(unique_files))
+
+        # Build screenshots_map
+        screenshots_map = {}
+        for i, img_path in enumerate(unique_files):
+            screenshots_map[str(i)] = [img_path.name]
 
         return StageResult(
             status=StageStatus.SUCCESS,
