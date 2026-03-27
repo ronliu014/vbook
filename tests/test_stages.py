@@ -237,10 +237,11 @@ def test_generate_stage_copies_screenshots_and_injects(tmp_path):
     screenshots_dir = cache_dir / "screenshots"
     screenshots_dir.mkdir()
 
-    # Create fake screenshot files
-    (screenshots_dir / "section_0_frame_0.jpg").write_bytes(b"img0")
-    (screenshots_dir / "section_0_frame_1.jpg").write_bytes(b"img1")
-    (screenshots_dir / "section_1_frame_0.jpg").write_bytes(b"img2")
+    # Create real screenshot files (needed for PPT generation)
+    from PIL import Image
+    for filename in ["section_0_frame_0.jpg", "section_0_frame_1.jpg", "section_1_frame_0.jpg"]:
+        img = Image.new("RGB", (100, 100), color="blue")
+        img.save(str(screenshots_dir / filename))
 
     analysis = {
         "title": "测试视频",

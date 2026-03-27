@@ -4,6 +4,7 @@ from pathlib import Path
 from ..pipeline.stage import Stage, StageResult, StageStatus
 from ..output.markdown import MarkdownGenerator
 from ..output.mindmap import generate_markmap
+from ..output.pptx_generator import generate_pptx
 
 class GenerateStage(Stage):
     name = "generate"
@@ -43,7 +44,15 @@ class GenerateStage(Stage):
         mindmap_path = self.output_dir / "mindmap.md"
         mindmap_path.write_text(mindmap_content, encoding="utf-8")
 
+        # Generate PowerPoint
+        pptx_path = self.output_dir / "summary.pptx"
+        generate_pptx(analysis, assets_dir, pptx_path)
+
         return StageResult(
             status=StageStatus.SUCCESS,
-            output={"markdown_path": str(md_path), "mindmap_path": str(mindmap_path)},
+            output={
+                "markdown_path": str(md_path),
+                "mindmap_path": str(mindmap_path),
+                "pptx_path": str(pptx_path),
+            },
         )
