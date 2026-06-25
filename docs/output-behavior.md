@@ -32,17 +32,21 @@ outputs/<lesson_id>/
     +-- images/
 ```
 
+## 双核心输出
+
+MVP 输出以 `note.md` 和 `manifest.json` 为双核心。`note.md` 面向人阅读，`manifest.json` 面向复跑、审计和后续知识库。
+
 ## Markdown 笔记
 
 `note.md` 是面向用户阅读的最终产物。它应包含课程元数据、章节摘要、关键知识点、图片引用和来源时间戳。
 
 ## Manifest
 
-`manifest.json` 是机器可读的运行索引。它应记录源文件、配置、阶段状态、关键产物路径和可复跑信息。
+`manifest.json` 是机器可读的运行索引。它应记录源文件、transcript 来源、配置、阶段状态、关键产物路径、视觉后端、OCR 后端和可复跑信息。
 
 ## Transcript 输出
 
-转写目录同时保存原始 ASR 输出和清理后的文本。如果用户提供了已有转写，manifest 应记录该阶段为导入而非生成。
+转写目录保存导入或生成的 transcript。MVP 标准路径是导入已有带时间戳 transcript；如果通过外部 `vtext` CLI 生成，manifest 应记录该来源为 external command。
 
 ## Frame 输出
 
@@ -50,7 +54,7 @@ outputs/<lesson_id>/
 
 ## Vision 输出
 
-`vision/analysis.json` 保存统一后的 OCR 和图像理解结果。该文件应足以支持重新执行时间轴对齐和知识融合，而无需重复 OCR。
+`vision/analysis.json` 保存统一后的 OCR 和多模态图像理解结果。该文件应区分 `slide`、`kline_case` 和 `other`，并足以支持重新执行时间轴对齐和知识融合，而无需重复视觉分析。
 
 ## Fusion 输出
 

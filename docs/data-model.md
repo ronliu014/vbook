@@ -53,12 +53,20 @@
 表示 OCR 或图像理解后的统一结果。
 
 - `frame_id`
-- `visual_type`
+- `visual_type`：`slide`、`kline_case`、`other`
 - `ocr_text`
-- `description`
-- `structured_data`
+- `vision_description`
+- `structured_observations`
 - `confidence`
 - `backend`
+
+## VisualType
+
+表示画面类型。MVP 只承诺稳定处理前两类：
+
+- `slide`：PPT/幻灯片。
+- `kline_case`：K 线或行情案例图。
+- `other`：其他暂不进入核心 MVP 的画面。
 
 ## TimelineLink
 
@@ -90,6 +98,18 @@
 - `sections`
 - `assets`
 - `manifest_path`
+
+## Manifest
+
+表示机器可读的运行索引，是 MVP 双核心输出之一。
+
+- `video_asset`
+- `transcript_source`
+- `pipeline_run`
+- `artifacts`
+- `note_path`
+- `stage_status`
+- `schema_version`
 
 ## PipelineRun
 

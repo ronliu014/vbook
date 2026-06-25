@@ -17,7 +17,7 @@ vbook/
 +-- tests/
 ```
 
-第一阶段不必马上创建全部代码包，本文件定义的是职责边界。
+第一阶段采用混合骨架：创建主要包边界，其中 `vbook_server` 仅为空包占位；实际 MVP 闭环由 `vbook_client`、`vbook_pipeline`、`vbook_common`、`vbook_vision`、`vbook_fusion` 和 `vbook_export` 承担。
 
 ## vbook_client
 
@@ -25,7 +25,7 @@ vbook/
 
 ## vbook_server
 
-未来的 FastAPI 服务端，负责任务提交、队列、worker 生命周期、健康检查和进度流。可以复用 vtext 中异步 job 与 SSE 进度的架构思想。
+MVP 中只创建空包占位，不引入 FastAPI、uvicorn、任务队列或 SSE。未来服务化时，该包再负责 API、任务提交、队列、worker 生命周期、健康检查和进度流。
 
 ## vbook_common
 
@@ -37,11 +37,11 @@ vbook/
 
 ## vbook_audio
 
-负责音频抽取和转写适配器。后端可以是本地 Whisper、远程服务或已有转写文件，但对外应暴露 vBook 自己的接口。
+负责 transcript 导入和可选外部命令适配。MVP 标准输入是已有带时间戳 transcript；可选通过外部 `vtext` CLI 生成 transcript。该包对外只暴露 vBook 自己的 `TranscriptSegment[]` 接口。
 
 ## vbook_vision
 
-负责视频抽帧、去重、OCR、图片分类和多模态视觉分析。它拥有视觉中间产物元数据，但不负责最终笔记写出。
+负责视频抽帧、去重、OCR、图片分类和多模态视觉分析。MVP 优先识别 PPT/幻灯片和 K 线案例图，默认多模态模型优先，OCR 作为 fallback 或辅助输入。
 
 ## vbook_fusion
 

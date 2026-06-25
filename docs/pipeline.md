@@ -3,9 +3,8 @@
 ## 端到端数据流
 
 ```text
-VideoAsset
-  +-- AudioTrack
-  |     +-- TranscriptSegment[]
+VideoAsset + TranscriptInput
+  +-- TranscriptSegment[]
   +-- FrameCandidate[]
         +-- VisualAnalysis[]
               +-- TimelineLink[]
@@ -19,7 +18,7 @@ VideoAsset
 
 ## 阶段 2：音频与转写
 
-从视频中抽取音频，并生成带时间戳的转写片段。vtext 的转写链路是设计参考，但 vBook 必须拥有自己的转写接口。若用户已有转写文本，可跳过实际 ASR。
+MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换为 `TranscriptSegment[]`，不关心来源。可选 adapter 可以调用外部 `vtext` CLI 生成 transcript，但 vBook 不 import vtext、不依赖 vtext 包。
 
 ## 阶段 3：视频抽帧
 
@@ -27,11 +26,11 @@ VideoAsset
 
 ## 阶段 4：帧过滤
 
-过滤重复画面、纯讲师画面、空白画面和低信息量图片。初期可使用感知哈希、画面差异、OCR 文本密度和阈值规则。
+过滤重复画面、纯讲师画面、空白画面和低信息量图片。MVP 的保留目标是 PPT/幻灯片和 K 线案例图。初期可使用感知哈希、画面差异、OCR 文本密度和阈值规则。
 
 ## 阶段 5：视觉分析
 
-对保留帧识别其类型和内容，例如 PPT、图表、表格、代码、K 线案例或交割单。后端可以是 PaddleOCR、本地多模态模型或云端 API。输出统一为文字、标签、结构化观察和置信度。
+对保留帧识别其类型和内容。MVP 支持两类高优先级视觉类型：`slide` 和 `kline_case`。默认使用多模态模型理解图片语义，OCR 后端作为 PPT 文字提取、调试和 fallback。输出统一为 OCR 文本、视觉描述、结构化观察、后端信息和置信度。
 
 ## 阶段 6：时间轴对齐
 
@@ -43,4 +42,4 @@ LLM 融合转写文本、OCR 文本、图像描述和课程上下文，生成去
 
 ## 阶段 8：导出
 
-导出 Markdown 笔记、图片素材、转写记录、视觉分析 JSON、融合结果和 manifest。最终笔记中的每个重点都应能追溯到原始视频时间点和相关图片。
+导出双核心产物：`note.md` 面向用户阅读，`manifest.json` 面向机器复跑和后续知识库。同步保存图片素材、转写记录、视觉分析 JSON 和融合结果。最终笔记中的每个重点都应能追溯到原始视频时间点和相关图片。

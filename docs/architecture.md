@@ -49,3 +49,43 @@
 **原因：** 这些文件体积大、可能包含隐私，并且通常可以从原始输入重新生成。
 
 **影响：** Git 只跟踪源码、文档、协议和小型测试 fixture。
+
+## ADR-007：股票课程优先，架构保持可扩展
+
+**决策：** vBook 第一阶段优先服务股票/交易课程。
+
+**原因：** 股票课程高度依赖 K 线图、买卖点标注、均线形态和 PPT 框架，视觉信息缺失会直接降低笔记价值。
+
+**影响：** MVP 优先识别 PPT 和 K 线案例图；通用课程、交割单、收益表和复杂表格放入后续阶段。
+
+## ADR-008：混合骨架起步，server 空包占位
+
+**决策：** 第一版创建 vtext 风格的包边界，但 `vbook_server` 只作为空包占位。
+
+**原因：** 项目需要继承 vtext 的结构经验，但 MVP 应先验证本地 pipeline 闭环，不应过早引入 FastAPI、任务队列和服务端运维复杂度。
+
+**影响：** 可运行能力先集中在 CLI 和 pipeline；服务端后续再扩展为 job queue、health API 和进度流。
+
+## ADR-009：transcript 输入优先，vtext CLI 可选
+
+**决策：** MVP 标准输入是已有带时间戳 transcript；可选通过外部 `vtext` CLI 生成 transcript。
+
+**原因：** vBook 的差异化核心是视觉抽取、图文对齐和知识融合，不应在第一阶段重复实现完整 ASR 系统。
+
+**影响：** vBook 内部统一使用 `TranscriptSegment[]`；vtext 是可选外部工具，不是 Python 包依赖。
+
+## ADR-010：多模态视觉优先，OCR fallback
+
+**决策：** MVP 默认使用多模态模型做视觉理解，OCR 作为 fallback 或辅助输入。
+
+**原因：** PPT 文字可由 OCR 提供，但 K 线案例图的核心价值在图形语义和交易逻辑，需要多模态理解。
+
+**影响：** `VisualAnalysis` 同时保留 `ocr_text`、`vision_description` 和 `structured_observations`。
+
+## ADR-011：note.md 与 manifest.json 双核心输出
+
+**决策：** MVP 输出以 `note.md` 和 `manifest.json` 为双核心。
+
+**原因：** `note.md` 保证用户立即可读，`manifest.json` 保证复跑、审计、后续知识库和自动化处理。
+
+**影响：** exporter 必须同时维护人类可读结果和机器可读索引。

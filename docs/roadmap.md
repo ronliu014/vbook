@@ -9,24 +9,25 @@
 ## P1：项目骨架
 
 - 添加 Python packaging 和 `pyproject.toml`。
-- 创建 common 类型、配置、pipeline 编排和 CLI 初始包。
+- 创建 vtext 风格混合骨架：`vbook_client`、`vbook_common`、`vbook_pipeline`、`vbook_audio`、`vbook_vision`、`vbook_fusion`、`vbook_export` 和空包 `vbook_server`。
 - 添加 lint、test 工具和基础单元测试。
 - 保持依赖最小化。
 
 ## P2：本地 MVP 流水线
 
-- 接收单个视频输入。
-- 抽取音频或导入已有转写文本。
+- 接收单个股票课程视频和已有带时间戳 transcript。
+- 可选通过外部 `vtext` CLI 生成 transcript，但不依赖 vtext 包。
 - 按可配置间隔抽帧。
-- 过滤明显重复画面。
-- 接入简单 OCR 或视觉分析适配器。
+- 过滤明显重复画面，并优先保留 PPT 和 K 线案例图。
+- 默认接入多模态视觉分析后端，OCR 作为 fallback 或辅助输入。
 - 按时间戳对齐帧和转写片段。
-- 导出 Markdown 笔记、图片资产和 manifest。
+- 导出 `note.md`、`manifest.json`、图片资产和中间 JSON。
 
 ## P3：质量提升
 
 - 使用感知哈希和文本密度改进帧过滤。
-- 增加视觉类型标签，例如 PPT、图表、表格、代码和案例截图。
+- 增强 `slide` 和 `kline_case` 的视觉类型判断。
+- 增加交割单、收益表和复杂表格作为后续视觉类型。
 - 优化融合 Prompt 模板。
 - 支持从中间产物复跑。
 
