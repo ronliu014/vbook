@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local config
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# Generated course artifacts
+data/
+datasets/
+inputs/
+outputs/
+runs/
+frames/
+transcripts/
+artifacts/
+models/
+
+# Large media and derived assets
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.mp3
+*.wav
+*.flac
+*.srt
+*.vtt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
