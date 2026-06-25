@@ -4,7 +4,7 @@
 
 vBook automates video-course analysis into image-aware notes and a searchable knowledge base. The current repository is lightweight:
 
-- `docs/` stores product intent and technical notes. Start with `docs/vBook需求意向.md`.
+- `docs/` stores business planning, architecture, pipeline, data model, and roadmap notes. Start with `docs/README.md`.
 - `sync/` is reserved for cross-environment Codex coordination through Git-backed file exchange.
 - Future source should be grouped by pipeline stage, for example `src/video/`, `src/audio/`, `src/ocr/`, `src/fusion/`, and `src/export/`.
 - Keep generated media, frames, transcripts, and model outputs out of source directories. Prefer ignored paths such as `data/`, `outputs/`, or `runs/`.
@@ -27,7 +27,7 @@ Add tests under `tests/` with filenames like `test_frame_extraction.py` or `test
 
 ## Commit & Pull Request Guidelines
 
-The local directory is not yet initialized as a Git repository. The intended remote is `https://github.com/ronliu014/vbook.git`. Until stronger history exists, use short imperative commits such as `Add frame extraction prototype` or `Document sync protocol`. Pull requests should include purpose, changed stages, test results, and screenshots or sample Markdown output for visual or formatting changes.
+The repository uses `main` with remote `https://github.com/ronliu014/vbook.git`. Use short imperative commits such as `Add frame extraction prototype` or `Document sync protocol`. Pull requests should include purpose, changed stages, test results, and screenshots or sample Markdown output for visual or formatting changes.
 
 ## vtext Boundary & Agent Coordination
 

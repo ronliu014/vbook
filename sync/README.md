@@ -1,6 +1,6 @@
 # vBook Sync Protocol
 
-`sync/` is the Git-backed protocol directory for collaboration between Codex agents on different machines. Git is the transport layer: each side pulls before reading, writes handoff files under `sync/`, commits, and pushes.
+`sync/` is the Git-backed protocol directory for collaboration between Codex agents on different machines. Git is the transport layer: each side pulls before reading, writes handoff files under `sync/`, commits, and pushes. See `docs/sync-protocol.md` for the planned single-writer protocol evolution.
 
 ## Roles
 

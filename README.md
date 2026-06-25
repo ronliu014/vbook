@@ -8,7 +8,7 @@ vBook is a project for automatic video-course analysis and knowledge organizatio
 4. Align screenshots with transcript segments by timeline.
 5. Fuse speech, slide text, and visual case descriptions into structured Markdown notes and a searchable knowledge base.
 
-The product and technical intent is documented in [`docs/vBook需求意向.md`](docs/vBook需求意向.md).
+The original product intent is documented in [`docs/vBook需求意向.md`](docs/vBook需求意向.md). The planning index starts at [`docs/README.md`](docs/README.md).
 
 ## Project Status
 
@@ -16,7 +16,7 @@ This repository is in initial setup. The video-to-audio-to-text-to-knowledge wor
 
 ## Repository Layout
 
-- `docs/` - requirements, design notes, and project decisions.
+- `docs/` - business plan, architecture, pipeline, module, data model, and roadmap documents.
 - `sync/` - Git-backed coordination directory for Windows and Linux Codex agents.
 - `AGENTS.md` - contributor and agent guidelines.
 
