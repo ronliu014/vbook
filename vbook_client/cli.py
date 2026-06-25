@@ -12,6 +12,7 @@ from vbook_common.config import load_config
 from vbook_common.serialization import to_jsonable
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
+from vbook_vision.frames import discover_frame_candidates
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -36,6 +37,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "manifest":
         config = load_config(config_file=args.config)
         segments = load_transcript(args.transcript)
+        frames = None
+        if args.frame_candidates_dir:
+            frames = discover_frame_candidates(
+                candidate_dir=args.frame_candidates_dir,
+                video_id=Path(args.output).name or Path(args.video).stem,
+                interval_seconds=args.frame_interval_seconds,
+            )
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -44,6 +52,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             config=to_jsonable(config),
             course_title=args.course_title,
             lesson_title=args.lesson_title,
+            frames=frames,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -71,5 +80,15 @@ def _build_parser() -> argparse.ArgumentParser:
     manifest_parser.add_argument("--config", help="Optional vBook TOML config path")
     manifest_parser.add_argument("--course-title", default="", help="Course title stored in manifest")
     manifest_parser.add_argument("--lesson-title", help="Lesson title stored in manifest")
+    manifest_parser.add_argument(
+        "--frame-candidates-dir",
+        help="Existing frame candidate directory to include in manifest",
+    )
+    manifest_parser.add_argument(
+        "--frame-interval-seconds",
+        type=float,
+        default=3.0,
+        help="Seconds between candidate frames when inferring timestamps",
+    )
 
     return parser

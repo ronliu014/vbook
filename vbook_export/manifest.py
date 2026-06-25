@@ -8,6 +8,7 @@ from typing import Any, Sequence
 
 from vbook_common.serialization import to_jsonable
 from vbook_common.types import (
+    FrameCandidate,
     Manifest,
     PipelineRun,
     StageStatus,
@@ -26,6 +27,7 @@ def build_manifest(
     course_title: str = "",
     lesson_title: str | None = None,
     transcript_source: TranscriptSourceType = TranscriptSourceType.IMPORTED,
+    frames: Sequence[FrameCandidate] | None = None,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -35,8 +37,23 @@ def build_manifest(
     resolved_lesson_title = lesson_title if lesson_title is not None else video.stem
     stage_status = {
         "transcript_import": StageStatus.DONE,
+        "frame_extraction": StageStatus.SKIPPED if frames is None else StageStatus.DONE,
         "manifest": StageStatus.DONE,
     }
+    artifacts: dict[str, Any] = {
+        "transcript": {
+            "path": transcript,
+            "segment_count": len(segments),
+            "segments": list(segments),
+        }
+    }
+    if frames is not None:
+        frame_list = list(frames)
+        artifacts["frames"] = {
+            "candidate_dir": _common_parent(frame_list),
+            "candidate_count": len(frame_list),
+            "candidates": frame_list,
+        }
 
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",
@@ -57,13 +74,7 @@ def build_manifest(
         ),
         transcript_source=transcript_source,
         pipeline_run=pipeline_run,
-        artifacts={
-            "transcript": {
-                "path": transcript,
-                "segment_count": len(segments),
-                "segments": list(segments),
-            }
-        },
+        artifacts=artifacts,
         note_path=output / "note.md",
         stage_status=stage_status,
     )
@@ -78,3 +89,9 @@ def write_manifest(manifest: Manifest, path: Path | str) -> Path:
         encoding="utf-8",
     )
     return manifest_path
+
+
+def _common_parent(frames: Sequence[FrameCandidate]) -> Path | None:
+    if not frames:
+        return None
+    return frames[0].image_path.parent

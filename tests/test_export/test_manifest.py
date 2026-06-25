@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from vbook_common.types import StageStatus, TranscriptSegment
+from vbook_common.types import FrameCandidate, StageStatus, TranscriptSegment
 from vbook_export.manifest import build_manifest, write_manifest
 
 
@@ -53,6 +53,31 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(data["transcript_source"], "imported")
         self.assertEqual(data["stage_status"]["manifest"], "done")
         self.assertEqual(data["pipeline_run"]["stage_status"]["manifest"], "done")
+
+    def test_build_manifest_can_record_frame_candidates(self) -> None:
+        frames = [
+            FrameCandidate(
+                id="frame-000001",
+                video_id="lesson",
+                timestamp=0.0,
+                image_path=Path("outputs/lesson/frames/candidates/frame_000001.jpg"),
+                width=0,
+                height=0,
+            )
+        ]
+
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            frames=frames,
+        )
+
+        self.assertEqual(manifest.artifacts["frames"]["candidate_count"], 1)
+        self.assertEqual(manifest.artifacts["frames"]["candidates"], frames)
+        self.assertEqual(manifest.pipeline_run.stage_status["frame_extraction"], StageStatus.DONE)
 
 
 if __name__ == "__main__":
