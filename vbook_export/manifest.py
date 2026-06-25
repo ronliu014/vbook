@@ -37,11 +37,14 @@ def build_manifest(
     timeline_match_strategy: str = "timestamp_window",
     visual_analyses: Sequence[VisualAnalysis] | None = None,
     visual_analysis_path: Path | str | None = None,
+    note_path: Path | str | None = None,
+    note_written: bool = False,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
     transcript = Path(transcript_path)
     output = Path(output_dir)
+    resolved_note_path = Path(note_path) if note_path is not None else output / "note.md"
     lesson_id = output.name or video.stem
     resolved_lesson_title = lesson_title if lesson_title is not None else video.stem
     stage_status = {
@@ -53,6 +56,7 @@ def build_manifest(
         "vision_analysis": StageStatus.SKIPPED
         if visual_analyses is None
         else StageStatus.DONE,
+        "note_export": StageStatus.DONE if note_written else StageStatus.SKIPPED,
         "manifest": StageStatus.DONE,
     }
     artifacts: dict[str, Any] = {
@@ -101,12 +105,18 @@ def build_manifest(
             "analyses": analysis_list,
         }
 
+    if note_written:
+        artifacts["note"] = {
+            "path": resolved_note_path,
+            "format": "markdown",
+        }
+
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",
         config=dict(config),
         stage_status=stage_status,
         output_paths={
-            "note": output / "note.md",
+            "note": resolved_note_path,
             "manifest": output / "manifest.json",
         },
     )
@@ -121,7 +131,7 @@ def build_manifest(
         transcript_source=transcript_source,
         pipeline_run=pipeline_run,
         artifacts=artifacts,
-        note_path=output / "note.md",
+        note_path=resolved_note_path,
         stage_status=stage_status,
     )
 

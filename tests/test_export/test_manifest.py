@@ -181,6 +181,22 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.artifacts["vision"]["analyses"], analyses)
         self.assertEqual(manifest.pipeline_run.stage_status["vision_analysis"], StageStatus.DONE)
 
+    def test_build_manifest_can_record_written_note_artifact(self) -> None:
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            note_path=Path("outputs/lesson/note.md"),
+            note_written=True,
+        )
+
+        self.assertEqual(manifest.artifacts["note"]["path"], Path("outputs/lesson/note.md"))
+        self.assertEqual(manifest.artifacts["note"]["format"], "markdown")
+        self.assertEqual(manifest.stage_status["note_export"], StageStatus.DONE)
+        self.assertEqual(manifest.pipeline_run.stage_status["note_export"], StageStatus.DONE)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -10,8 +10,10 @@ from typing import Sequence
 from vbook_audio.transcript import load_transcript
 from vbook_common.config import load_config
 from vbook_common.serialization import to_jsonable
+from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
+from vbook_export.note import render_placeholder_note, write_note
 from vbook_pipeline.timeline import link_frames_to_transcript
 from vbook_vision.analysis import analyze_frames_placeholder, write_visual_analysis
 from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
@@ -45,6 +47,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         timeline_links = None
         visual_analyses = None
         visual_analysis_path = None
+        note_path = Path(args.note_path) if args.note_path else Path(args.output) / "note.md"
+        note_written = False
         if args.frame_candidates_dir:
             frames = discover_frame_candidates(
                 candidate_dir=args.frame_candidates_dir,
@@ -88,6 +92,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else Path(args.output) / "vision" / "analysis.json"
             )
             write_visual_analysis(visual_analyses, visual_analysis_path)
+        if args.write_note:
+            note_frames = (
+                list(selected_frames) + list(rejected_frames or [])
+                if selected_frames is not None
+                else frames
+            )
+            note_markdown = render_placeholder_note(
+                video=_build_video_asset_for_note(
+                    video_path=args.video,
+                    output_dir=args.output,
+                    course_title=args.course_title,
+                    lesson_title=args.lesson_title,
+                ),
+                segments=segments,
+                frames=note_frames,
+                visual_analyses=visual_analyses,
+                timeline_links=timeline_links,
+            )
+            write_note(note_markdown, note_path)
+            note_written = True
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -102,6 +126,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             timeline_links=timeline_links,
             visual_analyses=visual_analyses,
             visual_analysis_path=visual_analysis_path,
+            note_path=note_path,
+            note_written=note_written,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -173,5 +199,30 @@ def _build_parser() -> argparse.ArgumentParser:
         "--visual-analysis-path",
         help="Path for visual analysis JSON; defaults to <output>/vision/analysis.json",
     )
+    manifest_parser.add_argument(
+        "--write-note",
+        action="store_true",
+        help="Write placeholder note.md alongside manifest.json",
+    )
+    manifest_parser.add_argument(
+        "--note-path",
+        help="Path for Markdown note; defaults to <output>/note.md",
+    )
 
     return parser
+
+
+def _build_video_asset_for_note(
+    video_path: Path | str,
+    output_dir: Path | str,
+    course_title: str,
+    lesson_title: str | None,
+) -> VideoAsset:
+    video = Path(video_path)
+    output = Path(output_dir)
+    return VideoAsset(
+        id=output.name or video.stem,
+        path=video,
+        course_title=course_title,
+        lesson_title=lesson_title if lesson_title is not None else video.stem,
+    )
