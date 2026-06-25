@@ -21,7 +21,11 @@ from vbook_fusion.snapshot import (
 )
 from vbook_pipeline.timeline import link_frames_to_transcript
 from vbook_vision.analysis import analyze_frames_placeholder, write_visual_analysis
-from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
+from vbook_vision.frames import (
+    discover_frame_candidates,
+    extract_frame_candidates,
+    select_frame_candidates,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -53,6 +57,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             defaults={
                 "align_timeline": True,
                 "analyze_vision_placeholder": True,
+                "extract_frames": True,
                 "write_fusion_prompt": True,
                 "write_fusion_sections": True,
                 "write_note": True,
@@ -217,10 +222,18 @@ def _run_manifest_pipeline(
         course_title=args.course_title,
         lesson_title=args.lesson_title,
     )
+    video_id = Path(args.output).name or Path(args.video).stem
     if args.frame_candidates_dir:
         frames = discover_frame_candidates(
             candidate_dir=args.frame_candidates_dir,
-            video_id=Path(args.output).name or Path(args.video).stem,
+            video_id=video_id,
+            interval_seconds=args.frame_interval_seconds,
+        )
+    elif _flag(args, "extract_frames", defaults):
+        frames = extract_frame_candidates(
+            video_path=args.video,
+            candidate_dir=Path(args.output) / "frames" / "candidates",
+            video_id=video_id,
             interval_seconds=args.frame_interval_seconds,
         )
     if args.select_frames:

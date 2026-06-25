@@ -33,8 +33,7 @@ python -m vbook_client config --show
 python -m vbook_client build \
   --video lesson.mp4 \
   --transcript transcript.json \
-  --output outputs/lesson \
-  --frame-candidates-dir outputs/lesson/frames/candidates
+  --output outputs/lesson
 ```
 
 Editable install for local command testing:
@@ -44,7 +43,7 @@ python -m pip install -e ".[dev]"
 vbook check
 ```
 
-The `build` command runs the current MVP pipeline using an imported timestamped transcript and an existing frame candidate directory. `--transcript` accepts timestamped JSON or SRT files. It writes:
+The `build` command runs the current MVP pipeline using an imported timestamped transcript. `--transcript` accepts timestamped JSON or SRT files. By default, `build` extracts candidate frames from `--video` into `<output>/frames/candidates`; pass `--frame-candidates-dir` to reuse an existing candidate directory. It writes:
 
 - `manifest.json`
 - `note.md`
