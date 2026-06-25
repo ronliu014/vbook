@@ -216,6 +216,25 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.stage_status["fusion_prompt"], StageStatus.DONE)
         self.assertEqual(manifest.pipeline_run.stage_status["fusion_prompt"], StageStatus.DONE)
 
+    def test_build_manifest_can_record_fusion_sections_artifact(self) -> None:
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            fusion_sections_path=Path("outputs/lesson/fusion/sections.json"),
+            fusion_sections_written=True,
+        )
+
+        self.assertEqual(
+            manifest.artifacts["fusion"]["sections_path"],
+            Path("outputs/lesson/fusion/sections.json"),
+        )
+        self.assertEqual(manifest.artifacts["fusion"]["sections_format"], "json")
+        self.assertEqual(manifest.stage_status["fusion_sections"], StageStatus.DONE)
+        self.assertEqual(manifest.pipeline_run.stage_status["fusion_sections"], StageStatus.DONE)
+
 
 if __name__ == "__main__":
     unittest.main()

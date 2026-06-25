@@ -14,6 +14,7 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, write_note
+from vbook_fusion.sections import build_placeholder_sections, write_fusion_sections
 from vbook_fusion.snapshot import (
     build_fusion_prompt_snapshot,
     write_fusion_prompt_snapshot,
@@ -59,6 +60,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             else Path(args.output) / "fusion" / "prompt.json"
         )
         fusion_prompt_written = False
+        fusion_sections_path = (
+            Path(args.fusion_sections_path)
+            if args.fusion_sections_path
+            else Path(args.output) / "fusion" / "sections.json"
+        )
+        fusion_sections_written = False
         video_asset = _build_video_asset(
             video_path=args.video,
             output_dir=args.output,
@@ -132,6 +139,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             write_fusion_prompt_snapshot(fusion_snapshot, fusion_prompt_path)
             fusion_prompt_written = True
+        if args.write_fusion_sections:
+            fusion_sections = build_placeholder_sections(
+                segments=segments,
+                visual_analyses=visual_analyses,
+                timeline_links=timeline_links,
+            )
+            write_fusion_sections(fusion_sections, fusion_sections_path)
+            fusion_sections_written = True
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -150,6 +165,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             note_written=note_written,
             fusion_prompt_path=fusion_prompt_path,
             fusion_prompt_written=fusion_prompt_written,
+            fusion_sections_path=fusion_sections_path,
+            fusion_sections_written=fusion_sections_written,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -238,6 +255,15 @@ def _build_parser() -> argparse.ArgumentParser:
     manifest_parser.add_argument(
         "--fusion-prompt-path",
         help="Path for fusion prompt JSON; defaults to <output>/fusion/prompt.json",
+    )
+    manifest_parser.add_argument(
+        "--write-fusion-sections",
+        action="store_true",
+        help="Write placeholder fusion sections JSON",
+    )
+    manifest_parser.add_argument(
+        "--fusion-sections-path",
+        help="Path for fusion sections JSON; defaults to <output>/fusion/sections.json",
     )
 
     return parser

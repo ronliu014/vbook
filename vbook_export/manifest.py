@@ -41,6 +41,8 @@ def build_manifest(
     note_written: bool = False,
     fusion_prompt_path: Path | str | None = None,
     fusion_prompt_written: bool = False,
+    fusion_sections_path: Path | str | None = None,
+    fusion_sections_written: bool = False,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -51,6 +53,11 @@ def build_manifest(
         Path(fusion_prompt_path)
         if fusion_prompt_path is not None
         else output / "fusion" / "prompt.json"
+    )
+    resolved_fusion_sections_path = (
+        Path(fusion_sections_path)
+        if fusion_sections_path is not None
+        else output / "fusion" / "sections.json"
     )
     lesson_id = output.name or video.stem
     resolved_lesson_title = lesson_title if lesson_title is not None else video.stem
@@ -65,6 +72,9 @@ def build_manifest(
         else StageStatus.DONE,
         "fusion_prompt": StageStatus.DONE
         if fusion_prompt_written
+        else StageStatus.SKIPPED,
+        "fusion_sections": StageStatus.DONE
+        if fusion_sections_written
         else StageStatus.SKIPPED,
         "note_export": StageStatus.DONE if note_written else StageStatus.SKIPPED,
         "manifest": StageStatus.DONE,
@@ -122,10 +132,20 @@ def build_manifest(
         }
 
     if fusion_prompt_written:
-        artifacts["fusion"] = {
-            "prompt_path": resolved_fusion_prompt_path,
-            "prompt_format": "json",
-        }
+        artifacts.setdefault("fusion", {}).update(
+            {
+                "prompt_path": resolved_fusion_prompt_path,
+                "prompt_format": "json",
+            }
+        )
+
+    if fusion_sections_written:
+        artifacts.setdefault("fusion", {}).update(
+            {
+                "sections_path": resolved_fusion_sections_path,
+                "sections_format": "json",
+            }
+        )
 
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",
@@ -133,6 +153,7 @@ def build_manifest(
         stage_status=stage_status,
         output_paths={
             "fusion_prompt": resolved_fusion_prompt_path,
+            "fusion_sections": resolved_fusion_sections_path,
             "note": resolved_note_path,
             "manifest": output / "manifest.json",
         },

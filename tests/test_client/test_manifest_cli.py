@@ -355,6 +355,52 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["artifacts"]["fusion"]["prompt_format"], "json")
         self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
 
+    def test_manifest_command_can_write_fusion_sections_placeholder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "manifest",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--align-timeline",
+                    "--alignment-window-seconds",
+                    "3",
+                    "--analyze-vision-placeholder",
+                    "--write-fusion-sections",
+                ]
+            )
+
+            sections = json.loads(
+                (output / "fusion" / "sections.json").read_text(encoding="utf-8")
+            )
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(sections["intent"], "fusion_sections_placeholder")
+        self.assertEqual(sections["section_count"], 1)
+        self.assertEqual(len(sections["sections"][0]["image_refs"]), 1)
+        self.assertEqual(manifest["artifacts"]["fusion"]["sections_format"], "json")
+        self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
+
 
 if __name__ == "__main__":
     unittest.main()
