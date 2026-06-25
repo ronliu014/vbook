@@ -11,10 +11,12 @@ vBook automates video-course analysis into image-aware notes and a searchable kn
 
 ## Build, Test, and Development Commands
 
-No build system is committed yet. When adding tooling, document commands in `README.md` and keep them reproducible from the repository root. Expected commands include:
+The project uses Python packaging via `pyproject.toml`. Keep commands reproducible from the repository root:
 
-- `python -m pytest` to run Python tests.
-- `python -m vbook ...` for local pipeline execution.
+- `python -m unittest discover` to run the current test suite.
+- `python -m vbook_client --version` to verify the CLI entry point.
+- `python -m vbook_client check` to verify skeleton readiness.
+- `python -m pip install -e ".[dev]"` to install editable development tooling.
 - `ffmpeg -i lecture.mp4 -vf fps=1/3 frames/frame_%06d.jpg` as the baseline frame extraction pattern.
 
 ## Coding Style & Naming Conventions

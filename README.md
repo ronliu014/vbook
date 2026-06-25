@@ -19,6 +19,25 @@ This repository is in initial setup. The video-to-audio-to-text-to-knowledge wor
 - `docs/` - business plan, architecture, pipeline, module, data model, and roadmap documents.
 - `sync/` - Git-backed coordination directory for Windows and Linux Codex agents.
 - `AGENTS.md` - contributor and agent guidelines.
+- `vbook_common/` - shared data contracts, config, version, and serialization.
+- `vbook_client/` - CLI entry point.
+- `vbook_server/` - future server boundary, currently an empty placeholder.
+
+## Development Commands
+
+```sh
+python -m unittest discover
+python -m vbook_client --version
+python -m vbook_client check
+python -m vbook_client config --show
+```
+
+Editable install for local command testing:
+
+```sh
+python -m pip install -e ".[dev]"
+vbook check
+```
 
 ## Sync Roles
 
