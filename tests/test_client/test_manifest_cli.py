@@ -58,6 +58,52 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["manifest"], "done")
 
+    def test_build_command_accepts_srt_transcript(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.srt"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                (
+                    "1\n"
+                    "00:00:00,000 --> 00:00:02,000\n"
+                    "intro\n"
+                    "\n"
+                    "2\n"
+                    "00:00:02,000 --> 00:00:04,000\n"
+                    "case setup\n"
+                ),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "2",
+                ]
+            )
+
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(manifest["artifacts"]["transcript"]["segment_count"], 2)
+        self.assertEqual(manifest["stage_status"]["timeline_alignment"], "done")
+        self.assertEqual(manifest["stage_status"]["manifest"], "done")
+
     def test_manifest_command_writes_manifest_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

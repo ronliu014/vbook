@@ -44,7 +44,7 @@ python -m pip install -e ".[dev]"
 vbook check
 ```
 
-The `build` command runs the current MVP pipeline using an imported timestamped transcript and an existing frame candidate directory. It writes:
+The `build` command runs the current MVP pipeline using an imported timestamped transcript and an existing frame candidate directory. `--transcript` accepts timestamped JSON or SRT files. It writes:
 
 - `manifest.json`
 - `note.md`
