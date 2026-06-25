@@ -3,7 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from vbook_common.types import FilterStatus, FrameCandidate, StageStatus, TranscriptSegment
+from vbook_common.types import (
+    FilterStatus,
+    FrameCandidate,
+    StageStatus,
+    TimelineLink,
+    TranscriptSegment,
+)
 from vbook_export.manifest import build_manifest, write_manifest
 
 
@@ -120,6 +126,30 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.artifacts["frames"]["selected"], selected)
         self.assertEqual(manifest.artifacts["frames"]["rejected"], rejected)
         self.assertEqual(manifest.artifacts["frames"]["selection_strategy"], "min_interval")
+
+    def test_build_manifest_can_record_timeline_links(self) -> None:
+        links = [
+            TimelineLink(
+                frame_id="frame-000001",
+                transcript_segment_ids=["seg-000001"],
+                window_start=0.0,
+                window_end=10.0,
+            )
+        ]
+
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            timeline_links=links,
+        )
+
+        self.assertEqual(manifest.artifacts["timeline"]["link_count"], 1)
+        self.assertEqual(manifest.artifacts["timeline"]["links"], links)
+        self.assertEqual(manifest.artifacts["timeline"]["match_strategy"], "timestamp_window")
+        self.assertEqual(manifest.pipeline_run.stage_status["timeline_alignment"], StageStatus.DONE)
 
 
 if __name__ == "__main__":

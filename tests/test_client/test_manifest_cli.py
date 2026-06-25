@@ -132,6 +132,57 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(data["artifacts"]["frames"]["rejected_count"], 1)
         self.assertTrue(selected_file_exists)
 
+    def test_manifest_command_can_align_selected_frames_to_transcript(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps(
+                    {
+                        "segments": [
+                            {"start": 0, "end": 3, "text": "intro"},
+                            {"start": 8, "end": 12, "text": "case"},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            for index in range(1, 7):
+                (candidate_dir / f"frame_{index:06d}.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "manifest",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--frame-interval-seconds",
+                    "2",
+                    "--align-timeline",
+                    "--alignment-window-seconds",
+                    "3",
+                ]
+            )
+
+            data = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(data["artifacts"]["timeline"]["link_count"], 6)
+        self.assertEqual(
+            data["artifacts"]["timeline"]["links"][-1]["transcript_segment_ids"],
+            ["seg-000002"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

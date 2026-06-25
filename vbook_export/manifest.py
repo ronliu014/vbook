@@ -12,6 +12,7 @@ from vbook_common.types import (
     Manifest,
     PipelineRun,
     StageStatus,
+    TimelineLink,
     TranscriptSegment,
     TranscriptSourceType,
     VideoAsset,
@@ -31,6 +32,8 @@ def build_manifest(
     selected_frames: Sequence[FrameCandidate] | None = None,
     rejected_frames: Sequence[FrameCandidate] | None = None,
     selection_strategy: str = "min_interval",
+    timeline_links: Sequence[TimelineLink] | None = None,
+    timeline_match_strategy: str = "timestamp_window",
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -41,6 +44,9 @@ def build_manifest(
     stage_status = {
         "transcript_import": StageStatus.DONE,
         "frame_extraction": StageStatus.SKIPPED if frames is None else StageStatus.DONE,
+        "timeline_alignment": StageStatus.SKIPPED
+        if timeline_links is None
+        else StageStatus.DONE,
         "manifest": StageStatus.DONE,
     }
     artifacts: dict[str, Any] = {
@@ -70,6 +76,14 @@ def build_manifest(
                     "selection_strategy": selection_strategy,
                 }
             )
+
+    if timeline_links is not None:
+        link_list = list(timeline_links)
+        artifacts["timeline"] = {
+            "link_count": len(link_list),
+            "links": link_list,
+            "match_strategy": timeline_match_strategy,
+        }
 
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",

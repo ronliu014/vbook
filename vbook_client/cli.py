@@ -12,6 +12,7 @@ from vbook_common.config import load_config
 from vbook_common.serialization import to_jsonable
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
+from vbook_pipeline.timeline import link_frames_to_transcript
 from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
 
 
@@ -40,6 +41,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         frames = None
         selected_frames = None
         rejected_frames = None
+        timeline_links = None
         if args.frame_candidates_dir:
             frames = discover_frame_candidates(
                 candidate_dir=args.frame_candidates_dir,
@@ -59,6 +61,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 selected_dir=selected_dir,
                 min_interval_seconds=args.min_selected_frame_interval_seconds,
             )
+        if args.align_timeline:
+            link_frames = selected_frames if selected_frames is not None else frames
+            if link_frames is None:
+                parser.error("manifest --align-timeline requires frame metadata")
+            timeline_links = link_frames_to_transcript(
+                link_frames,
+                segments,
+                window_seconds=(
+                    args.alignment_window_seconds
+                    if args.alignment_window_seconds is not None
+                    else config.alignment_window_seconds
+                ),
+            )
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -70,6 +85,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             frames=frames,
             selected_frames=selected_frames,
             rejected_frames=rejected_frames,
+            timeline_links=timeline_links,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -121,6 +137,16 @@ def _build_parser() -> argparse.ArgumentParser:
         type=float,
         default=10.0,
         help="Minimum seconds between selected frames",
+    )
+    manifest_parser.add_argument(
+        "--align-timeline",
+        action="store_true",
+        help="Link frames to transcript segments by timestamp window",
+    )
+    manifest_parser.add_argument(
+        "--alignment-window-seconds",
+        type=float,
+        help="Seconds before and after each frame timestamp used for transcript matching",
     )
 
     return parser
