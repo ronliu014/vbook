@@ -12,7 +12,7 @@ from vbook_common.config import load_config
 from vbook_common.serialization import to_jsonable
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
-from vbook_vision.frames import discover_frame_candidates
+from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -38,11 +38,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         config = load_config(config_file=args.config)
         segments = load_transcript(args.transcript)
         frames = None
+        selected_frames = None
+        rejected_frames = None
         if args.frame_candidates_dir:
             frames = discover_frame_candidates(
                 candidate_dir=args.frame_candidates_dir,
                 video_id=Path(args.output).name or Path(args.video).stem,
                 interval_seconds=args.frame_interval_seconds,
+            )
+        if args.select_frames:
+            if frames is None:
+                parser.error("manifest --select-frames requires --frame-candidates-dir")
+            selected_dir = (
+                Path(args.selected_frames_dir)
+                if args.selected_frames_dir
+                else Path(args.output) / "frames" / "selected"
+            )
+            selected_frames, rejected_frames = select_frame_candidates(
+                list(frames),
+                selected_dir=selected_dir,
+                min_interval_seconds=args.min_selected_frame_interval_seconds,
             )
         manifest = build_manifest(
             video_path=args.video,
@@ -53,6 +68,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             course_title=args.course_title,
             lesson_title=args.lesson_title,
             frames=frames,
+            selected_frames=selected_frames,
+            rejected_frames=rejected_frames,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -89,6 +106,21 @@ def _build_parser() -> argparse.ArgumentParser:
         type=float,
         default=3.0,
         help="Seconds between candidate frames when inferring timestamps",
+    )
+    manifest_parser.add_argument(
+        "--select-frames",
+        action="store_true",
+        help="Select candidate frames into frames/selected before writing manifest",
+    )
+    manifest_parser.add_argument(
+        "--selected-frames-dir",
+        help="Directory for selected frame copies; defaults to <output>/frames/selected",
+    )
+    manifest_parser.add_argument(
+        "--min-selected-frame-interval-seconds",
+        type=float,
+        default=10.0,
+        help="Minimum seconds between selected frames",
     )
 
     return parser

@@ -2,11 +2,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from vbook_common.types import FilterStatus
+from vbook_common.types import FilterStatus, FrameCandidate
 from vbook_vision.frames import (
     build_ffmpeg_frame_command,
     discover_frame_candidates,
     extract_frame_candidates,
+    select_frame_candidates,
 )
 
 
@@ -64,6 +65,38 @@ class FrameCandidateTest(unittest.TestCase):
         self.assertEqual(frames[0].image_path.name, "frame_000001.jpg")
         self.assertEqual(frames[0].width, 0)
         self.assertEqual(frames[0].height, 0)
+
+    def test_select_frame_candidates_copies_selected_frames_and_rejects_nearby_frames(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            selected_dir = root / "selected"
+            source_a = root / "frame_000001.jpg"
+            source_b = root / "frame_000002.jpg"
+            source_c = root / "frame_000003.jpg"
+            source_a.write_text("a", encoding="utf-8")
+            source_b.write_text("b", encoding="utf-8")
+            source_c.write_text("c", encoding="utf-8")
+            candidates = [
+                FrameCandidate("frame-000001", "lesson", 0.0, source_a, 0, 0),
+                FrameCandidate("frame-000002", "lesson", 2.0, source_b, 0, 0),
+                FrameCandidate("frame-000003", "lesson", 6.0, source_c, 0, 0),
+            ]
+
+            selected, rejected = select_frame_candidates(
+                candidates,
+                selected_dir=selected_dir,
+                min_interval_seconds=5.0,
+            )
+            selected_file_exists = (selected_dir / "frame_000001.jpg").exists()
+
+        self.assertEqual([frame.id for frame in selected], ["frame-000001", "frame-000003"])
+        self.assertEqual([frame.id for frame in rejected], ["frame-000002"])
+        self.assertEqual(selected[0].filter_status, FilterStatus.SELECTED)
+        self.assertEqual(rejected[0].filter_status, FilterStatus.REJECTED)
+        self.assertEqual(rejected[0].filter_reason, "within_min_interval")
+        self.assertTrue(selected_file_exists)
 
 
 if __name__ == "__main__":

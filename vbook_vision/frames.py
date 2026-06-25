@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import subprocess
+import shutil
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
-from vbook_common.types import FrameCandidate
+from vbook_common.types import FilterStatus, FrameCandidate
 
 FrameCommandRunner = Callable[[list[str]], None]
+FrameCopier = Callable[[Path, Path], object]
 
 
 def build_ffmpeg_frame_command(
@@ -80,6 +83,48 @@ def extract_frame_candidates(
         video_id=video_id,
         interval_seconds=interval_seconds,
     )
+
+
+def select_frame_candidates(
+    candidates: list[FrameCandidate],
+    selected_dir: Path | str,
+    min_interval_seconds: float,
+    copier: FrameCopier = shutil.copy2,
+) -> tuple[list[FrameCandidate], list[FrameCandidate]]:
+    """Select candidate frames using a deterministic minimum interval rule."""
+    min_interval = _require_positive_interval(min_interval_seconds)
+    directory = Path(selected_dir)
+    directory.mkdir(parents=True, exist_ok=True)
+    selected: list[FrameCandidate] = []
+    rejected: list[FrameCandidate] = []
+    last_selected_timestamp: float | None = None
+
+    for frame in sorted(candidates, key=lambda item: item.timestamp):
+        if (
+            last_selected_timestamp is None
+            or frame.timestamp - last_selected_timestamp >= min_interval
+        ):
+            target = directory / frame.image_path.name
+            copier(frame.image_path, target)
+            selected.append(
+                replace(
+                    frame,
+                    image_path=target,
+                    filter_status=FilterStatus.SELECTED,
+                    filter_reason=None,
+                )
+            )
+            last_selected_timestamp = frame.timestamp
+        else:
+            rejected.append(
+                replace(
+                    frame,
+                    filter_status=FilterStatus.REJECTED,
+                    filter_reason="within_min_interval",
+                )
+            )
+
+    return selected, rejected
 
 
 def _run_subprocess(command: list[str]) -> None:

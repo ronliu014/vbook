@@ -28,6 +28,9 @@ def build_manifest(
     lesson_title: str | None = None,
     transcript_source: TranscriptSourceType = TranscriptSourceType.IMPORTED,
     frames: Sequence[FrameCandidate] | None = None,
+    selected_frames: Sequence[FrameCandidate] | None = None,
+    rejected_frames: Sequence[FrameCandidate] | None = None,
+    selection_strategy: str = "min_interval",
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -54,6 +57,19 @@ def build_manifest(
             "candidate_count": len(frame_list),
             "candidates": frame_list,
         }
+        if selected_frames is not None:
+            selected_list = list(selected_frames)
+            rejected_list = list(rejected_frames or [])
+            artifacts["frames"].update(
+                {
+                    "selected_dir": _common_parent(selected_list),
+                    "selected_count": len(selected_list),
+                    "rejected_count": len(rejected_list),
+                    "selected": selected_list,
+                    "rejected": rejected_list,
+                    "selection_strategy": selection_strategy,
+                }
+            )
 
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",

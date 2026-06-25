@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from vbook_common.types import FrameCandidate, StageStatus, TranscriptSegment
+from vbook_common.types import FilterStatus, FrameCandidate, StageStatus, TranscriptSegment
 from vbook_export.manifest import build_manifest, write_manifest
 
 
@@ -78,6 +78,48 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.artifacts["frames"]["candidate_count"], 1)
         self.assertEqual(manifest.artifacts["frames"]["candidates"], frames)
         self.assertEqual(manifest.pipeline_run.stage_status["frame_extraction"], StageStatus.DONE)
+
+    def test_build_manifest_can_record_selected_and_rejected_frames(self) -> None:
+        selected = [
+            FrameCandidate(
+                id="frame-000001",
+                video_id="lesson",
+                timestamp=0.0,
+                image_path=Path("outputs/lesson/frames/selected/frame_000001.jpg"),
+                width=0,
+                height=0,
+                filter_status=FilterStatus.SELECTED,
+            )
+        ]
+        rejected = [
+            FrameCandidate(
+                id="frame-000002",
+                video_id="lesson",
+                timestamp=2.0,
+                image_path=Path("outputs/lesson/frames/candidates/frame_000002.jpg"),
+                width=0,
+                height=0,
+                filter_status=FilterStatus.REJECTED,
+                filter_reason="within_min_interval",
+            )
+        ]
+
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            frames=selected + rejected,
+            selected_frames=selected,
+            rejected_frames=rejected,
+        )
+
+        self.assertEqual(manifest.artifacts["frames"]["selected_count"], 1)
+        self.assertEqual(manifest.artifacts["frames"]["rejected_count"], 1)
+        self.assertEqual(manifest.artifacts["frames"]["selected"], selected)
+        self.assertEqual(manifest.artifacts["frames"]["rejected"], rejected)
+        self.assertEqual(manifest.artifacts["frames"]["selection_strategy"], "min_interval")
 
 
 if __name__ == "__main__":

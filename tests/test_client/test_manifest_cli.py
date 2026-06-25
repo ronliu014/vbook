@@ -86,6 +86,52 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(data["artifacts"]["frames"]["candidates"][0]["timestamp"], 0.0)
         self.assertEqual(data["pipeline_run"]["stage_status"]["frame_extraction"], "done")
 
+    def test_manifest_command_can_select_existing_frame_candidates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            selected_dir = output / "frames" / "selected"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+            (candidate_dir / "frame_000002.jpg").write_text("b", encoding="utf-8")
+
+            code = main(
+                [
+                    "manifest",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--frame-interval-seconds",
+                    "2",
+                    "--select-frames",
+                    "--selected-frames-dir",
+                    str(selected_dir),
+                    "--min-selected-frame-interval-seconds",
+                    "3",
+                ]
+            )
+
+            data = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+            selected_file_exists = (selected_dir / "frame_000001.jpg").exists()
+
+        self.assertEqual(code, 0)
+        self.assertEqual(data["artifacts"]["frames"]["selected_count"], 1)
+        self.assertEqual(data["artifacts"]["frames"]["rejected_count"], 1)
+        self.assertTrue(selected_file_exists)
+
 
 if __name__ == "__main__":
     unittest.main()
