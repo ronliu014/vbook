@@ -8,6 +8,7 @@ from pathlib import Path
 from vbook_common.types import (
     FilterStatus,
     FrameCandidate,
+    KnowledgeSection,
     TimelineLink,
     TranscriptSegment,
     VideoAsset,
@@ -87,7 +88,71 @@ def write_note(markdown: str, path: Path | str) -> Path:
     return note_path
 
 
+def render_sections_note(
+    video: VideoAsset,
+    sections: Sequence[KnowledgeSection],
+) -> str:
+    """Render a readable note from fused or placeholder knowledge sections."""
+    section_list = sorted(sections, key=_section_sort_key)
+    title = video.lesson_title or video.id
+    course_title = video.course_title or ""
+
+    lines = [
+        f"# {title}",
+        "",
+        "## Course",
+        "",
+        f"- Course: {course_title}",
+        f"- Lesson: {title}",
+        f"- Video: {video.path}",
+        "",
+        "## Knowledge Sections",
+        "",
+        f"- Sections: {len(section_list)}",
+        "",
+    ]
+
+    if not section_list:
+        lines.append("(empty)")
+        return "\n".join(lines) + "\n"
+
+    for section in section_list:
+        lines.extend(
+            [
+                f"### {section.title}",
+                "",
+                section.summary,
+                "",
+                f"- Source: {_format_section_source(section)}",
+            ]
+        )
+        for image_ref in section.image_refs:
+            lines.append(f"- Image: {image_ref}")
+        if section.key_points:
+            lines.extend(["", "Key points:"])
+            lines.extend(f"- {point}" for point in section.key_points)
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def _format_time_range(segments: Sequence[TranscriptSegment]) -> str:
     if not segments:
         return "0.00s - 0.00s"
     return f"{segments[0].start:.2f}s - {segments[-1].end:.2f}s"
+
+
+def _format_section_source(section: KnowledgeSection) -> str:
+    timestamps = section.source_timestamps
+    if len(timestamps) >= 2:
+        return f"{timestamps[0]:.2f}s - {timestamps[1]:.2f}s"
+    if len(timestamps) == 1:
+        return f"{timestamps[0]:.2f}s"
+    return "(unknown)"
+
+
+def _section_sort_key(section: KnowledgeSection) -> tuple[float, str]:
+    first_timestamp = (
+        section.source_timestamps[0] if section.source_timestamps else float("inf")
+    )
+    return first_timestamp, section.title

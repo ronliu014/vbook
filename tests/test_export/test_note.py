@@ -5,13 +5,14 @@ from pathlib import Path
 from vbook_common.types import (
     FilterStatus,
     FrameCandidate,
+    KnowledgeSection,
     TimelineLink,
     TranscriptSegment,
     VideoAsset,
     VisualAnalysis,
     VisualType,
 )
-from vbook_export.note import render_placeholder_note, write_note
+from vbook_export.note import render_placeholder_note, render_sections_note, write_note
 
 
 class NoteExportTest(unittest.TestCase):
@@ -85,6 +86,46 @@ class NoteExportTest(unittest.TestCase):
 
         self.assertEqual(written.name, "note.md")
         self.assertEqual(content, "# Lesson\n")
+
+    def test_render_sections_note_uses_knowledge_sections(self) -> None:
+        video = VideoAsset(
+            id="lesson",
+            path=Path("course/lesson.mp4"),
+            course_title="Stock Course",
+            lesson_title="MA Support",
+        )
+        sections = [
+            KnowledgeSection(
+                title="Segment seg-000002",
+                summary="case detail",
+                source_timestamps=[8.0, 12.0],
+                image_refs=["outputs/lesson/frames/selected/frame_000002.jpg"],
+                key_points=["Watch volume confirmation"],
+                tags=["placeholder"],
+            ),
+            KnowledgeSection(
+                title="Segment seg-000001",
+                summary="intro",
+                source_timestamps=[0.0, 3.0],
+                image_refs=["outputs/lesson/frames/selected/frame_000001.jpg"],
+                key_points=[],
+                tags=["placeholder"],
+            ),
+        ]
+
+        markdown = render_sections_note(video=video, sections=sections)
+
+        self.assertIn("# MA Support", markdown)
+        self.assertIn("- Course: Stock Course", markdown)
+        self.assertIn("- Sections: 2", markdown)
+        self.assertLess(
+            markdown.index("### Segment seg-000001"),
+            markdown.index("### Segment seg-000002"),
+        )
+        self.assertIn("intro", markdown)
+        self.assertIn("- Source: 0.00s - 3.00s", markdown)
+        self.assertIn("- Image: outputs/lesson/frames/selected/frame_000001.jpg", markdown)
+        self.assertIn("- Watch volume confirmation", markdown)
 
 
 if __name__ == "__main__":

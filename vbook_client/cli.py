@@ -13,7 +13,7 @@ from vbook_common.serialization import to_jsonable
 from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
-from vbook_export.note import render_placeholder_note, write_note
+from vbook_export.note import render_placeholder_note, render_sections_note, write_note
 from vbook_fusion.sections import build_placeholder_sections, write_fusion_sections
 from vbook_fusion.snapshot import (
     build_fusion_prompt_snapshot,
@@ -66,6 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             else Path(args.output) / "fusion" / "sections.json"
         )
         fusion_sections_written = False
+        fusion_sections = None
         video_asset = _build_video_asset(
             video_path=args.video,
             output_dir=args.output,
@@ -115,18 +116,30 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else Path(args.output) / "vision" / "analysis.json"
             )
             write_visual_analysis(visual_analyses, visual_analysis_path)
+        if args.write_fusion_sections:
+            fusion_sections = build_placeholder_sections(
+                segments=segments,
+                visual_analyses=visual_analyses,
+                timeline_links=timeline_links,
+            )
+            write_fusion_sections(fusion_sections, fusion_sections_path)
+            fusion_sections_written = True
         if args.write_note:
             note_frames = (
                 list(selected_frames) + list(rejected_frames or [])
                 if selected_frames is not None
                 else frames
             )
-            note_markdown = render_placeholder_note(
-                video=video_asset,
-                segments=segments,
-                frames=note_frames,
-                visual_analyses=visual_analyses,
-                timeline_links=timeline_links,
+            note_markdown = (
+                render_sections_note(video=video_asset, sections=fusion_sections)
+                if fusion_sections is not None
+                else render_placeholder_note(
+                    video=video_asset,
+                    segments=segments,
+                    frames=note_frames,
+                    visual_analyses=visual_analyses,
+                    timeline_links=timeline_links,
+                )
             )
             write_note(note_markdown, note_path)
             note_written = True
@@ -139,14 +152,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             write_fusion_prompt_snapshot(fusion_snapshot, fusion_prompt_path)
             fusion_prompt_written = True
-        if args.write_fusion_sections:
-            fusion_sections = build_placeholder_sections(
-                segments=segments,
-                visual_analyses=visual_analyses,
-                timeline_links=timeline_links,
-            )
-            write_fusion_sections(fusion_sections, fusion_sections_path)
-            fusion_sections_written = True
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
