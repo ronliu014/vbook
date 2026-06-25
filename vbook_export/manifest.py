@@ -39,12 +39,19 @@ def build_manifest(
     visual_analysis_path: Path | str | None = None,
     note_path: Path | str | None = None,
     note_written: bool = False,
+    fusion_prompt_path: Path | str | None = None,
+    fusion_prompt_written: bool = False,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
     transcript = Path(transcript_path)
     output = Path(output_dir)
     resolved_note_path = Path(note_path) if note_path is not None else output / "note.md"
+    resolved_fusion_prompt_path = (
+        Path(fusion_prompt_path)
+        if fusion_prompt_path is not None
+        else output / "fusion" / "prompt.json"
+    )
     lesson_id = output.name or video.stem
     resolved_lesson_title = lesson_title if lesson_title is not None else video.stem
     stage_status = {
@@ -56,6 +63,9 @@ def build_manifest(
         "vision_analysis": StageStatus.SKIPPED
         if visual_analyses is None
         else StageStatus.DONE,
+        "fusion_prompt": StageStatus.DONE
+        if fusion_prompt_written
+        else StageStatus.SKIPPED,
         "note_export": StageStatus.DONE if note_written else StageStatus.SKIPPED,
         "manifest": StageStatus.DONE,
     }
@@ -111,11 +121,18 @@ def build_manifest(
             "format": "markdown",
         }
 
+    if fusion_prompt_written:
+        artifacts["fusion"] = {
+            "prompt_path": resolved_fusion_prompt_path,
+            "prompt_format": "json",
+        }
+
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",
         config=dict(config),
         stage_status=stage_status,
         output_paths={
+            "fusion_prompt": resolved_fusion_prompt_path,
             "note": resolved_note_path,
             "manifest": output / "manifest.json",
         },

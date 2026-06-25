@@ -303,6 +303,58 @@ class ManifestCliTest(unittest.TestCase):
         self.assertIn("- Candidate Frames: 2", note)
         self.assertIn("- Selected Frames: 1", note)
 
+    def test_manifest_command_can_write_fusion_prompt_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps(
+                    {
+                        "segments": [
+                            {"start": 0, "end": 3, "text": "intro"},
+                            {"start": 8, "end": 12, "text": "case"},
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "manifest",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--align-timeline",
+                    "--alignment-window-seconds",
+                    "3",
+                    "--analyze-vision-placeholder",
+                    "--write-fusion-prompt",
+                ]
+            )
+
+            prompt = json.loads((output / "fusion" / "prompt.json").read_text(encoding="utf-8"))
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(prompt["intent"], "fusion_prompt_snapshot")
+        self.assertEqual(prompt["inputs"]["transcript_segment_count"], 2)
+        self.assertEqual(prompt["inputs"]["visual_analysis_count"], 1)
+        self.assertEqual(prompt["inputs"]["timeline_link_count"], 1)
+        self.assertEqual(manifest["artifacts"]["fusion"]["prompt_format"], "json")
+        self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
+
 
 if __name__ == "__main__":
     unittest.main()

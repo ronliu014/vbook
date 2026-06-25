@@ -14,6 +14,10 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, write_note
+from vbook_fusion.snapshot import (
+    build_fusion_prompt_snapshot,
+    write_fusion_prompt_snapshot,
+)
 from vbook_pipeline.timeline import link_frames_to_transcript
 from vbook_vision.analysis import analyze_frames_placeholder, write_visual_analysis
 from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
@@ -49,6 +53,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         visual_analysis_path = None
         note_path = Path(args.note_path) if args.note_path else Path(args.output) / "note.md"
         note_written = False
+        fusion_prompt_path = (
+            Path(args.fusion_prompt_path)
+            if args.fusion_prompt_path
+            else Path(args.output) / "fusion" / "prompt.json"
+        )
+        fusion_prompt_written = False
+        video_asset = _build_video_asset(
+            video_path=args.video,
+            output_dir=args.output,
+            course_title=args.course_title,
+            lesson_title=args.lesson_title,
+        )
         if args.frame_candidates_dir:
             frames = discover_frame_candidates(
                 candidate_dir=args.frame_candidates_dir,
@@ -99,12 +115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 else frames
             )
             note_markdown = render_placeholder_note(
-                video=_build_video_asset_for_note(
-                    video_path=args.video,
-                    output_dir=args.output,
-                    course_title=args.course_title,
-                    lesson_title=args.lesson_title,
-                ),
+                video=video_asset,
                 segments=segments,
                 frames=note_frames,
                 visual_analyses=visual_analyses,
@@ -112,6 +123,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             write_note(note_markdown, note_path)
             note_written = True
+        if args.write_fusion_prompt:
+            fusion_snapshot = build_fusion_prompt_snapshot(
+                video=video_asset,
+                segments=segments,
+                visual_analyses=visual_analyses,
+                timeline_links=timeline_links,
+            )
+            write_fusion_prompt_snapshot(fusion_snapshot, fusion_prompt_path)
+            fusion_prompt_written = True
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -128,6 +148,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             visual_analysis_path=visual_analysis_path,
             note_path=note_path,
             note_written=note_written,
+            fusion_prompt_path=fusion_prompt_path,
+            fusion_prompt_written=fusion_prompt_written,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -208,11 +230,20 @@ def _build_parser() -> argparse.ArgumentParser:
         "--note-path",
         help="Path for Markdown note; defaults to <output>/note.md",
     )
+    manifest_parser.add_argument(
+        "--write-fusion-prompt",
+        action="store_true",
+        help="Write fusion prompt snapshot JSON for later knowledge fusion",
+    )
+    manifest_parser.add_argument(
+        "--fusion-prompt-path",
+        help="Path for fusion prompt JSON; defaults to <output>/fusion/prompt.json",
+    )
 
     return parser
 
 
-def _build_video_asset_for_note(
+def _build_video_asset(
     video_path: Path | str,
     output_dir: Path | str,
     course_title: str,
