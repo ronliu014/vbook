@@ -15,6 +15,7 @@ from vbook_common.types import (
     TimelineLink,
     TranscriptSegment,
     TranscriptSourceType,
+    VisualAnalysis,
     VideoAsset,
 )
 
@@ -34,6 +35,8 @@ def build_manifest(
     selection_strategy: str = "min_interval",
     timeline_links: Sequence[TimelineLink] | None = None,
     timeline_match_strategy: str = "timestamp_window",
+    visual_analyses: Sequence[VisualAnalysis] | None = None,
+    visual_analysis_path: Path | str | None = None,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -46,6 +49,9 @@ def build_manifest(
         "frame_extraction": StageStatus.SKIPPED if frames is None else StageStatus.DONE,
         "timeline_alignment": StageStatus.SKIPPED
         if timeline_links is None
+        else StageStatus.DONE,
+        "vision_analysis": StageStatus.SKIPPED
+        if visual_analyses is None
         else StageStatus.DONE,
         "manifest": StageStatus.DONE,
     }
@@ -83,6 +89,16 @@ def build_manifest(
             "link_count": len(link_list),
             "links": link_list,
             "match_strategy": timeline_match_strategy,
+        }
+
+    if visual_analyses is not None:
+        analysis_list = list(visual_analyses)
+        artifacts["vision"] = {
+            "analysis_path": Path(visual_analysis_path)
+            if visual_analysis_path is not None
+            else output / "vision" / "analysis.json",
+            "analysis_count": len(analysis_list),
+            "analyses": analysis_list,
         }
 
     pipeline_run = PipelineRun(

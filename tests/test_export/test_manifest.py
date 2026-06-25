@@ -9,6 +9,8 @@ from vbook_common.types import (
     StageStatus,
     TimelineLink,
     TranscriptSegment,
+    VisualAnalysis,
+    VisualType,
 )
 from vbook_export.manifest import build_manifest, write_manifest
 
@@ -150,6 +152,34 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.artifacts["timeline"]["links"], links)
         self.assertEqual(manifest.artifacts["timeline"]["match_strategy"], "timestamp_window")
         self.assertEqual(manifest.pipeline_run.stage_status["timeline_alignment"], StageStatus.DONE)
+
+    def test_build_manifest_can_record_visual_analysis(self) -> None:
+        analyses = [
+            VisualAnalysis(
+                frame_id="frame-000001",
+                visual_type=VisualType.OTHER,
+                image_path=Path("outputs/lesson/frames/selected/frame_000001.jpg"),
+                backend="placeholder",
+            )
+        ]
+
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            visual_analyses=analyses,
+            visual_analysis_path=Path("outputs/lesson/vision/analysis.json"),
+        )
+
+        self.assertEqual(manifest.artifacts["vision"]["analysis_count"], 1)
+        self.assertEqual(
+            manifest.artifacts["vision"]["analysis_path"],
+            Path("outputs/lesson/vision/analysis.json"),
+        )
+        self.assertEqual(manifest.artifacts["vision"]["analyses"], analyses)
+        self.assertEqual(manifest.pipeline_run.stage_status["vision_analysis"], StageStatus.DONE)
 
 
 if __name__ == "__main__":

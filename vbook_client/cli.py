@@ -13,6 +13,7 @@ from vbook_common.serialization import to_jsonable
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_pipeline.timeline import link_frames_to_transcript
+from vbook_vision.analysis import analyze_frames_placeholder, write_visual_analysis
 from vbook_vision.frames import discover_frame_candidates, select_frame_candidates
 
 
@@ -42,6 +43,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         selected_frames = None
         rejected_frames = None
         timeline_links = None
+        visual_analyses = None
+        visual_analysis_path = None
         if args.frame_candidates_dir:
             frames = discover_frame_candidates(
                 candidate_dir=args.frame_candidates_dir,
@@ -74,6 +77,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                     else config.alignment_window_seconds
                 ),
             )
+        if args.analyze_vision_placeholder:
+            analysis_frames = selected_frames if selected_frames is not None else frames
+            if analysis_frames is None:
+                parser.error("manifest --analyze-vision-placeholder requires frame metadata")
+            visual_analyses = analyze_frames_placeholder(analysis_frames)
+            visual_analysis_path = (
+                Path(args.visual_analysis_path)
+                if args.visual_analysis_path
+                else Path(args.output) / "vision" / "analysis.json"
+            )
+            write_visual_analysis(visual_analyses, visual_analysis_path)
         manifest = build_manifest(
             video_path=args.video,
             transcript_path=args.transcript,
@@ -86,6 +100,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             selected_frames=selected_frames,
             rejected_frames=rejected_frames,
             timeline_links=timeline_links,
+            visual_analyses=visual_analyses,
+            visual_analysis_path=visual_analysis_path,
         )
         manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
         print(manifest_path)
@@ -147,6 +163,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "--alignment-window-seconds",
         type=float,
         help="Seconds before and after each frame timestamp used for transcript matching",
+    )
+    manifest_parser.add_argument(
+        "--analyze-vision-placeholder",
+        action="store_true",
+        help="Write placeholder visual analysis records for frames",
+    )
+    manifest_parser.add_argument(
+        "--visual-analysis-path",
+        help="Path for visual analysis JSON; defaults to <output>/vision/analysis.json",
     )
 
     return parser

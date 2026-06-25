@@ -183,6 +183,43 @@ class ManifestCliTest(unittest.TestCase):
             ["seg-000002"],
         )
 
+    def test_manifest_command_can_write_placeholder_visual_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "manifest",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--analyze-vision-placeholder",
+                ]
+            )
+
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+            vision = json.loads((output / "vision" / "analysis.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(manifest["artifacts"]["vision"]["analysis_count"], 1)
+        self.assertEqual(vision["analyses"][0]["backend"], "placeholder")
+
 
 if __name__ == "__main__":
     unittest.main()
