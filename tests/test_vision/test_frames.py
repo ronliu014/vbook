@@ -98,6 +98,30 @@ class FrameCandidateTest(unittest.TestCase):
         self.assertEqual(rejected[0].filter_reason, "within_min_interval")
         self.assertTrue(selected_file_exists)
 
+    def test_select_frame_candidates_rejects_exact_duplicate_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            selected_dir = root / "selected"
+            source_a = root / "frame_000001.jpg"
+            source_b = root / "frame_000002.jpg"
+            source_a.write_bytes(b"same image bytes")
+            source_b.write_bytes(b"same image bytes")
+            candidates = [
+                FrameCandidate("frame-000001", "lesson", 0.0, source_a, 0, 0),
+                FrameCandidate("frame-000002", "lesson", 10.0, source_b, 0, 0),
+            ]
+
+            selected, rejected = select_frame_candidates(
+                candidates,
+                selected_dir=selected_dir,
+                min_interval_seconds=1.0,
+            )
+
+        self.assertEqual([frame.id for frame in selected], ["frame-000001"])
+        self.assertEqual([frame.id for frame in rejected], ["frame-000002"])
+        self.assertEqual(rejected[0].filter_status, FilterStatus.REJECTED)
+        self.assertEqual(rejected[0].filter_reason, "duplicate_content")
+
 
 if __name__ == "__main__":
     unittest.main()

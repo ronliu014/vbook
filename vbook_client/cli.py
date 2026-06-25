@@ -58,6 +58,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "align_timeline": True,
                 "analyze_vision_placeholder": True,
                 "extract_frames": True,
+                "select_frames": True,
                 "write_fusion_prompt": True,
                 "write_fusion_sections": True,
                 "write_note": True,
@@ -236,7 +237,7 @@ def _run_manifest_pipeline(
             video_id=video_id,
             interval_seconds=args.frame_interval_seconds,
         )
-    if args.select_frames:
+    if _flag(args, "select_frames", defaults):
         if frames is None:
             parser.error(f"{args.command} --select-frames requires --frame-candidates-dir")
         selected_dir = (
@@ -320,6 +321,9 @@ def _run_manifest_pipeline(
         frames=frames,
         selected_frames=selected_frames,
         rejected_frames=rejected_frames,
+        selection_strategy=(
+            "basic_interval_duplicate" if selected_frames is not None else "min_interval"
+        ),
         timeline_links=timeline_links,
         visual_analyses=visual_analyses,
         visual_analysis_path=visual_analysis_path,
@@ -340,7 +344,7 @@ def _flag(
     name: str,
     defaults: dict[str, bool],
 ) -> bool:
-    return bool(getattr(args, name, defaults.get(name, False)))
+    return bool(getattr(args, name, False) or defaults.get(name, False))
 
 
 def _build_video_asset(

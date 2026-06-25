@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import shutil
 from dataclasses import replace
@@ -98,14 +99,26 @@ def select_frame_candidates(
     selected: list[FrameCandidate] = []
     rejected: list[FrameCandidate] = []
     last_selected_timestamp: float | None = None
+    selected_hashes: set[str] = set()
 
     for frame in sorted(candidates, key=lambda item: item.timestamp):
         if (
             last_selected_timestamp is None
             or frame.timestamp - last_selected_timestamp >= min_interval
         ):
+            frame_hash = _file_sha256(frame.image_path)
+            if frame_hash in selected_hashes:
+                rejected.append(
+                    replace(
+                        frame,
+                        filter_status=FilterStatus.REJECTED,
+                        filter_reason="duplicate_content",
+                    )
+                )
+                continue
             target = directory / frame.image_path.name
             copier(frame.image_path, target)
+            selected_hashes.add(frame_hash)
             selected.append(
                 replace(
                     frame,
@@ -129,6 +142,14 @@ def select_frame_candidates(
 
 def _run_subprocess(command: list[str]) -> None:
     subprocess.run(command, check=True)
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _require_positive_interval(interval_seconds: float) -> float:

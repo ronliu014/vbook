@@ -126,12 +126,26 @@ class ManifestCliTest(unittest.TestCase):
                     video_id: str,
                     interval_seconds: float,
                 ) -> list[FrameCandidate]:
+                    directory = Path(candidate_dir)
+                    directory.mkdir(parents=True, exist_ok=True)
+                    frame_a = directory / "frame_000001.jpg"
+                    frame_b = directory / "frame_000002.jpg"
+                    frame_a.write_bytes(b"first image")
+                    frame_b.write_bytes(b"second image")
                     return [
                         FrameCandidate(
                             id="frame-000001",
                             video_id=video_id,
                             timestamp=0.0,
-                            image_path=Path(candidate_dir) / "frame_000001.jpg",
+                            image_path=frame_a,
+                            width=0,
+                            height=0,
+                        ),
+                        FrameCandidate(
+                            id="frame-000002",
+                            video_id=video_id,
+                            timestamp=2.5,
+                            image_path=frame_b,
                             width=0,
                             height=0,
                         )
@@ -151,6 +165,8 @@ class ManifestCliTest(unittest.TestCase):
                         "2.5",
                         "--alignment-window-seconds",
                         "3",
+                        "--min-selected-frame-interval-seconds",
+                        "10",
                     ]
                 )
                 call_kwargs = extract.call_args.kwargs
@@ -163,7 +179,19 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(call_kwargs["candidate_dir"], output / "frames" / "candidates")
         self.assertEqual(call_kwargs["video_id"], "lesson")
         self.assertEqual(call_kwargs["interval_seconds"], 2.5)
-        self.assertEqual(manifest["artifacts"]["frames"]["candidate_count"], 1)
+        self.assertEqual(manifest["artifacts"]["frames"]["candidate_count"], 2)
+        self.assertEqual(manifest["artifacts"]["frames"]["selected_count"], 1)
+        self.assertEqual(manifest["artifacts"]["frames"]["rejected_count"], 1)
+        self.assertEqual(
+            manifest["artifacts"]["frames"]["selection_strategy"],
+            "basic_interval_duplicate",
+        )
+        self.assertEqual(
+            manifest["artifacts"]["frames"]["rejected"][0]["filter_reason"],
+            "within_min_interval",
+        )
+        self.assertEqual(manifest["artifacts"]["vision"]["analysis_count"], 1)
+        self.assertEqual(manifest["artifacts"]["timeline"]["link_count"], 1)
         self.assertEqual(manifest["stage_status"]["timeline_alignment"], "done")
         self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
