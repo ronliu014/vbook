@@ -9,6 +9,55 @@ from vbook_client.cli import main
 
 
 class ManifestCliTest(unittest.TestCase):
+    def test_build_command_writes_default_mvp_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                ]
+            )
+
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+            note = (output / "note.md").read_text(encoding="utf-8")
+            vision_exists = (output / "vision" / "analysis.json").exists()
+            prompt_exists = (output / "fusion" / "prompt.json").exists()
+            sections_exists = (output / "fusion" / "sections.json").exists()
+
+        self.assertEqual(code, 0)
+        self.assertTrue(vision_exists)
+        self.assertTrue(prompt_exists)
+        self.assertTrue(sections_exists)
+        self.assertIn("## Knowledge Sections", note)
+        self.assertEqual(manifest["stage_status"]["timeline_alignment"], "done")
+        self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
+        self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
+        self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
+        self.assertEqual(manifest["stage_status"]["note_export"], "done")
+        self.assertEqual(manifest["stage_status"]["manifest"], "done")
+
     def test_manifest_command_writes_manifest_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

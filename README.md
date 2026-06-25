@@ -30,6 +30,11 @@ python -m unittest discover
 python -m vbook_client --version
 python -m vbook_client check
 python -m vbook_client config --show
+python -m vbook_client build \
+  --video lesson.mp4 \
+  --transcript transcript.json \
+  --output outputs/lesson \
+  --frame-candidates-dir outputs/lesson/frames/candidates
 ```
 
 Editable install for local command testing:
@@ -38,6 +43,14 @@ Editable install for local command testing:
 python -m pip install -e ".[dev]"
 vbook check
 ```
+
+The `build` command runs the current MVP pipeline using an imported timestamped transcript and an existing frame candidate directory. It writes:
+
+- `manifest.json`
+- `note.md`
+- `vision/analysis.json`
+- `fusion/prompt.json`
+- `fusion/sections.json`
 
 ## Sync Roles
 

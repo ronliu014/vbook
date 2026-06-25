@@ -44,138 +44,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("config requires --show")
 
     if args.command == "manifest":
-        config = load_config(config_file=args.config)
-        segments = load_transcript(args.transcript)
-        frames = None
-        selected_frames = None
-        rejected_frames = None
-        timeline_links = None
-        visual_analyses = None
-        visual_analysis_path = None
-        note_path = Path(args.note_path) if args.note_path else Path(args.output) / "note.md"
-        note_written = False
-        fusion_prompt_path = (
-            Path(args.fusion_prompt_path)
-            if args.fusion_prompt_path
-            else Path(args.output) / "fusion" / "prompt.json"
+        return _run_manifest_pipeline(args, parser, defaults={})
+
+    if args.command == "build":
+        return _run_manifest_pipeline(
+            args,
+            parser,
+            defaults={
+                "align_timeline": True,
+                "analyze_vision_placeholder": True,
+                "write_fusion_prompt": True,
+                "write_fusion_sections": True,
+                "write_note": True,
+            },
         )
-        fusion_prompt_written = False
-        fusion_sections_path = (
-            Path(args.fusion_sections_path)
-            if args.fusion_sections_path
-            else Path(args.output) / "fusion" / "sections.json"
-        )
-        fusion_sections_written = False
-        fusion_sections = None
-        video_asset = _build_video_asset(
-            video_path=args.video,
-            output_dir=args.output,
-            course_title=args.course_title,
-            lesson_title=args.lesson_title,
-        )
-        if args.frame_candidates_dir:
-            frames = discover_frame_candidates(
-                candidate_dir=args.frame_candidates_dir,
-                video_id=Path(args.output).name or Path(args.video).stem,
-                interval_seconds=args.frame_interval_seconds,
-            )
-        if args.select_frames:
-            if frames is None:
-                parser.error("manifest --select-frames requires --frame-candidates-dir")
-            selected_dir = (
-                Path(args.selected_frames_dir)
-                if args.selected_frames_dir
-                else Path(args.output) / "frames" / "selected"
-            )
-            selected_frames, rejected_frames = select_frame_candidates(
-                list(frames),
-                selected_dir=selected_dir,
-                min_interval_seconds=args.min_selected_frame_interval_seconds,
-            )
-        if args.align_timeline:
-            link_frames = selected_frames if selected_frames is not None else frames
-            if link_frames is None:
-                parser.error("manifest --align-timeline requires frame metadata")
-            timeline_links = link_frames_to_transcript(
-                link_frames,
-                segments,
-                window_seconds=(
-                    args.alignment_window_seconds
-                    if args.alignment_window_seconds is not None
-                    else config.alignment_window_seconds
-                ),
-            )
-        if args.analyze_vision_placeholder:
-            analysis_frames = selected_frames if selected_frames is not None else frames
-            if analysis_frames is None:
-                parser.error("manifest --analyze-vision-placeholder requires frame metadata")
-            visual_analyses = analyze_frames_placeholder(analysis_frames)
-            visual_analysis_path = (
-                Path(args.visual_analysis_path)
-                if args.visual_analysis_path
-                else Path(args.output) / "vision" / "analysis.json"
-            )
-            write_visual_analysis(visual_analyses, visual_analysis_path)
-        if args.write_fusion_sections:
-            fusion_sections = build_placeholder_sections(
-                segments=segments,
-                visual_analyses=visual_analyses,
-                timeline_links=timeline_links,
-            )
-            write_fusion_sections(fusion_sections, fusion_sections_path)
-            fusion_sections_written = True
-        if args.write_note:
-            note_frames = (
-                list(selected_frames) + list(rejected_frames or [])
-                if selected_frames is not None
-                else frames
-            )
-            note_markdown = (
-                render_sections_note(video=video_asset, sections=fusion_sections)
-                if fusion_sections is not None
-                else render_placeholder_note(
-                    video=video_asset,
-                    segments=segments,
-                    frames=note_frames,
-                    visual_analyses=visual_analyses,
-                    timeline_links=timeline_links,
-                )
-            )
-            write_note(note_markdown, note_path)
-            note_written = True
-        if args.write_fusion_prompt:
-            fusion_snapshot = build_fusion_prompt_snapshot(
-                video=video_asset,
-                segments=segments,
-                visual_analyses=visual_analyses,
-                timeline_links=timeline_links,
-            )
-            write_fusion_prompt_snapshot(fusion_snapshot, fusion_prompt_path)
-            fusion_prompt_written = True
-        manifest = build_manifest(
-            video_path=args.video,
-            transcript_path=args.transcript,
-            output_dir=args.output,
-            segments=segments,
-            config=to_jsonable(config),
-            course_title=args.course_title,
-            lesson_title=args.lesson_title,
-            frames=frames,
-            selected_frames=selected_frames,
-            rejected_frames=rejected_frames,
-            timeline_links=timeline_links,
-            visual_analyses=visual_analyses,
-            visual_analysis_path=visual_analysis_path,
-            note_path=note_path,
-            note_written=note_written,
-            fusion_prompt_path=fusion_prompt_path,
-            fusion_prompt_written=fusion_prompt_written,
-            fusion_sections_path=fusion_sections_path,
-            fusion_sections_written=fusion_sections_written,
-        )
-        manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
-        print(manifest_path)
-        return 0
 
     parser.print_help()
     return 0
@@ -193,85 +75,259 @@ def _build_parser() -> argparse.ArgumentParser:
     config_parser.add_argument("--show", action="store_true", help="Print resolved configuration")
 
     manifest_parser = subparsers.add_parser("manifest", help="Import transcript and write manifest")
-    manifest_parser.add_argument("--video", required=True, help="Source lesson video path")
-    manifest_parser.add_argument("--transcript", required=True, help="Timestamped transcript JSON path")
-    manifest_parser.add_argument("--output", required=True, help="Output directory for manifest.json")
-    manifest_parser.add_argument("--config", help="Optional vBook TOML config path")
-    manifest_parser.add_argument("--course-title", default="", help="Course title stored in manifest")
-    manifest_parser.add_argument("--lesson-title", help="Lesson title stored in manifest")
-    manifest_parser.add_argument(
+    _add_pipeline_arguments(manifest_parser, include_write_flags=True)
+
+    build_parser = subparsers.add_parser("build", help="Run the default MVP pipeline")
+    _add_pipeline_arguments(build_parser, include_write_flags=False)
+
+    return parser
+
+
+def _add_pipeline_arguments(
+    command_parser: argparse.ArgumentParser,
+    include_write_flags: bool,
+) -> None:
+    command_parser.add_argument("--video", required=True, help="Source lesson video path")
+    command_parser.add_argument(
+        "--transcript",
+        required=True,
+        help="Timestamped transcript JSON path",
+    )
+    command_parser.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for manifest.json",
+    )
+    command_parser.add_argument("--config", help="Optional vBook TOML config path")
+    command_parser.add_argument(
+        "--course-title",
+        default="",
+        help="Course title stored in manifest",
+    )
+    command_parser.add_argument("--lesson-title", help="Lesson title stored in manifest")
+    command_parser.add_argument(
         "--frame-candidates-dir",
         help="Existing frame candidate directory to include in manifest",
     )
-    manifest_parser.add_argument(
+    command_parser.add_argument(
         "--frame-interval-seconds",
         type=float,
         default=3.0,
         help="Seconds between candidate frames when inferring timestamps",
     )
-    manifest_parser.add_argument(
+    command_parser.add_argument(
         "--select-frames",
         action="store_true",
         help="Select candidate frames into frames/selected before writing manifest",
     )
-    manifest_parser.add_argument(
+    command_parser.add_argument(
         "--selected-frames-dir",
         help="Directory for selected frame copies; defaults to <output>/frames/selected",
     )
-    manifest_parser.add_argument(
+    command_parser.add_argument(
         "--min-selected-frame-interval-seconds",
         type=float,
         default=10.0,
         help="Minimum seconds between selected frames",
     )
-    manifest_parser.add_argument(
-        "--align-timeline",
-        action="store_true",
-        help="Link frames to transcript segments by timestamp window",
-    )
-    manifest_parser.add_argument(
+    if include_write_flags:
+        command_parser.add_argument(
+            "--align-timeline",
+            action="store_true",
+            help="Link frames to transcript segments by timestamp window",
+        )
+    command_parser.add_argument(
         "--alignment-window-seconds",
         type=float,
         help="Seconds before and after each frame timestamp used for transcript matching",
     )
-    manifest_parser.add_argument(
-        "--analyze-vision-placeholder",
-        action="store_true",
-        help="Write placeholder visual analysis records for frames",
-    )
-    manifest_parser.add_argument(
+    if include_write_flags:
+        command_parser.add_argument(
+            "--analyze-vision-placeholder",
+            action="store_true",
+            help="Write placeholder visual analysis records for frames",
+        )
+    command_parser.add_argument(
         "--visual-analysis-path",
         help="Path for visual analysis JSON; defaults to <output>/vision/analysis.json",
     )
-    manifest_parser.add_argument(
-        "--write-note",
-        action="store_true",
-        help="Write placeholder note.md alongside manifest.json",
-    )
-    manifest_parser.add_argument(
+    if include_write_flags:
+        command_parser.add_argument(
+            "--write-note",
+            action="store_true",
+            help="Write placeholder note.md alongside manifest.json",
+        )
+    command_parser.add_argument(
         "--note-path",
         help="Path for Markdown note; defaults to <output>/note.md",
     )
-    manifest_parser.add_argument(
-        "--write-fusion-prompt",
-        action="store_true",
-        help="Write fusion prompt snapshot JSON for later knowledge fusion",
-    )
-    manifest_parser.add_argument(
+    if include_write_flags:
+        command_parser.add_argument(
+            "--write-fusion-prompt",
+            action="store_true",
+            help="Write fusion prompt snapshot JSON for later knowledge fusion",
+        )
+    command_parser.add_argument(
         "--fusion-prompt-path",
         help="Path for fusion prompt JSON; defaults to <output>/fusion/prompt.json",
     )
-    manifest_parser.add_argument(
-        "--write-fusion-sections",
-        action="store_true",
-        help="Write placeholder fusion sections JSON",
-    )
-    manifest_parser.add_argument(
+    if include_write_flags:
+        command_parser.add_argument(
+            "--write-fusion-sections",
+            action="store_true",
+            help="Write placeholder fusion sections JSON",
+        )
+    command_parser.add_argument(
         "--fusion-sections-path",
         help="Path for fusion sections JSON; defaults to <output>/fusion/sections.json",
     )
 
-    return parser
+
+def _run_manifest_pipeline(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+    defaults: dict[str, bool],
+) -> int:
+    config = load_config(config_file=args.config)
+    segments = load_transcript(args.transcript)
+    frames = None
+    selected_frames = None
+    rejected_frames = None
+    timeline_links = None
+    visual_analyses = None
+    visual_analysis_path = None
+    note_path = Path(args.note_path) if args.note_path else Path(args.output) / "note.md"
+    note_written = False
+    fusion_prompt_path = (
+        Path(args.fusion_prompt_path)
+        if args.fusion_prompt_path
+        else Path(args.output) / "fusion" / "prompt.json"
+    )
+    fusion_prompt_written = False
+    fusion_sections_path = (
+        Path(args.fusion_sections_path)
+        if args.fusion_sections_path
+        else Path(args.output) / "fusion" / "sections.json"
+    )
+    fusion_sections_written = False
+    fusion_sections = None
+    video_asset = _build_video_asset(
+        video_path=args.video,
+        output_dir=args.output,
+        course_title=args.course_title,
+        lesson_title=args.lesson_title,
+    )
+    if args.frame_candidates_dir:
+        frames = discover_frame_candidates(
+            candidate_dir=args.frame_candidates_dir,
+            video_id=Path(args.output).name or Path(args.video).stem,
+            interval_seconds=args.frame_interval_seconds,
+        )
+    if args.select_frames:
+        if frames is None:
+            parser.error(f"{args.command} --select-frames requires --frame-candidates-dir")
+        selected_dir = (
+            Path(args.selected_frames_dir)
+            if args.selected_frames_dir
+            else Path(args.output) / "frames" / "selected"
+        )
+        selected_frames, rejected_frames = select_frame_candidates(
+            list(frames),
+            selected_dir=selected_dir,
+            min_interval_seconds=args.min_selected_frame_interval_seconds,
+        )
+    if _flag(args, "align_timeline", defaults):
+        link_frames = selected_frames if selected_frames is not None else frames
+        if link_frames is None:
+            parser.error(f"{args.command} requires frame metadata for timeline alignment")
+        timeline_links = link_frames_to_transcript(
+            link_frames,
+            segments,
+            window_seconds=(
+                args.alignment_window_seconds
+                if args.alignment_window_seconds is not None
+                else config.alignment_window_seconds
+            ),
+        )
+    if _flag(args, "analyze_vision_placeholder", defaults):
+        analysis_frames = selected_frames if selected_frames is not None else frames
+        if analysis_frames is None:
+            parser.error(f"{args.command} requires frame metadata for vision analysis")
+        visual_analyses = analyze_frames_placeholder(analysis_frames)
+        visual_analysis_path = (
+            Path(args.visual_analysis_path)
+            if args.visual_analysis_path
+            else Path(args.output) / "vision" / "analysis.json"
+        )
+        write_visual_analysis(visual_analyses, visual_analysis_path)
+    if _flag(args, "write_fusion_sections", defaults):
+        fusion_sections = build_placeholder_sections(
+            segments=segments,
+            visual_analyses=visual_analyses,
+            timeline_links=timeline_links,
+        )
+        write_fusion_sections(fusion_sections, fusion_sections_path)
+        fusion_sections_written = True
+    if _flag(args, "write_note", defaults):
+        note_frames = (
+            list(selected_frames) + list(rejected_frames or [])
+            if selected_frames is not None
+            else frames
+        )
+        note_markdown = (
+            render_sections_note(video=video_asset, sections=fusion_sections)
+            if fusion_sections is not None
+            else render_placeholder_note(
+                video=video_asset,
+                segments=segments,
+                frames=note_frames,
+                visual_analyses=visual_analyses,
+                timeline_links=timeline_links,
+            )
+        )
+        write_note(note_markdown, note_path)
+        note_written = True
+    if _flag(args, "write_fusion_prompt", defaults):
+        fusion_snapshot = build_fusion_prompt_snapshot(
+            video=video_asset,
+            segments=segments,
+            visual_analyses=visual_analyses,
+            timeline_links=timeline_links,
+        )
+        write_fusion_prompt_snapshot(fusion_snapshot, fusion_prompt_path)
+        fusion_prompt_written = True
+    manifest = build_manifest(
+        video_path=args.video,
+        transcript_path=args.transcript,
+        output_dir=args.output,
+        segments=segments,
+        config=to_jsonable(config),
+        course_title=args.course_title,
+        lesson_title=args.lesson_title,
+        frames=frames,
+        selected_frames=selected_frames,
+        rejected_frames=rejected_frames,
+        timeline_links=timeline_links,
+        visual_analyses=visual_analyses,
+        visual_analysis_path=visual_analysis_path,
+        note_path=note_path,
+        note_written=note_written,
+        fusion_prompt_path=fusion_prompt_path,
+        fusion_prompt_written=fusion_prompt_written,
+        fusion_sections_path=fusion_sections_path,
+        fusion_sections_written=fusion_sections_written,
+    )
+    manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
+    print(manifest_path)
+    return 0
+
+
+def _flag(
+    args: argparse.Namespace,
+    name: str,
+    defaults: dict[str, bool],
+) -> bool:
+    return bool(getattr(args, name, defaults.get(name, False)))
 
 
 def _build_video_asset(
