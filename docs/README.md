@@ -1,22 +1,56 @@
-# vBook 文档索引
+# vBook Documentation
 
-本目录保存 vBook 的业务规划、架构设计和协作协议。阅读实现代码前，先从这里理解项目边界。
+This directory uses numbered documentation layers. Start here before reading
+implementation code or dated progress logs.
 
-## 推荐阅读顺序
+## Fast Reading Path
 
-1. [business-plan.md](./business-plan.md) - 业务目标、用户、价值、MVP 范围以及与 vtext 的关系。
-2. [design.md](./design.md) - 总体架构、系统结构图和工程方向。
-3. [pipeline.md](./pipeline.md) - 从课程视频到知识笔记的完整处理流水线。
-4. [modules.md](./modules.md) - 功能模块划分和职责边界。
-5. [data-model.md](./data-model.md) - 核心业务对象、中间产物和 JSON 数据结构。
-6. [output-behavior.md](./output-behavior.md) - 输出目录、文件命名和可复跑产物。
-7. [architecture.md](./architecture.md) - 架构决策记录。
-8. [sync-protocol.md](./sync-protocol.md) - wcodex 与 lcodex 的 Git 同步协议规划。
-9. [roadmap.md](./roadmap.md) - 分阶段开发路线。
+For project orientation:
 
-## 资料来源
+1. [00_project/overview.md](./00_project/overview.md)
+2. [00_project/glossary.md](./00_project/glossary.md)
+3. [00_project/status.md](./00_project/status.md)
+4. [00_project/roadmap.md](./00_project/roadmap.md)
 
-- [vBook需求意向.md](./vBook需求意向.md) 是原始需求和技术设想。
-- 本地 `E:\projects\my_app\vtext` 是架构风格参考项目。
+For development work:
 
-vBook 可以学习 vtext 的项目结构、文档方式和工程经验，但必须保持独立模块、独立接口和独立演进路径。
+1. [00_project/glossary.md](./00_project/glossary.md)
+2. [00_project/status.md](./00_project/status.md)
+3. [30_pipeline/README.md](./30_pipeline/README.md)
+4. [20_architecture/README.md](./20_architecture/README.md)
+5. [40_development/README.md](./40_development/README.md)
+
+## Documentation Layers
+
+| Layer | Purpose |
+| --- | --- |
+| [00_project/](./00_project/) | Project positioning, glossary, scope, roadmap, and status |
+| [10_product/](./10_product/) | User scenarios, product workflow, requirements, and acceptance criteria |
+| [20_architecture/](./20_architecture/) | System architecture, module boundaries, data contracts, and decisions |
+| [30_pipeline/](./30_pipeline/) | Stage-by-stage media-to-knowledge pipeline documentation |
+| [40_development/](./40_development/) | Setup, commands, testing, Git workflow, and agent collaboration |
+| [50_modules/](./50_modules/) | Package-level documentation for `vbook_*` modules |
+| [60_operations/](./60_operations/) | Local runs, smoke tests, troubleshooting, and artifact cleanup |
+| [70_progress/](./70_progress/) | Status snapshots, backlog, milestones, and dated progress logs |
+| [80_superpowers/](./80_superpowers/) | Agent specs, implementation plans, reviews, and handoffs |
+| [90_reference/](./90_reference/) | Original requirements, external references, and vtext boundary material |
+
+## Legacy Documents During Migration
+
+The following documents predate the numbered layout and remain valid during
+incremental migration:
+
+- [business-plan.md](./business-plan.md)
+- [design.md](./design.md)
+- [pipeline.md](./pipeline.md)
+- [modules.md](./modules.md)
+- [data-model.md](./data-model.md)
+- [output-behavior.md](./output-behavior.md)
+- [architecture.md](./architecture.md)
+- [sync-protocol.md](./sync-protocol.md)
+- [roadmap.md](./roadmap.md)
+- [vBook需求意向.md](./vBook%E9%9C%80%E6%B1%82%E6%84%8F%E5%90%91.md)
+
+vBook can learn from vtext's project structure and workflow ideas, but it must
+remain an independent project with independent modules, interfaces, and
+evolution.
