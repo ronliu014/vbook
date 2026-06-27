@@ -800,6 +800,69 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
         self.assertEqual(manifest["artifacts"]["vision"]["analysis_count"], 1)
 
+    def test_build_command_can_use_repository_vision_stub(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            repo_root = Path(__file__).resolve().parents[2]
+            script = repo_root / "tools" / "vision_stub.py"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                    "--vision-backend",
+                    "external-command",
+                    "--vision-command",
+                    f"{sys.executable} {script} --input {{input}} --output {{output}}",
+                ]
+            )
+
+            vision = json.loads(
+                (output / "vision" / "analysis.json").read_text(encoding="utf-8")
+            )
+            external_output = json.loads(
+                (output / "vision" / "external" / "analysis.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(external_output["backend"], "vision_stub")
+        self.assertEqual(vision["backend"], "external-command")
+        self.assertEqual(vision["analyses"][0]["backend"], "external-command")
+        self.assertEqual(
+            vision["analyses"][0]["vision_description"],
+            "External command smoke analysis for frame-000001.",
+        )
+        self.assertEqual(
+            manifest["artifacts"]["vision"]["analyses"][0]["structured_observations"][
+                "source"
+            ],
+            "vision_stub",
+        )
+        self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
+
     def test_build_command_external_command_requires_vision_command(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
