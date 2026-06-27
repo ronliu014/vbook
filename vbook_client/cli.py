@@ -451,6 +451,12 @@ def _run_build_batch(
                 },
             )
         except Exception as exc:
+            message = str(exc)
+            failure_reason = (
+                "unsupported_transcript_format"
+                if "unsupported transcript format" in message
+                else f"build_failed: {message}"
+            )
             results.append(
                 BatchLessonResult(
                     lesson_id=plan.lesson_id,
@@ -459,7 +465,7 @@ def _run_build_batch(
                     output_dir=plan.output_dir,
                     status="failed",
                     vtext_compatible=plan.vtext_compatible,
-                    failure_reason=f"build_failed: {exc}",
+                    failure_reason=failure_reason,
                 )
             )
             continue

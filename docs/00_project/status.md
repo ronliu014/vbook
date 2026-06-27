@@ -46,8 +46,8 @@ git status --short --branch
 - `note.md` is structurally useful, but not yet a polished expert-level course
   note.
 - `vbook_server` is only a future boundary and has no service runtime.
-- Batch processing is designed in prior specs but is not part of the current
-  main execution path.
+- Batch processing has a functional foundation through `build-batch`, but it
+  still uses the local MVP placeholder intelligence path for each lesson.
 
 ## Most Important Next Work
 

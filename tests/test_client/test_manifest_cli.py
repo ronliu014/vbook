@@ -851,6 +851,41 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(statuses["missing"]["status"], "skipped")
         self.assertEqual(statuses["missing"]["failure_reason"], "missing_transcript")
 
+    def test_build_batch_records_unsupported_transcript_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "input"
+            output = root / "outputs" / "batch"
+            video = input_dir / "lesson.mp4"
+            transcript = input_dir / "text" / "lesson.txt"
+            input_dir.mkdir()
+            transcript.parent.mkdir(parents=True)
+            video.write_text("video", encoding="utf-8")
+            transcript.write_text("untimed transcript", encoding="utf-8")
+
+            code = main(
+                [
+                    "build-batch",
+                    "--input",
+                    str(input_dir),
+                    "--output",
+                    str(output),
+                ]
+            )
+
+            batch_manifest = json.loads(
+                (output / "batch_manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(batch_manifest["lesson_count"], 1)
+        self.assertEqual(batch_manifest["failed_count"], 1)
+        self.assertEqual(batch_manifest["lessons"][0]["status"], "failed")
+        self.assertEqual(
+            batch_manifest["lessons"][0]["failure_reason"],
+            "unsupported_transcript_format",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

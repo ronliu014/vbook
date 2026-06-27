@@ -31,7 +31,7 @@ Status: not started.
 
 ## P4: Batch and Knowledge Workflow
 
-Status: designed in part, not implemented as the main path.
+Status: functional foundation for batch input; knowledge workflow still partial.
 
 - Add batch input workflow.
 - Improve note quality and knowledge section synthesis.

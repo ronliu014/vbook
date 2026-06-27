@@ -60,6 +60,16 @@ The `build` command runs the current MVP pipeline using an imported timestamped 
 - `fusion/prompt.json`
 - `fusion/sections.json`
 
+Batch input can use a vtext-compatible directory with media files at the input
+root and matching transcripts under `text/`:
+
+```powershell
+python -m vbook_client build-batch --input E:\projects\my_app\temp --output outputs\temp-batch
+```
+
+The command writes one lesson output directory per media file plus
+`batch_manifest.json`.
+
 ## Sync Roles
 
 - `wcodex` - Windows-side Codex agent.
