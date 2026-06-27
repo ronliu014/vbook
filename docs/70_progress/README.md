@@ -9,7 +9,7 @@ to reconstruct it from chat history or dated logs.
 
 ## Current Progress Logs
 
-- [../progress/2026-06-25.md](../progress/2026-06-25.md)
+- [2026-06-25.md](./2026-06-25.md)
 
 ## Planned Documents
 

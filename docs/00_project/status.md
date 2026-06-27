@@ -9,6 +9,11 @@ local build from video plus timestamped transcript into Markdown and JSON
 artifacts, but intelligent visual understanding and final knowledge synthesis
 are not complete yet.
 
+## Progress Log
+
+Detailed dated progress is tracked in [../70_progress/](../70_progress/).
+The latest migrated log is [2026-06-25.md](../70_progress/2026-06-25.md).
+
 ## Current Branch State
 
 Local `main` contains the current implementation work and is ahead of
