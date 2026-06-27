@@ -1,9 +1,10 @@
-"""Placeholder knowledge-section construction and writing."""
+"""Knowledge-section construction and writing."""
 
 from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,17 @@ from vbook_common.types import (
     TranscriptSegment,
     VisualAnalysis,
 )
+
+MAX_TOPIC_MERGE_GAP_SECONDS = 30.0
+MAX_SHARED_FRAME_MERGE_GAP_SECONDS = 30.0
+MAX_SHORT_TEXT_MERGE_GAP_SECONDS = 1.0
+MAX_MERGED_TRANSCRIPT_CHARS = 240
+
+
+@dataclass(frozen=True)
+class _EvidenceSegment:
+    segment: TranscriptSegment
+    evidence_items: tuple[VisualAnalysis, ...]
 
 
 def build_evidence_sections(
@@ -27,20 +39,17 @@ def build_evidence_sections(
         timeline_links=timeline_links or [],
     )
 
-    sections: list[KnowledgeSection] = []
-    for segment in sorted(segments, key=lambda item: (item.start, item.end, item.id)):
-        evidence_items = evidence_by_segment_id.get(segment.id, [])
-        sections.append(
-            KnowledgeSection(
-                title=_section_title(segment, evidence_items),
-                summary=_section_summary(segment, evidence_items),
-                source_timestamps=[segment.start, segment.end],
-                image_refs=_section_image_refs(evidence_items),
-                key_points=_section_key_points(segment, evidence_items),
-                tags=_section_tags(evidence_items),
-            )
+    evidence_segments = [
+        _EvidenceSegment(
+            segment=segment,
+            evidence_items=tuple(evidence_by_segment_id.get(segment.id, [])),
         )
-    return sections
+        for segment in sorted(segments, key=lambda item: (item.start, item.end, item.id))
+    ]
+    return [
+        _section_from_group(group)
+        for group in _merge_evidence_segments(evidence_segments)
+    ]
 
 
 def build_placeholder_sections(
@@ -138,15 +147,124 @@ def _build_visual_evidence_by_segment_id(
     return evidence_by_segment_id
 
 
-def _section_title(
-    segment: TranscriptSegment,
-    evidence_items: Sequence[VisualAnalysis],
-) -> str:
+def _merge_evidence_segments(
+    evidence_segments: Sequence[_EvidenceSegment],
+) -> list[list[_EvidenceSegment]]:
+    groups: list[list[_EvidenceSegment]] = []
+    for evidence_segment in evidence_segments:
+        if groups and _should_merge_with_group(groups[-1], evidence_segment):
+            groups[-1].append(evidence_segment)
+            continue
+        groups.append([evidence_segment])
+    return groups
+
+
+def _should_merge_with_group(
+    group: Sequence[_EvidenceSegment],
+    next_item: _EvidenceSegment,
+) -> bool:
+    gap_seconds = _gap_seconds(group[-1].segment, next_item.segment)
+    if _merged_transcript_length([*group, next_item]) > MAX_MERGED_TRANSCRIPT_CHARS:
+        return False
+
+    group_heading = _group_semantic_heading(group)
+    next_heading = _semantic_heading(next_item.evidence_items)
+    if group_heading and next_heading and group_heading != next_heading:
+        return False
+
+    group_has_evidence = _group_has_visual_evidence(group)
+    next_has_evidence = bool(next_item.evidence_items)
+
+    if _groups_share_frame(group, next_item):
+        return gap_seconds <= MAX_SHARED_FRAME_MERGE_GAP_SECONDS
+    if group_heading and next_heading and group_heading == next_heading:
+        return gap_seconds <= MAX_TOPIC_MERGE_GAP_SECONDS
+    if group_has_evidence and next_has_evidence:
+        return False
+    if not group_has_evidence and not next_has_evidence:
+        return gap_seconds <= MAX_SHORT_TEXT_MERGE_GAP_SECONDS
+    if group_has_evidence and not next_has_evidence:
+        return gap_seconds <= MAX_SHORT_TEXT_MERGE_GAP_SECONDS
+    return False
+
+
+def _gap_seconds(left: TranscriptSegment, right: TranscriptSegment) -> float:
+    return max(0.0, right.start - left.end)
+
+
+def _merged_transcript_length(group: Sequence[_EvidenceSegment]) -> int:
+    return len(_combined_transcript_text(item.segment for item in group))
+
+
+def _combined_transcript_text(segments: Sequence[TranscriptSegment] | Any) -> str:
+    return " ".join(segment.text.strip() for segment in segments if segment.text.strip())
+
+
+def _group_semantic_heading(group: Sequence[_EvidenceSegment]) -> str | None:
+    for item in group:
+        heading = _semantic_heading(item.evidence_items)
+        if heading:
+            return heading
+    return None
+
+
+def _semantic_heading(evidence_items: Sequence[VisualAnalysis]) -> str | None:
     for analysis in evidence_items:
         for key in ("topic", "title", "heading"):
             value = analysis.structured_observations.get(key)
             if isinstance(value, str) and value.strip():
                 return value.strip()
+    return None
+
+
+def _group_has_visual_evidence(group: Sequence[_EvidenceSegment]) -> bool:
+    return any(item.evidence_items for item in group)
+
+
+def _groups_share_frame(
+    group: Sequence[_EvidenceSegment],
+    next_item: _EvidenceSegment,
+) -> bool:
+    group_frame_ids = {
+        analysis.frame_id
+        for item in group
+        for analysis in item.evidence_items
+    }
+    next_frame_ids = {analysis.frame_id for analysis in next_item.evidence_items}
+    return bool(group_frame_ids.intersection(next_frame_ids))
+
+
+def _section_from_group(group: Sequence[_EvidenceSegment]) -> KnowledgeSection:
+    segments = [item.segment for item in group]
+    evidence_items = _group_evidence_items(group)
+    return KnowledgeSection(
+        title=_section_title(segments[0], evidence_items),
+        summary=_section_summary(segments, evidence_items),
+        source_timestamps=[segments[0].start, segments[-1].end],
+        image_refs=_section_image_refs(evidence_items),
+        key_points=_section_key_points(segments, evidence_items),
+        tags=_section_tags(evidence_items),
+    )
+
+
+def _group_evidence_items(
+    group: Sequence[_EvidenceSegment],
+) -> list[VisualAnalysis]:
+    evidence_items: list[VisualAnalysis] = []
+    for item in group:
+        for analysis in item.evidence_items:
+            if analysis not in evidence_items:
+                evidence_items.append(analysis)
+    return evidence_items
+
+
+def _section_title(
+    segment: TranscriptSegment,
+    evidence_items: Sequence[VisualAnalysis],
+) -> str:
+    heading = _semantic_heading(evidence_items)
+    if heading:
+        return heading
     transcript_title = _compact_text(segment.text, max_chars=18)
     if transcript_title:
         return transcript_title
@@ -154,11 +272,11 @@ def _section_title(
 
 
 def _section_summary(
-    segment: TranscriptSegment,
+    segments: Sequence[TranscriptSegment],
     evidence_items: Sequence[VisualAnalysis],
 ) -> str:
     parts = []
-    transcript_text = segment.text.strip()
+    transcript_text = _combined_transcript_text(segments)
     if transcript_text:
         parts.append(f"讲解：{transcript_text}")
     for analysis in evidence_items:
@@ -175,12 +293,13 @@ def _section_image_refs(evidence_items: Sequence[VisualAnalysis]) -> list[str]:
 
 
 def _section_key_points(
-    segment: TranscriptSegment,
+    segments: Sequence[TranscriptSegment],
     evidence_items: Sequence[VisualAnalysis],
 ) -> list[str]:
     points = []
-    if segment.text.strip():
-        points.append(f"讲解：{segment.text.strip()}")
+    for segment in segments:
+        if segment.text.strip():
+            points.append(f"讲解：{segment.text.strip()}")
     for analysis in evidence_items:
         if analysis.ocr_text.strip():
             points.append(f"画面文字：{analysis.ocr_text.strip()}")

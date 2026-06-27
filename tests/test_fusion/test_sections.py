@@ -89,6 +89,142 @@ class FusionSectionsTest(unittest.TestCase):
         self.assertEqual(sections[1].title, "后面进入实战案例。")
         self.assertEqual(sections[1].tags, ["evidence"])
 
+    def test_build_evidence_sections_merges_adjacent_segments_with_shared_frame(self) -> None:
+        segments = [
+            TranscriptSegment(
+                id="seg-000001",
+                start=0.0,
+                end=4.0,
+                text="先介绍均线多头排列。",
+            ),
+            TranscriptSegment(
+                id="seg-000002",
+                start=4.5,
+                end=8.0,
+                text="这里补充成交量放大。",
+            ),
+        ]
+        analyses = [
+            VisualAnalysis(
+                frame_id="frame-000001",
+                visual_type=VisualType.SLIDE,
+                image_path=Path("outputs/lesson/frames/selected/frame_000001.jpg"),
+                ocr_text="短线选股条件\n均线多头排列",
+                vision_description="一页短线选股条件幻灯片。",
+                structured_observations={
+                    "topic": "短线选股",
+                    "key_points": ["均线多头排列"],
+                    "language": "zh-CN",
+                },
+                confidence=0.9,
+                backend="manual-json",
+            )
+        ]
+        links = [
+            TimelineLink(
+                frame_id="frame-000001",
+                transcript_segment_ids=["seg-000001", "seg-000002"],
+                window_start=0.0,
+                window_end=8.0,
+            )
+        ]
+
+        sections = build_evidence_sections(
+            segments=segments,
+            visual_analyses=analyses,
+            timeline_links=links,
+        )
+
+        self.assertEqual(len(sections), 1)
+        section = sections[0]
+        self.assertEqual(section.title, "短线选股")
+        self.assertEqual(section.source_timestamps, [0.0, 8.0])
+        self.assertIn("讲解：先介绍均线多头排列。 这里补充成交量放大。", section.summary)
+        self.assertIn("视觉：一页短线选股条件幻灯片。", section.summary)
+        self.assertIn("画面文字：短线选股条件", section.summary)
+        self.assertEqual(
+            section.image_refs,
+            ["outputs/lesson/frames/selected/frame_000001.jpg"],
+        )
+        self.assertIn("讲解：先介绍均线多头排列。", section.key_points)
+        self.assertIn("讲解：这里补充成交量放大。", section.key_points)
+        self.assertIn("画面文字：短线选股条件\n均线多头排列", section.key_points)
+        self.assertIn("视觉描述：一页短线选股条件幻灯片。", section.key_points)
+        self.assertIn("主题：短线选股", section.key_points)
+        self.assertIn("均线多头排列", section.key_points)
+        self.assertEqual(
+            section.tags,
+            ["evidence", "visual:slide", "has_ocr", "has_image", "lang:zh-CN"],
+        )
+
+    def test_build_evidence_sections_merges_adjacent_segments_with_same_heading(self) -> None:
+        segments = [
+            TranscriptSegment(
+                id="seg-000001",
+                start=0.0,
+                end=6.0,
+                text="第一张图说明买点条件。",
+            ),
+            TranscriptSegment(
+                id="seg-000002",
+                start=9.0,
+                end=14.0,
+                text="第二张图继续解释买点条件。",
+            ),
+        ]
+        analyses = [
+            VisualAnalysis(
+                frame_id="frame-000001",
+                visual_type=VisualType.SLIDE,
+                image_path=Path("outputs/lesson/frames/selected/frame_000001.jpg"),
+                vision_description="买点条件第一页。",
+                structured_observations={"topic": "买点条件"},
+                backend="manual-json",
+            ),
+            VisualAnalysis(
+                frame_id="frame-000002",
+                visual_type=VisualType.SLIDE,
+                image_path=Path("outputs/lesson/frames/selected/frame_000002.jpg"),
+                vision_description="买点条件第二页。",
+                structured_observations={"heading": "买点条件"},
+                backend="manual-json",
+            ),
+        ]
+        links = [
+            TimelineLink(
+                frame_id="frame-000001",
+                transcript_segment_ids=["seg-000001"],
+                window_start=0.0,
+                window_end=6.0,
+            ),
+            TimelineLink(
+                frame_id="frame-000002",
+                transcript_segment_ids=["seg-000002"],
+                window_start=9.0,
+                window_end=14.0,
+            ),
+        ]
+
+        sections = build_evidence_sections(
+            segments=segments,
+            visual_analyses=analyses,
+            timeline_links=links,
+        )
+
+        self.assertEqual(len(sections), 1)
+        section = sections[0]
+        self.assertEqual(section.title, "买点条件")
+        self.assertEqual(section.source_timestamps, [0.0, 14.0])
+        self.assertEqual(
+            section.image_refs,
+            [
+                "outputs/lesson/frames/selected/frame_000001.jpg",
+                "outputs/lesson/frames/selected/frame_000002.jpg",
+            ],
+        )
+        self.assertIn("视觉描述：买点条件第一页。", section.key_points)
+        self.assertIn("视觉描述：买点条件第二页。", section.key_points)
+
     def test_build_evidence_sections_handles_transcript_without_visuals(self) -> None:
         sections = build_evidence_sections(
             segments=[
