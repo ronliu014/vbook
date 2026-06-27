@@ -73,7 +73,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after the external-command smoke tool work:
+Latest full suite run after the Qwen adapter smoke workflow documentation:
 
 ```powershell
 python -m unittest discover
@@ -82,6 +82,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 81 tests
+Ran 88 tests
 OK
 ```
