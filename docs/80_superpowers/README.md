@@ -5,12 +5,10 @@ handoffs. These are process artifacts, not the primary project reading path.
 
 ## Current Planning Documents
 
-- [../superpowers/specs/](../superpowers/specs/)
-- [../superpowers/plans/](../superpowers/plans/)
+- [specs/](./specs/)
+- [plans/](./plans/)
 
 ## Planned Directories
 
-- `specs/`
-- `plans/`
 - `reviews/`
 - `handoffs/`
