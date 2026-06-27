@@ -126,6 +126,8 @@ class NoteExportTest(unittest.TestCase):
         self.assertIn("- Source: 0.00s - 3.00s", markdown)
         self.assertIn("- Image: outputs/lesson/frames/selected/frame_000001.jpg", markdown)
         self.assertIn("- Watch volume confirmation", markdown)
+        self.assertIn("Tags:", markdown)
+        self.assertIn("- placeholder", markdown)
 
 
 if __name__ == "__main__":

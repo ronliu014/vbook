@@ -131,6 +131,9 @@ def render_sections_note(
         if section.key_points:
             lines.extend(["", "Key points:"])
             lines.extend(f"- {point}" for point in section.key_points)
+        if section.tags:
+            lines.extend(["", "Tags:"])
+            lines.extend(f"- {tag}" for tag in section.tags)
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
