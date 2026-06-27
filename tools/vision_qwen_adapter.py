@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import os
 import sys
 import urllib.error
@@ -49,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        output_path = Path(args.output)
+        cleanup_output(output_path)
         frames = load_frame_input(Path(args.input))
         token = args.token or os.environ.get(ENV_TOKEN)
         analyses = []
@@ -63,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
                 frame_id=frame_id,
             )
             analyses.append(normalize_response(frame_id, response))
-        write_output(Path(args.output), analyses)
+        write_output(output_path, analyses)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -182,6 +185,10 @@ def normalize_response(
         raise ValueError(f"ocr_text for {frame_id} is required")
     if "vision_description" not in response:
         raise ValueError(f"vision_description for {frame_id} is required")
+    if not isinstance(response["ocr_text"], str):
+        raise ValueError(f"ocr_text for {frame_id} must be a string")
+    if not isinstance(response["vision_description"], str):
+        raise ValueError(f"vision_description for {frame_id} must be a string")
 
     observations = response.get("structured_observations")
     if not isinstance(observations, dict):
@@ -195,31 +202,57 @@ def normalize_response(
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
             raise ValueError(f"confidence for {frame_id} must be a number or null")
         confidence = float(confidence)
+        if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+            raise ValueError(
+                f"confidence for {frame_id} must be between 0.0 and 1.0"
+            )
 
     return {
         "frame_id": frame_id,
         "visual_type": visual_type,
-        "ocr_text": str(response["ocr_text"]),
-        "vision_description": str(response["vision_description"]),
+        "ocr_text": response["ocr_text"],
+        "vision_description": response["vision_description"],
         "structured_observations": _merge_service_debug(observations, response),
         "confidence": confidence,
     }
 
 
+def cleanup_output(output_path: Path) -> None:
+    for path in (output_path, _output_temp_path(output_path)):
+        try:
+            if path.exists():
+                path.unlink()
+        except OSError as exc:
+            raise ValueError(
+                f"failed to remove stale output file: {path}: {exc}"
+            ) from exc
+
+
 def write_output(output_path: Path, analyses: list[dict[str, Any]]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(
-            {
-                "backend": "qwen-vision-service",
-                "analyses": analyses,
-            },
-            ensure_ascii=False,
-            indent=2,
+    temp_path = _output_temp_path(output_path)
+    try:
+        temp_path.write_text(
+            json.dumps(
+                {
+                    "backend": "qwen-vision-service",
+                    "analyses": analyses,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        temp_path.replace(output_path)
+    except OSError as exc:
+        raise ValueError(
+            f"failed to write output file: {output_path}: {exc}"
+        ) from exc
+
+
+def _output_temp_path(output_path: Path) -> Path:
+    return output_path.with_name(f".{output_path.name}.tmp")
 
 
 def _validate_frame(frame: Any, index: int) -> dict[str, Any]:

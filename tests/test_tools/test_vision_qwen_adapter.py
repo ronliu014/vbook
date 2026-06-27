@@ -415,8 +415,32 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
                 "structured_observations for frame-000001 must be an object",
             ),
             (
+                response_with({"ocr_text": {"text": "bad"}}),
+                "ocr_text for frame-000001 must be a string",
+            ),
+            (
+                response_with({"vision_description": ["bad"]}),
+                "vision_description for frame-000001 must be a string",
+            ),
+            (
                 response_with({"confidence": "high"}),
                 "confidence for frame-000001 must be a number or null",
+            ),
+            (
+                response_with({"confidence": -0.1}),
+                "confidence for frame-000001 must be between 0.0 and 1.0",
+            ),
+            (
+                response_with({"confidence": 1.1}),
+                "confidence for frame-000001 must be between 0.0 and 1.0",
+            ),
+            (
+                response_with({"confidence": float("nan")}),
+                "confidence for frame-000001 must be between 0.0 and 1.0",
+            ),
+            (
+                response_with({"confidence": float("inf")}),
+                "confidence for frame-000001 must be between 0.0 and 1.0",
             ),
             (
                 response_without_confidence,
@@ -436,6 +460,51 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
                     self.assertEqual(result.returncode, 1)
                     self.assertFalse(output_path.exists())
                     self.assertIn(expected_message, result.stderr)
+
+    def test_accepts_null_confidence(self) -> None:
+        def null_confidence_response(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            status, body = success_response(payload, handler)
+            body["confidence"] = None
+            return status, body
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, _image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+
+            with RecordingQwenServer(null_confidence_response) as server:
+                result = _run_adapter(input_path, output_path, server.endpoint)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stderr, "")
+            data = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertIsNone(data["analyses"][0]["confidence"])
+
+    def test_failed_run_removes_stale_output_file(self) -> None:
+        def invalid_response(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            status, body = success_response(payload, handler)
+            body["ocr_text"] = {"text": "bad"}
+            return status, body
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, _image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+            output_path.write_text('{"stale": true}\n', encoding="utf-8")
+
+            with RecordingQwenServer(invalid_response) as server:
+                result = _run_adapter(input_path, output_path, server.endpoint)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(output_path.exists())
+        self.assertIn("ocr_text for frame-000001 must be a string", result.stderr)
 
     def test_build_can_use_qwen_adapter_via_external_command(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

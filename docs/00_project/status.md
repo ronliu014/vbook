@@ -73,7 +73,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after the Qwen adapter smoke workflow documentation:
+Latest full suite run after Qwen adapter response-validation hardening:
 
 ```powershell
 python -m unittest discover
@@ -82,6 +82,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 88 tests
+Ran 90 tests
 OK
 ```
