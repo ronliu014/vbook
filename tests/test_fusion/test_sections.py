@@ -225,6 +225,109 @@ class FusionSectionsTest(unittest.TestCase):
         self.assertIn("视觉描述：买点条件第一页。", section.key_points)
         self.assertIn("视觉描述：买点条件第二页。", section.key_points)
 
+    def test_build_evidence_sections_merges_short_adjacent_transcript_segments(self) -> None:
+        sections = build_evidence_sections(
+            segments=[
+                TranscriptSegment(
+                    id="seg-000001",
+                    start=0.0,
+                    end=1.2,
+                    text="先看定义。",
+                ),
+                TranscriptSegment(
+                    id="seg-000002",
+                    start=1.6,
+                    end=3.0,
+                    text="再看例子。",
+                ),
+            ]
+        )
+
+        self.assertEqual(len(sections), 1)
+        self.assertEqual(sections[0].title, "先看定义。")
+        self.assertEqual(sections[0].source_timestamps, [0.0, 3.0])
+        self.assertEqual(sections[0].summary, "讲解：先看定义。 再看例子。")
+        self.assertEqual(
+            sections[0].key_points,
+            ["讲解：先看定义。", "讲解：再看例子。"],
+        )
+        self.assertEqual(sections[0].tags, ["evidence"])
+
+    def test_build_evidence_sections_keeps_different_headings_and_long_gaps_separate(self) -> None:
+        segments = [
+            TranscriptSegment(
+                id="seg-000001",
+                start=0.0,
+                end=3.0,
+                text="这里讲短线选股。",
+            ),
+            TranscriptSegment(
+                id="seg-000002",
+                start=5.0,
+                end=8.0,
+                text="这里讲实战案例。",
+            ),
+            TranscriptSegment(
+                id="seg-000003",
+                start=20.0,
+                end=22.0,
+                text="间隔较长的新段落。",
+            ),
+            TranscriptSegment(
+                id="seg-000004",
+                start=25.0,
+                end=27.0,
+                text="不会和上一段合并。",
+            ),
+        ]
+        analyses = [
+            VisualAnalysis(
+                frame_id="frame-000001",
+                visual_type=VisualType.SLIDE,
+                image_path=Path("outputs/lesson/frames/selected/frame_000001.jpg"),
+                structured_observations={"topic": "短线选股"},
+                backend="manual-json",
+            ),
+            VisualAnalysis(
+                frame_id="frame-000002",
+                visual_type=VisualType.SLIDE,
+                image_path=Path("outputs/lesson/frames/selected/frame_000002.jpg"),
+                structured_observations={"topic": "实战案例"},
+                backend="manual-json",
+            ),
+        ]
+        links = [
+            TimelineLink(
+                frame_id="frame-000001",
+                transcript_segment_ids=["seg-000001"],
+                window_start=0.0,
+                window_end=3.0,
+            ),
+            TimelineLink(
+                frame_id="frame-000002",
+                transcript_segment_ids=["seg-000002"],
+                window_start=5.0,
+                window_end=8.0,
+            ),
+        ]
+
+        sections = build_evidence_sections(
+            segments=segments,
+            visual_analyses=analyses,
+            timeline_links=links,
+        )
+
+        self.assertEqual(len(sections), 4)
+        self.assertEqual(
+            [section.title for section in sections],
+            [
+                "短线选股",
+                "实战案例",
+                "间隔较长的新段落。",
+                "不会和上一段合并。",
+            ],
+        )
+
     def test_build_evidence_sections_handles_transcript_without_visuals(self) -> None:
         sections = build_evidence_sections(
             segments=[
