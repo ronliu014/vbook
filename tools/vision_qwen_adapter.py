@@ -77,9 +77,10 @@ def load_frame_input(input_path: Path) -> list[dict[str, Any]]:
     if not input_path.exists():
         raise ValueError(f"input file does not exist: {input_path}")
     try:
-        data = json.loads(input_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"invalid input JSON: {exc}") from exc
+        data = _loads_strict_json(
+            input_path.read_text(encoding="utf-8"),
+            "invalid input JSON",
+        )
     except OSError as exc:
         raise ValueError(f"failed to read input file: {input_path}: {exc}") from exc
 
@@ -123,7 +124,16 @@ def post_json(
     timeout_seconds: float,
     frame_id: str,
 ) -> dict[str, Any]:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    try:
+        body = json.dumps(
+            payload,
+            allow_nan=False,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    except ValueError as exc:
+        raise ValueError(
+            f"failed to encode request JSON for {frame_id}: {exc}"
+        ) from exc
     request = urllib.request.Request(
         endpoint,
         data=body,
@@ -156,12 +166,10 @@ def post_json(
 
     if status < 200 or status >= 300:
         raise ValueError(f"Qwen service returned HTTP {status} for {frame_id}")
-    try:
-        data = json.loads(raw.decode("utf-8"))
-    except json.JSONDecodeError as exc:
-        raise ValueError(
-            f"Qwen service returned invalid JSON for {frame_id}: {exc}"
-        ) from exc
+    data = _loads_strict_json(
+        raw.decode("utf-8"),
+        f"Qwen service returned invalid JSON for {frame_id}",
+    )
     if not isinstance(data, dict):
         raise ValueError(f"Qwen service response for {frame_id} must be an object")
     return data
@@ -238,6 +246,7 @@ def write_output(output_path: Path, analyses: list[dict[str, Any]]) -> None:
                     "backend": "qwen-vision-service",
                     "analyses": analyses,
                 },
+                allow_nan=False,
                 ensure_ascii=False,
                 indent=2,
             )
@@ -249,10 +258,40 @@ def write_output(output_path: Path, analyses: list[dict[str, Any]]) -> None:
         raise ValueError(
             f"failed to write output file: {output_path}: {exc}"
         ) from exc
+    except ValueError as exc:
+        raise ValueError(
+            f"failed to encode output JSON: {output_path}: {exc}"
+        ) from exc
 
 
 def _output_temp_path(output_path: Path) -> Path:
     return output_path.with_name(f".{output_path.name}.tmp")
+
+
+def _loads_strict_json(text: str, source: str) -> Any:
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"invalid JSON constant: {value}")
+
+    try:
+        data = json.loads(text, parse_constant=reject_constant)
+        _reject_nonfinite_numbers(data)
+        return data
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"{source}: {exc}") from exc
+
+
+def _reject_nonfinite_numbers(value: Any) -> None:
+    if isinstance(value, bool):
+        return
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("non-finite number is not allowed")
+    if isinstance(value, list):
+        for item in value:
+            _reject_nonfinite_numbers(item)
+        return
+    if isinstance(value, dict):
+        for item in value.values():
+            _reject_nonfinite_numbers(item)
 
 
 def _validate_frame(frame: Any, index: int) -> dict[str, Any]:

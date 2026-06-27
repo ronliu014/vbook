@@ -82,6 +82,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 90 tests
+Ran 93 tests
 OK
 ```

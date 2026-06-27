@@ -21,7 +21,7 @@ ADAPTER = REPO_ROOT / "tools" / "vision_qwen_adapter.py"
 
 Responder = Callable[
     [dict[str, Any], BaseHTTPRequestHandler],
-    tuple[int, dict[str, Any]],
+    tuple[int, dict[str, Any] | str],
 ]
 
 
@@ -49,7 +49,10 @@ class RecordingQwenServer:
                     }
                 )
                 status, body = outer.responder(payload, self)
-                response = json.dumps(body, ensure_ascii=False).encode("utf-8")
+                if isinstance(body, str):
+                    response = body.encode("utf-8")
+                else:
+                    response = json.dumps(body, ensure_ascii=False).encode("utf-8")
                 self.send_response(status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(response)))
@@ -385,6 +388,59 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
                     self.assertIn(expected_message, result.stderr)
                     self.assertEqual(len(server.requests), 0)
 
+    def test_rejects_nonstandard_json_constants_in_input_before_calling_service(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            image = root / "frame_000001.jpg"
+            image.write_bytes(b"fake image bytes")
+
+            cases = [
+                ("nan", float("nan"), "invalid JSON constant"),
+                ("infinity", float("inf"), "invalid JSON constant"),
+                ("overflow", "1e999", "non-finite number"),
+            ]
+
+            for label, timestamp, expected_message in cases:
+                with self.subTest(label=label):
+                    input_path = root / f"{label}-frames.json"
+                    output_path = root / f"{label}-analysis.json"
+                    input_text = json.dumps(
+                        {
+                            "backend": "external-command",
+                            "frames": [
+                                {
+                                    "frame_id": "frame-000001",
+                                    "video_id": "lesson",
+                                    "timestamp": timestamp,
+                                    "image_path": str(image),
+                                    "width": 1280,
+                                    "height": 720,
+                                }
+                            ],
+                        },
+                        allow_nan=True,
+                        ensure_ascii=False,
+                    )
+                    input_path.write_text(
+                        input_text.replace('"1e999"', "1e999"),
+                        encoding="utf-8",
+                    )
+
+                    with RecordingQwenServer(success_response) as server:
+                        result = _run_adapter(
+                            input_path,
+                            output_path,
+                            server.endpoint,
+                        )
+
+                    self.assertEqual(result.returncode, 1)
+                    self.assertFalse(output_path.exists())
+                    self.assertIn("invalid input JSON", result.stderr)
+                    self.assertIn(expected_message, result.stderr)
+                    self.assertEqual(len(server.requests), 0)
+
     def test_rejects_invalid_response_fields(self) -> None:
         def response_with(body_update: dict[str, Any]) -> Responder:
             def responder(
@@ -436,11 +492,13 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
             ),
             (
                 response_with({"confidence": float("nan")}),
-                "confidence for frame-000001 must be between 0.0 and 1.0",
+                "Qwen service returned invalid JSON for frame-000001: "
+                "invalid JSON constant: NaN",
             ),
             (
                 response_with({"confidence": float("inf")}),
-                "confidence for frame-000001 must be between 0.0 and 1.0",
+                "Qwen service returned invalid JSON for frame-000001: "
+                "invalid JSON constant: Infinity",
             ),
             (
                 response_without_confidence,
@@ -505,6 +563,68 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(output_path.exists())
         self.assertIn("ocr_text for frame-000001 must be a string", result.stderr)
+
+    def test_rejects_nonstandard_json_constants_in_service_response(self) -> None:
+        def response_with_nan_observation(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            status, body = success_response(payload, handler)
+            body["structured_observations"] = {"score": float("nan")}
+            return status, body
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, _image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+
+            with RecordingQwenServer(response_with_nan_observation) as server:
+                result = _run_adapter(input_path, output_path, server.endpoint)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(output_path.exists())
+        self.assertEqual(len(server.requests), 1)
+        self.assertIn(
+            "Qwen service returned invalid JSON for frame-000001",
+            result.stderr,
+        )
+        self.assertIn("invalid JSON constant", result.stderr)
+
+    def test_rejects_nonfinite_numbers_parsed_from_service_response(self) -> None:
+        def response_with_overflow_observation(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any] | str]:
+            return (
+                200,
+                (
+                    "{"
+                    f'"frame_id": {json.dumps(payload["frame_id"])},'
+                    '"visual_type": "slide",'
+                    '"ocr_text": "",'
+                    '"vision_description": "ok",'
+                    '"structured_observations": {"score": 1e999},'
+                    '"confidence": 0.8'
+                    "}"
+                ),
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, _image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+
+            with RecordingQwenServer(response_with_overflow_observation) as server:
+                result = _run_adapter(input_path, output_path, server.endpoint)
+
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse(output_path.exists())
+        self.assertEqual(len(server.requests), 1)
+        self.assertIn(
+            "Qwen service returned invalid JSON for frame-000001",
+            result.stderr,
+        )
+        self.assertIn("non-finite number", result.stderr)
 
     def test_build_can_use_qwen_adapter_via_external_command(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
