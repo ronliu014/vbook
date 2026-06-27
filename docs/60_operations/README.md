@@ -12,7 +12,7 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 
 - `local-run.md`
 - `sample-inputs.md`
-- `smoke-tests.md`
+- [smoke-tests.md](./smoke-tests.md)
 - `batch-processing.md`
 - `troubleshooting.md`
 - `outputs-cleanup.md`

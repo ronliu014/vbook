@@ -35,6 +35,8 @@ git status --short --branch
 - Visual analysis through `external-command`, where vBook writes frame input
   JSON, runs a user-supplied command, and normalizes the command output through
   the same validation path as `manual-json`.
+- Built-in `tools/vision_stub.py` for deterministic `external-command` smoke
+  checks without OCR, model runtimes, or API credentials.
 - Timeline alignment between frames and transcript segments.
 - Fusion prompt snapshot export.
 - Deterministic placeholder fusion sections.
@@ -67,7 +69,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after the external-command vision backend work:
+Latest full suite run after the external-command smoke tool work:
 
 ```powershell
 python -m unittest discover
@@ -76,6 +78,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 77 tests
+Ran 81 tests
 OK
 ```
