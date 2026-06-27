@@ -88,6 +88,61 @@ class LlmFusionContractTest(unittest.TestCase):
         )
         self.assertEqual(section.tags, ["llm", "evidence", "visual:slide"])
 
+    def assertParseRaises(self, response: object, message: str) -> None:
+        with self.assertRaisesRegex(ValueError, message):
+            parse_llm_fusion_response(response)  # type: ignore[arg-type]
+
+    def test_parse_llm_fusion_response_rejects_invalid_top_level_shape(self) -> None:
+        self.assertParseRaises([], "response must be an object")
+        self.assertParseRaises(
+            {
+                "schema_version": "2",
+                "title": "title",
+                "overview": "overview",
+                "sections": [],
+            },
+            "schema_version must be '1'",
+        )
+        self.assertParseRaises(
+            {"schema_version": "1", "title": "title", "overview": "overview"},
+            "sections must be a list",
+        )
+
+    def test_parse_llm_fusion_response_rejects_invalid_section_fields(self) -> None:
+        base = {
+            "schema_version": "1",
+            "title": "title",
+            "overview": "overview",
+            "sections": [
+                {
+                    "title": "section",
+                    "summary": "summary",
+                    "key_points": [],
+                    "source_timestamps": [],
+                    "image_refs": [],
+                    "tags": [],
+                }
+            ],
+        }
+
+        invalid_title = json.loads(json.dumps(base))
+        invalid_title["sections"][0]["title"] = 42
+        self.assertParseRaises(invalid_title, r"sections\[0\]\.title must be a string")
+
+        invalid_key_point = json.loads(json.dumps(base))
+        invalid_key_point["sections"][0]["key_points"] = ["ok", 42]
+        self.assertParseRaises(
+            invalid_key_point,
+            r"sections\[0\]\.key_points\[1\] must be a string",
+        )
+
+        invalid_timestamp = json.loads(json.dumps(base))
+        invalid_timestamp["sections"][0]["source_timestamps"] = [0.0, math.inf]
+        self.assertParseRaises(
+            invalid_timestamp,
+            r"sections\[0\]\.source_timestamps\[1\] must be finite",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
