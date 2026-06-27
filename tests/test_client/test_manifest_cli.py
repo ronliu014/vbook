@@ -48,12 +48,20 @@ class ManifestCliTest(unittest.TestCase):
             vision_exists = (output / "vision" / "analysis.json").exists()
             prompt_exists = (output / "fusion" / "prompt.json").exists()
             sections_exists = (output / "fusion" / "sections.json").exists()
+            sections = json.loads(
+                (output / "fusion" / "sections.json").read_text(encoding="utf-8")
+            )
 
         self.assertEqual(code, 0)
         self.assertTrue(vision_exists)
         self.assertTrue(prompt_exists)
         self.assertTrue(sections_exists)
         self.assertIn("## Knowledge Sections", note)
+        self.assertEqual(sections["intent"], "fusion_sections_evidence")
+        self.assertEqual(
+            sections["sections"][0]["tags"],
+            ["evidence", "visual:other", "has_image"],
+        )
         self.assertEqual(manifest["stage_status"]["timeline_alignment"], "done")
         self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
@@ -137,7 +145,18 @@ class ManifestCliTest(unittest.TestCase):
             "entry",
         )
         self.assertEqual(sections["sections"][0]["image_refs"][0].endswith("frame_000001.jpg"), True)
+        self.assertEqual(sections["intent"], "fusion_sections_evidence")
+        self.assertIn("画面文字：buy point", sections["sections"][0]["key_points"])
+        self.assertIn(
+            "视觉描述：A slide about a buy point.",
+            sections["sections"][0]["key_points"],
+        )
+        self.assertIn("visual:slide", sections["sections"][0]["tags"])
+        self.assertIn("has_ocr", sections["sections"][0]["tags"])
         self.assertIn("frame_000001.jpg", note)
+        self.assertIn("buy point", note)
+        self.assertIn("Tags:", note)
+        self.assertIn("- visual:slide", note)
         self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
 
     def test_build_command_accepts_srt_transcript(self) -> None:
@@ -625,7 +644,7 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["artifacts"]["fusion"]["prompt_format"], "json")
         self.assertEqual(manifest["stage_status"]["fusion_prompt"], "done")
 
-    def test_manifest_command_can_write_fusion_sections_placeholder(self) -> None:
+    def test_manifest_command_can_write_evidence_fusion_sections(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             video = root / "lesson.mp4"
@@ -665,9 +684,13 @@ class ManifestCliTest(unittest.TestCase):
             manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertEqual(code, 0)
-        self.assertEqual(sections["intent"], "fusion_sections_placeholder")
+        self.assertEqual(sections["intent"], "fusion_sections_evidence")
         self.assertEqual(sections["section_count"], 1)
         self.assertEqual(len(sections["sections"][0]["image_refs"]), 1)
+        self.assertEqual(
+            sections["sections"][0]["tags"],
+            ["evidence", "visual:other", "has_image"],
+        )
         self.assertEqual(manifest["artifacts"]["fusion"]["sections_format"], "json")
         self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
 
@@ -711,9 +734,12 @@ class ManifestCliTest(unittest.TestCase):
 
         self.assertEqual(code, 0)
         self.assertIn("## Knowledge Sections", note)
-        self.assertIn("### Segment seg-000001", note)
+        self.assertIn("### intro", note)
         self.assertIn("intro", note)
         self.assertIn("frame_000001.jpg", note)
+        self.assertIn("Tags:", note)
+        self.assertIn("- evidence", note)
+        self.assertIn("- visual:other", note)
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
 

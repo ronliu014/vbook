@@ -14,7 +14,7 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, render_sections_note, write_note
-from vbook_fusion.sections import build_placeholder_sections, write_fusion_sections
+from vbook_fusion.sections import build_evidence_sections, write_fusion_sections
 from vbook_fusion.snapshot import (
     build_fusion_prompt_snapshot,
     write_fusion_prompt_snapshot,
@@ -333,7 +333,7 @@ def _run_manifest_pipeline(
         )
         write_visual_analysis(visual_analyses, visual_analysis_path, backend=vision_backend)
     if _flag(args, "write_fusion_sections", defaults):
-        fusion_sections = build_placeholder_sections(
+        fusion_sections = build_evidence_sections(
             segments=segments,
             visual_analyses=visual_analyses,
             timeline_links=timeline_links,
