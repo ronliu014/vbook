@@ -6,6 +6,7 @@ project context that are useful but not part of the main reading path.
 ## Current Source Material
 
 - [original-requirements.md](./original-requirements.md)
+- [qwen-vision-service-requirements.md](./qwen-vision-service-requirements.md)
 - [../40_development/sync-protocol.md](../40_development/sync-protocol.md)
 
 ## Planned Documents
