@@ -70,17 +70,35 @@ validation, manifest stage status, and downstream fusion inputs can be checked.
 Use `tools\vision_qwen_adapter.py` when a Qwen Vision Service compatible with
 `docs/90_reference/qwen-vision-service-requirements.md` is running:
 
+Current service-team reply:
+
+- Reply document: `docs/90_reference/integration-response.md`
+- Base URL: `http://192.168.0.33:8866`
+- Analyze endpoint: `http://192.168.0.33:8866/analyze-frame`
+- Health endpoint: `http://192.168.0.33:8866/health`
+- Auth: none for the current trusted-LAN deployment
+- Prompt profile: `vbook_visual_analysis_v1`
+- Timeout: 120 seconds per frame
+- Recommended concurrency: 1
+- Current limitation: deployment performance baseline is still pending
+
+Run health check after the service team confirms deployment and firewall access:
+
+```powershell
+Invoke-RestMethod -Method Get -Uri http://192.168.0.33:8866/health
+```
+
 ```powershell
 python -m vbook_client build `
   --video path\to\lesson.mp4 `
   --transcript path\to\lesson.srt `
   --output outputs\lesson-qwen `
   --vision-backend external-command `
-  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://127.0.0.1:8000/analyze-frame --timeout-seconds 120"
+  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120"
 ```
 
-If the service requires token auth, either pass `--token` inside the command
-template or set:
+The current service reply says no token is required. If a future deployment
+enables token auth, either pass `--token` inside the command template or set:
 
 ```powershell
 $env:VBOOK_QWEN_VISION_TOKEN = "your-token"

@@ -172,19 +172,26 @@ git push origin main
 
 ### P1: 等待 Qwen 服务组提供联调信息
 
-需要服务组提供：
+服务组已通过 `docs/90_reference/integration-response.md` 回复第一轮联调信息：
 
-- `POST /analyze-frame` endpoint。
-- `GET /health` endpoint。
-- 是否需要 bearer token。
-- 网络访问方式。
-- 支持的 prompt profile。
-- image size / timeout / rate limit。
-- 一份真实或示例 response。
+- Base URL: `http://192.168.0.33:8866`
+- `POST /analyze-frame`: `http://192.168.0.33:8866/analyze-frame`
+- `GET /health`: `http://192.168.0.33:8866/health`
+- 当前可信内网 HTTP，无认证。
+- 支持 `vbook_visual_analysis_v1`、JPEG、PNG。
+- decoded image size 上限 10 MB，per-frame timeout 120 秒，建议并发 1。
+- success response、error response 和 strict JSON 约束已对齐。
 
-对接需求和回复模板见：
+仍待服务组部署后补充：
+
+- `GET /health` 实测结果。
+- slide / K-line 图片自测结果。
+- 模型 warmup、平均延迟和 p95 延迟。
+
+对接需求、回复模板和服务组回复见：
 
 - `docs/90_reference/qwen-vision-service-integration-request.md`
+- `docs/90_reference/integration-response.md`
 
 ### P2: 跑真实 smoke
 

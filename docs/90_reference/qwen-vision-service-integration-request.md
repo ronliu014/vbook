@@ -8,6 +8,14 @@
 
 - `docs/90_reference/qwen-vision-service-requirements.md`
 
+服务组已回复当前对接信息：
+
+- `docs/90_reference/integration-response.md`
+
+截至该回复，当前目标 endpoint 是 `http://192.168.0.33:8866`，当前可信内网部署
+无认证，支持 `vbook_visual_analysis_v1`，per-frame timeout 为 120 秒。性能基线和
+部署后自测仍待补充。本文下方问卷保留为后续服务变更或再次确认时的模板。
+
 本文不是替代完整需求书，而是 vBook 侧开始真实联调前需要服务组回复的最小清单。
 
 ## vBook 侧当前状态
@@ -314,7 +322,7 @@ python -m vbook_client build `
   --transcript path\to\lesson.srt `
   --output outputs\lesson-qwen `
   --vision-backend external-command `
-  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://127.0.0.1:8000/analyze-frame --timeout-seconds 120"
+  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120"
 ```
 
 如果需要 token：
