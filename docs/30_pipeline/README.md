@@ -13,8 +13,8 @@ output, owning module, current status, limitations, and next tasks.
 | Vision analysis | Partial: placeholder and manual-json | [overview.md](./overview.md) |
 | Timeline alignment | Functional foundation | [overview.md](./overview.md) |
 | Fusion prompt | Placeholder snapshot | [overview.md](./overview.md) |
-| Fusion sections | Deterministic placeholder | [overview.md](./overview.md) |
-| Note export | Functional placeholder/section note | [output-contracts.md](../20_architecture/output-contracts.md) |
+| Fusion sections | Deterministic evidence draft | [overview.md](./overview.md) |
+| Note export | Functional evidence-section note | [output-contracts.md](../20_architecture/output-contracts.md) |
 | Manifest | Functional foundation | [output-contracts.md](../20_architecture/output-contracts.md) |
 
 ## Planned Stage Documents

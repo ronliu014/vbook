@@ -42,7 +42,8 @@ git status --short --branch
   without adding model dependencies to vBook core.
 - Timeline alignment between frames and transcript segments.
 - Fusion prompt snapshot export.
-- Deterministic placeholder fusion sections.
+- Deterministic evidence-based fusion sections from transcript, visual
+  analysis, and timeline links.
 - Markdown note export from transcript or fusion sections.
 - `manifest.json` output with stage statuses and artifact summaries.
 
@@ -52,7 +53,8 @@ git status --short --branch
   `external-command` can call a user-supplied analyzer, and
   `tools/vision_qwen_adapter.py` can call a compatible Qwen Vision Service, but
   vBook still does not ship an embedded OCR or multimodal model provider.
-- Fusion sections are deterministic placeholders, not final knowledge synthesis.
+- Fusion sections are deterministic evidence drafts, not final LLM knowledge
+  synthesis.
 - `note.md` is structurally useful, but not yet a polished expert-level course
   note.
 - `vbook_server` is only a future boundary and has no service runtime.
@@ -73,7 +75,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after Qwen adapter response-validation hardening:
+Latest full suite run after evidence-based fusion section improvements:
 
 ```powershell
 python -m unittest discover
@@ -82,6 +84,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 93 tests
+Ran 96 tests
 OK
 ```

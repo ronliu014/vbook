@@ -152,11 +152,12 @@ endpoint 做联调。
 
 ### Fusion 仍是下一阶段瓶颈
 
-当前视觉输入链路已经具备真实服务接入能力，但知识融合仍是 placeholder 级别：
+当前视觉输入链路已经具备真实服务接入能力，知识融合也已经从纯 placeholder
+推进到 deterministic evidence draft：
 
-- fusion sections 仍是 deterministic placeholder。
-- `note.md` 结构可用，但还不是最终专家级课程笔记。
-- 视觉分析结果进入 pipeline 后，还需要进一步设计如何与 transcript 形成知识单元。
+- fusion sections 会吸收 transcript、OCR、视觉描述、结构化观察和图片引用。
+- `note.md` 能展示 evidence section、key points、tags 和图片引用。
+- 这仍然不是最终专家级课程笔记，后续还需要 LLM 知识综合和章节合并。
 
 ## 后续工作建议
 
@@ -215,12 +216,12 @@ git push origin main
 
 ### P4: 推进 fusion / note 质量
 
-如果 Qwen 服务部署还需要时间，可以并行推进：
+如果 Qwen 服务部署还需要时间，可以继续推进：
 
-- transcript + visual analysis + timeline alignment 的融合输入结构。
-- course knowledge unit 数据结构。
-- `note.md` 的目标章节结构。
-- 用 `manual-json` 或 fake Qwen output 先驱动融合逻辑。
+- 相邻 transcript segment 的章节合并规则。
+- LLM-ready fusion prompt 和 response parser。
+- `note.md` 的最终专家笔记结构。
+- 用 `manual-json` 或 fake Qwen output 继续验证融合逻辑。
 
 ## 当前阶段交接句
 
