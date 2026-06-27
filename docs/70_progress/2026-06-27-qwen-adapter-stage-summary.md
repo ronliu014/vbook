@@ -226,9 +226,9 @@ git push origin main
 
 如果 Qwen 服务部署还需要时间，可以继续推进：
 
-- LLM-ready fusion prompt 和 response parser。
+- LLM fusion 执行入口和外部模型 command。
 - `note.md` 的最终专家笔记结构。
-- 用 `manual-json` 或 fake Qwen output 继续验证融合逻辑。
+- 用 `manual-json`、fake Qwen output 或真实 Qwen smoke output 继续验证融合逻辑。
 
 ## 当前阶段交接句
 

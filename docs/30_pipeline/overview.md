@@ -44,6 +44,9 @@ MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换�
 最终 LLM 知识综合。后续 LLM 融合会在这个稳定 artifact 基础上生成去重后的高质量
 知识段落。
 
+同时，vBook 已准备 LLM-ready request/response contract 和 deterministic parser，
+用于后续接入模型综合；当前默认输出仍使用 evidence draft，不执行模型调用。
+
 ## 阶段 8：导出
 
 导出双核心产物：`note.md` 面向用户阅读，`manifest.json` 面向机器复跑和后续知识库。同步保存图片素材、转写记录、视觉分析 JSON 和融合结果。最终笔记中的每个重点都应能追溯到原始视频时间点和相关图片。
