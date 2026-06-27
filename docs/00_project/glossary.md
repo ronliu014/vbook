@@ -1,162 +1,152 @@
-# vBook Glossary
+# vBook 术语库
 
-This glossary defines the shared vocabulary used in vBook discussions, docs,
-code reviews, and progress reports.
+本术语库定义 vBook 讨论、文档、代码评审和进度汇报中的共享词汇。
+代码对象、API 名称、文件名和 backend 名称保留英文；解释和协作口径使用
+简体中文。
 
-## Status Terms
+## 状态术语
 
-### Functional foundation
+### 功能基础版（Functional foundation）
 
-A working deterministic implementation that is useful for pipeline integration
-and regression testing, but may not yet represent final product intelligence.
+已经可运行、可测试、可接入 pipeline 的确定性实现。它能支撑集成和回归测试，
+但不一定代表最终产品智能已经完成。
 
-### Placeholder
+### 占位实现（Placeholder）
 
-An intentional simple implementation that preserves data shape and pipeline
-flow while postponing real semantic work. A placeholder is not a bug, but it
-must be named clearly.
+为了保持数据结构和 pipeline 流程完整而刻意写的简单实现。占位实现不是 bug，
+但必须在文档、状态和输出中明确标注，避免被误解为最终能力。
 
-### Partial
+### 部分完成（Partial）
 
-A stage has more than placeholder behavior but is not complete. For example,
-visual analysis now supports `manual-json`, but it does not yet call OCR or
-multimodal models.
+某个阶段已经超过纯占位实现，但仍未完成最终目标。例如视觉分析已经支持
+`manual-json`，但还没有真正调用 OCR 或多模态模型。
 
-### Done
+### 已完成（Done）
 
-The stage ran and produced its expected output artifact during a pipeline run.
-In `manifest.json`, this appears as a stage status such as `"done"`.
+某个阶段在一次 pipeline 运行中成功执行，并产出了预期 artifact。在
+`manifest.json` 中通常表现为 `"done"` 这类阶段状态。
 
-### Skipped
+### 已跳过（Skipped）
 
-The stage was not requested or could not run because its prerequisites were not
-provided. In `manifest.json`, this appears as `"skipped"`.
+某个阶段没有被请求，或因为缺少前置输入而不能执行。在 `manifest.json` 中
+通常表现为 `"skipped"`。
 
-## Project Terms
+## 项目术语
 
 ### vBook
 
-The project in this repository. vBook automates video-course analysis into
-image-aware notes and a searchable knowledge base.
+本仓库对应的项目。vBook 的目标是把视频课程自动分析成带图片理解的课程笔记，
+并进一步形成可检索的知识库。
 
 ### vtext
 
-A related reference project for video-to-audio-to-text-to-knowledge workflow
-ideas. vBook may learn from vtext design but must not import, vendor, or depend
-on vtext code.
+相关参考项目，提供“视频 -> 音频 -> 文本 -> 知识”工作流方面的设计参考。
+vBook 可以借鉴 vtext 的设计思路，但不能依赖、复制或 vendor vtext 代码。
 
 ### MVP
 
-The minimum useful local pipeline: transcript import, frame extraction, frame
-selection, visual analysis output, timeline alignment, fusion artifacts, note
-export, and manifest export.
+当前最小可用本地 pipeline：导入 transcript、抽帧、筛帧、产出视觉分析结果、
+时间线对齐、融合 artifact、导出笔记，并生成 manifest。
 
-## Input Terms
+## 输入术语
 
 ### Video
 
-The source lesson media file, usually an MP4. It is the source for extracted
-frames and, in future stages, audio transcription.
+源课程视频文件，通常是 MP4。当前主要用于抽取 frames，未来也会作为音频转写的
+来源。
 
 ### Transcript
 
-Timestamped text for the lesson. Current supported input formats are JSON and
-SRT. vBook normalizes transcripts into `TranscriptSegment[]`.
+带时间戳的课程文本。当前支持 JSON 和 SRT 输入格式，vBook 会将其规范化为
+`TranscriptSegment[]`。
 
 ### TranscriptSegment
 
-The normalized data object for one timestamped transcript segment. It records
-start time, end time, text, source, and optional metadata.
+一段带时间戳 transcript 的标准数据对象，记录开始时间、结束时间、文本、来源和
+可选 metadata。
 
-## Vision Terms
+## 视觉术语
 
 ### FrameCandidate
 
-The normalized data object for one extracted or discovered frame. It records
-frame id, video id, timestamp, image path, dimensions, and filter state.
+一个已抽取或已发现 frame 的标准数据对象，记录 frame id、video id、时间戳、
+图片路径、尺寸和筛选状态。
 
-### Candidate frame
+### 候选帧（Candidate frame）
 
-A frame extracted from video or discovered from an existing frame directory
-before final selection.
+从视频中抽取出来，或从已有 frame 目录中发现，但尚未完成最终筛选的 frame。
 
-### Selected frame
+### 入选帧（Selected frame）
 
-A candidate frame kept for downstream stages such as vision analysis, timeline
-alignment, fusion, and note export.
+被筛选保留下来的候选帧，会进入视觉分析、时间线对齐、融合和笔记导出等后续阶段。
 
-### Rejected frame
+### 剔除帧（Rejected frame）
 
-A candidate frame excluded by frame selection. Rejected frame records are still
-useful for auditability.
+被筛选排除的候选帧。剔除记录仍然有价值，用于审计筛选原因和复现 pipeline 行为。
 
 ### VisualAnalysis
 
-The normalized data object for visual understanding output. It records frame id,
-visual type, image path, OCR text, visual description, structured observations,
-confidence, and backend name.
+视觉理解输出的标准数据对象，记录 frame id、visual type、图片路径、OCR 文本、
+视觉描述、结构化观察结果、置信度和 backend 名称。
 
 ### VisualType
 
-The category of a visual analysis record. Current values are `slide`,
-`kline_case`, and `other`.
+视觉分析记录的分类。当前取值包括 `slide`、`kline_case` 和 `other`。
 
 ### Vision backend
 
-The implementation that produces `VisualAnalysis[]` from frames. Current
-backends are `placeholder` and `manual-json`.
+负责从 frames 生成 `VisualAnalysis[]` 的实现。当前 backend 包括 `placeholder`
+和 `manual-json`。
 
 ### placeholder backend
 
-The default no-service backend. It creates deterministic `VisualAnalysis`
-records so the pipeline can run without OCR or model services.
+默认的无外部服务 backend。它生成确定性的 `VisualAnalysis` 记录，让 pipeline
+在没有 OCR 或模型服务时也能完整运行。
 
 ### manual-json backend
 
-A backend that loads externally prepared or manually written visual analysis
-from JSON and normalizes it into `VisualAnalysis[]`.
+从外部准备或人工编写的 JSON 中读取视觉分析结果，并规范化为 `VisualAnalysis[]`
+的 backend。
 
-## Pipeline Terms
+## Pipeline 术语
 
 ### Timeline alignment
 
-The stage that links frame timestamps to nearby transcript segments and returns
-`TimelineLink[]`.
+将 frame 时间戳和附近 transcript segment 关联起来的阶段，输出
+`TimelineLink[]`。
 
 ### Fusion prompt snapshot
 
-A JSON artifact that records the transcript, visual analysis, and timeline
-alignment context that would be used for later knowledge fusion.
+一个 JSON artifact，记录后续知识融合会使用的 transcript、视觉分析和时间线对齐
+上下文。
 
 ### Fusion sections
 
-Structured `KnowledgeSection[]` output. Current implementation is deterministic
-placeholder construction, not final LLM summarization.
+结构化的 `KnowledgeSection[]` 输出。当前实现是确定性的占位构造，还不是最终的
+LLM 总结。
 
 ### KnowledgeSection
 
-The normalized data object for one note section. It can include title, summary,
-timestamps, image references, key points, and tags.
+一段笔记章节的标准数据对象，可包含标题、摘要、时间戳、图片引用、要点和标签。
 
-## Output Terms
+## 输出术语
 
 ### note.md
 
-The human-readable Markdown note exported by vBook.
+vBook 导出的、给人阅读的 Markdown 笔记。
 
 ### manifest.json
 
-The machine-readable run index. It records inputs, stage statuses, output paths,
-and artifact summaries.
+机器可读的运行索引，记录输入、阶段状态、输出路径和 artifact 摘要。
 
 ### vision/analysis.json
 
-The normalized visual analysis artifact.
+规范化后的视觉分析 artifact。
 
 ### fusion/prompt.json
 
-The fusion prompt snapshot artifact.
+融合提示词快照 artifact。
 
 ### fusion/sections.json
 
-The structured fusion sections artifact.
+结构化融合章节 artifact。
