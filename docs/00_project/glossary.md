@@ -122,8 +122,20 @@ vBook 可以借鉴 vtext 的设计思路，但不能依赖、复制或 vendor vt
 
 ### Fusion sections
 
-结构化的 `KnowledgeSection[]` 输出。当前实现是确定性的占位构造，还不是最终的
-LLM 总结。
+结构化的 `KnowledgeSection[]` 输出。当前实现是确定性的 evidence draft：
+会吸收 transcript、OCR、视觉描述、结构化观察和图片引用，但还不是最终的
+LLM 知识综合。
+
+### Evidence draft
+
+确定性的知识草稿。它把已有证据转换成可审计的章节、摘要、要点、图片引用和标签，
+但不做模型改写，也不声称是最终专家级笔记。
+
+### Section merge
+
+把相邻 `TranscriptSegment` 对应的 evidence sections 保守合并为更少
+`KnowledgeSection` 的规则。目标是减少字幕切分造成的碎片章节，同时保持来源时间和
+图片证据可追溯。
 
 ### KnowledgeSection
 

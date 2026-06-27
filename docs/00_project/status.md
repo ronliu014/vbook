@@ -16,8 +16,8 @@ The latest migrated log is [2026-06-25.md](../70_progress/2026-06-25.md).
 
 ## Current Branch State
 
-Local `main` contains the current implementation work and is ahead of
-`origin/main` by local commits. Check the live state with:
+Local `main` is expected to be synchronized with `origin/main` after each
+completed stage. Check the live state with:
 
 ```powershell
 git status --short --branch
