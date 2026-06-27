@@ -155,9 +155,10 @@ endpoint 做联调。
 当前视觉输入链路已经具备真实服务接入能力，知识融合也已经从纯 placeholder
 推进到 deterministic evidence draft：
 
-- fusion sections 会吸收 transcript、OCR、视觉描述、结构化观察和图片引用。
+- fusion sections 会吸收 transcript、OCR、视觉描述、结构化观察和图片引用，并对相邻
+  同主题或共享视觉证据的片段做保守合并。
 - `note.md` 能展示 evidence section、key points、tags 和图片引用。
-- 这仍然不是最终专家级课程笔记，后续还需要 LLM 知识综合和章节合并。
+- 这仍然不是最终专家级课程笔记，后续还需要 LLM 知识综合和最终笔记结构设计。
 
 ## 后续工作建议
 
@@ -218,7 +219,6 @@ git push origin main
 
 如果 Qwen 服务部署还需要时间，可以继续推进：
 
-- 相邻 transcript segment 的章节合并规则。
 - LLM-ready fusion prompt 和 response parser。
 - `note.md` 的最终专家笔记结构。
 - 用 `manual-json` 或 fake Qwen output 继续验证融合逻辑。
