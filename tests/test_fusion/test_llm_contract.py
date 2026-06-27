@@ -54,6 +54,40 @@ class LlmFusionContractTest(unittest.TestCase):
             ["outputs/lesson/frames/selected/frame_000001.jpg"],
         )
 
+    def test_parse_llm_fusion_response_returns_knowledge_sections(self) -> None:
+        sections = parse_llm_fusion_response(
+            {
+                "schema_version": "1",
+                "title": "短线课",
+                "overview": "本节课讲短线选股。",
+                "sections": [
+                    {
+                        "title": "短线选股条件",
+                        "summary": "说明均线和成交量条件。",
+                        "key_points": ["均线多头排列", "成交量放大"],
+                        "source_timestamps": [0.0, 14.0],
+                        "image_refs": [
+                            "outputs/lesson/frames/selected/frame_000001.jpg",
+                            "outputs/lesson/frames/selected/frame_000001.jpg",
+                        ],
+                        "tags": ["evidence", "visual:slide", "evidence"],
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(len(sections), 1)
+        section = sections[0]
+        self.assertEqual(section.title, "短线选股条件")
+        self.assertEqual(section.summary, "说明均线和成交量条件。")
+        self.assertEqual(section.key_points, ["均线多头排列", "成交量放大"])
+        self.assertEqual(section.source_timestamps, [0.0, 14.0])
+        self.assertEqual(
+            section.image_refs,
+            ["outputs/lesson/frames/selected/frame_000001.jpg"],
+        )
+        self.assertEqual(section.tags, ["llm", "evidence", "visual:slide"])
+
 
 if __name__ == "__main__":
     unittest.main()

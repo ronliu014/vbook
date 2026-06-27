@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -59,7 +60,89 @@ def build_llm_fusion_request(
 
 
 def parse_llm_fusion_response(response: dict[str, Any]) -> list[KnowledgeSection]:
-    raise NotImplementedError
+    """Validate an LLM JSON response and convert it to knowledge sections."""
+    if not isinstance(response, dict):
+        raise ValueError("response must be an object")
+    _require_string(response, "schema_version", "schema_version")
+    if response["schema_version"] != LLM_FUSION_SCHEMA_VERSION:
+        raise ValueError("schema_version must be '1'")
+    _require_string(response, "title", "title")
+    _require_string(response, "overview", "overview")
+    sections = response.get("sections")
+    if not isinstance(sections, list):
+        raise ValueError("sections must be a list")
+
+    return [
+        _knowledge_section_from_response(section, index)
+        for index, section in enumerate(sections)
+    ]
+
+
+def _knowledge_section_from_response(value: Any, index: int) -> KnowledgeSection:
+    path = f"sections[{index}]"
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} must be an object")
+    title = _require_string(value, "title", f"{path}.title")
+    summary = _require_string(value, "summary", f"{path}.summary")
+    return KnowledgeSection(
+        title=title,
+        summary=summary,
+        key_points=_require_string_list(value, "key_points", f"{path}.key_points"),
+        source_timestamps=_require_number_list(
+            value,
+            "source_timestamps",
+            f"{path}.source_timestamps",
+        ),
+        image_refs=_unique(
+            _require_string_list(value, "image_refs", f"{path}.image_refs")
+        ),
+        tags=_unique(["llm", *_require_string_list(value, "tags", f"{path}.tags")]),
+    )
+
+
+def _require_string(value: dict[str, Any], key: str, path: str) -> str:
+    item = value.get(key)
+    if not isinstance(item, str):
+        raise ValueError(f"{path} must be a string")
+    return item
+
+
+def _require_string_list(value: dict[str, Any], key: str, path: str) -> list[str]:
+    item = value.get(key)
+    if not isinstance(item, list):
+        raise ValueError(f"{path} must be a list")
+    result = []
+    for index, entry in enumerate(item):
+        if not isinstance(entry, str):
+            raise ValueError(f"{path}[{index}] must be a string")
+        result.append(entry)
+    return result
+
+
+def _require_number_list(value: dict[str, Any], key: str, path: str) -> list[float]:
+    item = value.get(key)
+    if not isinstance(item, list):
+        raise ValueError(f"{path} must be a list")
+    result = []
+    for index, entry in enumerate(item):
+        if isinstance(entry, bool) or not isinstance(entry, (int, float)):
+            raise ValueError(f"{path}[{index}] must be a number")
+        number = float(entry)
+        if not math.isfinite(number):
+            raise ValueError(f"{path}[{index}] must be finite")
+        result.append(number)
+    return result
+
+
+def _unique(values: Sequence[str]) -> list[str]:
+    result = []
+    seen = set()
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def write_llm_fusion_request(request: dict[str, Any], path: Path | str) -> Path:
