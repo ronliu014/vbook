@@ -65,6 +65,38 @@ Expected external-command artifacts:
 It writes deterministic smoke analysis so the command contract, paths, JSON
 validation, manifest stage status, and downstream fusion inputs can be checked.
 
+## Qwen Vision Adapter Smoke
+
+Use `tools\vision_qwen_adapter.py` when a Qwen Vision Service compatible with
+`docs/90_reference/qwen-vision-service-requirements.md` is running:
+
+```powershell
+python -m vbook_client build `
+  --video path\to\lesson.mp4 `
+  --transcript path\to\lesson.srt `
+  --output outputs\lesson-qwen `
+  --vision-backend external-command `
+  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://127.0.0.1:8000/analyze-frame --timeout-seconds 120"
+```
+
+If the service requires token auth, either pass `--token` inside the command
+template or set:
+
+```powershell
+$env:VBOOK_QWEN_VISION_TOKEN = "your-token"
+```
+
+Expected adapter artifacts:
+
+- `outputs\lesson-qwen\vision\external\frames.json`
+- `outputs\lesson-qwen\vision\external\analysis.json`
+- `outputs\lesson-qwen\vision\analysis.json`
+- `outputs\lesson-qwen\manifest.json`
+
+The adapter sends one request per selected frame to `POST /analyze-frame` and
+writes manual-json-compatible analysis. vBook still records the normalized final
+visual output as `backend = external-command`.
+
 ## Direct Vision Stub Check
 
 You can also run the tool directly against an existing frame input JSON:

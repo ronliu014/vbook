@@ -37,6 +37,9 @@ git status --short --branch
   the same validation path as `manual-json`.
 - Built-in `tools/vision_stub.py` for deterministic `external-command` smoke
   checks without OCR, model runtimes, or API credentials.
+- Qwen Vision Service adapter through `tools/vision_qwen_adapter.py`, using
+  `external-command` to call a compatible `POST /analyze-frame` HTTP service
+  without adding model dependencies to vBook core.
 - Timeline alignment between frames and transcript segments.
 - Fusion prompt snapshot export.
 - Deterministic placeholder fusion sections.
@@ -45,9 +48,10 @@ git status --short --branch
 
 ## What Is Still Placeholder or Partial
 
-- Visual intelligence is partial: `manual-json` can ingest external analysis and
-  `external-command` can call a user-supplied analyzer, but vBook does not yet
-  ship a built-in OCR or multimodal provider.
+- Visual intelligence is partial: `manual-json` can ingest external analysis,
+  `external-command` can call a user-supplied analyzer, and
+  `tools/vision_qwen_adapter.py` can call a compatible Qwen Vision Service, but
+  vBook still does not ship an embedded OCR or multimodal model provider.
 - Fusion sections are deterministic placeholders, not final knowledge synthesis.
 - `note.md` is structurally useful, but not yet a polished expert-level course
   note.
