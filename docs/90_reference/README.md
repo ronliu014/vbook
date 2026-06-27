@@ -5,8 +5,8 @@ project context that are useful but not part of the main reading path.
 
 ## Current Source Material
 
-- [../vBook需求意向.md](../vBook%E9%9C%80%E6%B1%82%E6%84%8F%E5%90%91.md)
-- [../sync-protocol.md](../sync-protocol.md)
+- [original-requirements.md](./original-requirements.md)
+- [../40_development/sync-protocol.md](../40_development/sync-protocol.md)
 
 ## Planned Documents
 

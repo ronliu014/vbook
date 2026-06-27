@@ -6,7 +6,7 @@ ship vBook work.
 ## Current Entry Points
 
 - [../../AGENTS.md](../../AGENTS.md)
-- [../sync-protocol.md](../sync-protocol.md)
+- [sync-protocol.md](./sync-protocol.md)
 - [../../README.md](../../README.md#development-commands)
 
 ## Planned Documents

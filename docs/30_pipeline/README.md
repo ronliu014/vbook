@@ -7,15 +7,15 @@ output, owning module, current status, limitations, and next tasks.
 
 | Stage | Current status | Current source |
 | --- | --- | --- |
-| Transcript import | Functional foundation | [../pipeline.md](../pipeline.md) |
-| Frame extraction | Functional foundation | [../pipeline.md](../pipeline.md) |
-| Frame selection | Functional foundation | [../pipeline.md](../pipeline.md) |
-| Vision analysis | Partial: placeholder and manual-json | [../pipeline.md](../pipeline.md) |
-| Timeline alignment | Functional foundation | [../pipeline.md](../pipeline.md) |
-| Fusion prompt | Placeholder snapshot | [../pipeline.md](../pipeline.md) |
-| Fusion sections | Deterministic placeholder | [../pipeline.md](../pipeline.md) |
-| Note export | Functional placeholder/section note | [../output-behavior.md](../output-behavior.md) |
-| Manifest | Functional foundation | [../output-behavior.md](../output-behavior.md) |
+| Transcript import | Functional foundation | [overview.md](./overview.md) |
+| Frame extraction | Functional foundation | [overview.md](./overview.md) |
+| Frame selection | Functional foundation | [overview.md](./overview.md) |
+| Vision analysis | Partial: placeholder and manual-json | [overview.md](./overview.md) |
+| Timeline alignment | Functional foundation | [overview.md](./overview.md) |
+| Fusion prompt | Placeholder snapshot | [overview.md](./overview.md) |
+| Fusion sections | Deterministic placeholder | [overview.md](./overview.md) |
+| Note export | Functional placeholder/section note | [output-contracts.md](../20_architecture/output-contracts.md) |
+| Manifest | Functional foundation | [output-contracts.md](../20_architecture/output-contracts.md) |
 
 ## Planned Stage Documents
 

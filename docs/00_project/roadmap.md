@@ -1,7 +1,7 @@
 # Project Roadmap
 
-This page summarizes the active roadmap. The legacy roadmap remains available
-at [../roadmap.md](../roadmap.md) until the documentation migration is complete.
+This page summarizes the active roadmap. The pre-layering roadmap remains
+available at [legacy-roadmap.md](./legacy-roadmap.md).
 
 ## P1: Project Skeleton
 

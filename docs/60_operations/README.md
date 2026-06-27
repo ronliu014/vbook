@@ -6,7 +6,7 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 ## Current Entry Points
 
 - [../../README.md](../../README.md#development-commands)
-- [../output-behavior.md](../output-behavior.md)
+- [../20_architecture/output-contracts.md](../20_architecture/output-contracts.md)
 
 ## Planned Documents
 

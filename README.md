@@ -12,7 +12,7 @@ Start documentation from [`docs/README.md`](docs/README.md). For a quick project
 orientation, read [`docs/00_project/overview.md`](docs/00_project/overview.md),
 [`docs/00_project/glossary.md`](docs/00_project/glossary.md), and
 [`docs/00_project/status.md`](docs/00_project/status.md). The original product
-intent remains available at [`docs/vBook需求意向.md`](docs/vBook%E9%9C%80%E6%B1%82%E6%84%8F%E5%90%91.md).
+intent remains available at [`docs/90_reference/original-requirements.md`](docs/90_reference/original-requirements.md).
 
 ## Project Status
 

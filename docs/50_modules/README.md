@@ -15,5 +15,5 @@ Module-level documents describe package responsibilities and public interfaces.
 
 ## Current Source Material
 
-- [../modules.md](../modules.md)
-- [../data-model.md](../data-model.md)
+- [../20_architecture/module-boundaries.md](../20_architecture/module-boundaries.md)
+- [../20_architecture/data-model.md](../20_architecture/data-model.md)

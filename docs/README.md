@@ -35,21 +35,20 @@ For development work:
 | [80_superpowers/](./80_superpowers/) | Agent specs, implementation plans, reviews, and handoffs |
 | [90_reference/](./90_reference/) | Original requirements, external references, and vtext boundary material |
 
-## Legacy Documents During Migration
+## Migrated Source Documents
 
-The following documents predate the numbered layout and remain valid during
-incremental migration:
+The original documents now live in the numbered layers:
 
-- [business-plan.md](./business-plan.md)
-- [design.md](./design.md)
-- [pipeline.md](./pipeline.md)
-- [modules.md](./modules.md)
-- [data-model.md](./data-model.md)
-- [output-behavior.md](./output-behavior.md)
-- [architecture.md](./architecture.md)
-- [sync-protocol.md](./sync-protocol.md)
-- [roadmap.md](./roadmap.md)
-- [vBook需求意向.md](./vBook%E9%9C%80%E6%B1%82%E6%84%8F%E5%90%91.md)
+- [10_product/business-plan.md](./10_product/business-plan.md)
+- [20_architecture/design.md](./20_architecture/design.md)
+- [20_architecture/architecture.md](./20_architecture/architecture.md)
+- [20_architecture/data-model.md](./20_architecture/data-model.md)
+- [20_architecture/module-boundaries.md](./20_architecture/module-boundaries.md)
+- [20_architecture/output-contracts.md](./20_architecture/output-contracts.md)
+- [30_pipeline/overview.md](./30_pipeline/overview.md)
+- [40_development/sync-protocol.md](./40_development/sync-protocol.md)
+- [00_project/legacy-roadmap.md](./00_project/legacy-roadmap.md)
+- [90_reference/original-requirements.md](./90_reference/original-requirements.md)
 
 vBook can learn from vtext's project structure and workflow ideas, but it must
 remain an independent project with independent modules, interfaces, and
