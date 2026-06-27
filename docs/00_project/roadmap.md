@@ -23,8 +23,10 @@ Status: functional foundation with partial intelligence.
 
 ## P3: Real Visual Understanding
 
-Status: not started.
+Status: interface foundation in progress.
 
+- `external-command` backend lets vBook call a user-supplied visual analysis
+  command through a JSON contract.
 - Add OCR or multimodal backend integration.
 - Preserve the `VisualAnalysis[]` contract.
 - Keep `placeholder` and `manual-json` as deterministic testing and smoke paths.

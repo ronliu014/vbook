@@ -32,6 +32,9 @@ git status --short --branch
 - Basic frame selection into selected and rejected frame records.
 - Visual analysis through the default `placeholder` backend.
 - Visual analysis through explicit `manual-json` input.
+- Visual analysis through `external-command`, where vBook writes frame input
+  JSON, runs a user-supplied command, and normalizes the command output through
+  the same validation path as `manual-json`.
 - Timeline alignment between frames and transcript segments.
 - Fusion prompt snapshot export.
 - Deterministic placeholder fusion sections.
@@ -40,8 +43,9 @@ git status --short --branch
 
 ## What Is Still Placeholder or Partial
 
-- Visual intelligence is partial: `manual-json` can ingest external analysis,
-  but vBook does not yet run OCR or multimodal model analysis itself.
+- Visual intelligence is partial: `manual-json` can ingest external analysis and
+  `external-command` can call a user-supplied analyzer, but vBook does not yet
+  ship a built-in OCR or multimodal provider.
 - Fusion sections are deterministic placeholders, not final knowledge synthesis.
 - `note.md` is structurally useful, but not yet a polished expert-level course
   note.
@@ -63,7 +67,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after the vision backend work:
+Latest full suite run after the external-command vision backend work:
 
 ```powershell
 python -m unittest discover
@@ -72,6 +76,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 60 tests
+Ran 77 tests
 OK
 ```
