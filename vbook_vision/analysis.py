@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import shlex
+import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -15,12 +17,20 @@ def analyze_frames(
     frames: Sequence[FrameCandidate],
     backend: str = "placeholder",
     visual_analysis_input: Path | str | None = None,
+    vision_command: str | None = None,
+    work_dir: Path | str | None = None,
 ) -> list[VisualAnalysis]:
     """Analyze frames using a supported visual backend."""
     if backend == "placeholder":
         return analyze_frames_placeholder(frames)
     if backend == "manual-json":
         return load_manual_visual_analysis(frames, visual_analysis_input)
+    if backend == "external-command":
+        return run_external_vision_command(
+            frames,
+            vision_command=vision_command,
+            work_dir=work_dir,
+        )
     raise ValueError(f"Unsupported vision backend: {backend}")
 
 
@@ -49,6 +59,7 @@ def analyze_frames_placeholder(
 def load_manual_visual_analysis(
     frames: Sequence[FrameCandidate],
     visual_analysis_input: Path | str | None,
+    backend: str = "manual-json",
 ) -> list[VisualAnalysis]:
     """Load normalized visual analysis records from a manual JSON file."""
     if visual_analysis_input is None:
@@ -89,11 +100,74 @@ def load_manual_visual_analysis(
                 vision_description=str(record.get("vision_description", "")),
                 structured_observations=dict(observations),
                 confidence=_parse_confidence(record.get("confidence"), frame_id),
-                backend="manual-json",
+                backend=backend,
             )
         )
 
     return analyses
+
+
+def run_external_vision_command(
+    frames: Sequence[FrameCandidate],
+    vision_command: str | None,
+    work_dir: Path | str | None,
+) -> list[VisualAnalysis]:
+    """Run an external command that writes manual-json-compatible analysis."""
+    if not vision_command:
+        raise ValueError("external-command backend requires vision_command")
+    if "{input}" not in vision_command:
+        raise ValueError("vision_command must contain {input}")
+    if "{output}" not in vision_command:
+        raise ValueError("vision_command must contain {output}")
+
+    external_dir = Path(work_dir) if work_dir is not None else Path("vision") / "external"
+    external_dir.mkdir(parents=True, exist_ok=True)
+    input_path = external_dir / "frames.json"
+    output_path = external_dir / "analysis.json"
+    input_payload = {
+        "backend": "external-command",
+        "frames": [
+            {
+                "frame_id": frame.id,
+                "video_id": frame.video_id,
+                "timestamp": frame.timestamp,
+                "image_path": frame.image_path,
+                "width": frame.width,
+                "height": frame.height,
+            }
+            for frame in frames
+        ],
+    }
+    input_path.write_text(
+        json.dumps(to_jsonable(input_payload), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    command_parts = [
+        _strip_outer_quotes(
+            part.replace("{input}", str(input_path)).replace("{output}", str(output_path))
+        )
+        for part in shlex.split(vision_command, posix=False)
+    ]
+    result = subprocess.run(
+        command_parts,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        message = f"external vision command failed with exit code {result.returncode}"
+        if detail:
+            message = f"{message}: {detail[:500]}"
+        raise ValueError(message)
+    if not output_path.exists():
+        raise ValueError("external vision command did not write output")
+    return load_manual_visual_analysis(
+        frames,
+        output_path,
+        backend="external-command",
+    )
 
 
 def write_visual_analysis(
@@ -131,6 +205,12 @@ def _extract_manual_records(data: Any) -> list[Any]:
             return records
         raise ValueError("manual-json object input must contain an analyses list")
     raise ValueError("manual-json input must be an object with analyses or a list")
+
+
+def _strip_outer_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        return value[1:-1]
+    return value
 
 
 def _required_string(record: dict[str, Any], key: str, index: int) -> str:

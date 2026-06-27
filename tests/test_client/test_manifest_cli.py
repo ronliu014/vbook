@@ -1,5 +1,6 @@
 import io
 import json
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -715,6 +716,123 @@ class ManifestCliTest(unittest.TestCase):
         self.assertIn("frame_000001.jpg", note)
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
+
+    def test_build_command_can_use_external_command_visual_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            script = root / "vision_stub.py"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+            script.write_text(
+                (
+                    "import argparse, json\n"
+                    "from pathlib import Path\n"
+                    "parser = argparse.ArgumentParser()\n"
+                    "parser.add_argument('--input', required=True)\n"
+                    "parser.add_argument('--output', required=True)\n"
+                    "args = parser.parse_args()\n"
+                    "data = json.loads(Path(args.input).read_text(encoding='utf-8'))\n"
+                    "frame = data['frames'][0]\n"
+                    "Path(args.output).write_text(json.dumps({\n"
+                    "    'analyses': [{\n"
+                    "        'frame_id': frame['frame_id'],\n"
+                    "        'visual_type': 'slide',\n"
+                    "        'ocr_text': 'external text',\n"
+                    "        'vision_description': 'External command result.',\n"
+                    "        'structured_observations': {'backend': data['backend']},\n"
+                    "        'confidence': 0.91,\n"
+                    "    }]\n"
+                    "}), encoding='utf-8')\n"
+                ),
+                encoding="utf-8",
+            )
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                    "--vision-backend",
+                    "external-command",
+                    "--vision-command",
+                    f"{sys.executable} {script} --input {{input}} --output {{output}}",
+                ]
+            )
+
+            vision = json.loads(
+                (output / "vision" / "analysis.json").read_text(encoding="utf-8")
+            )
+            external_input = json.loads(
+                (output / "vision" / "external" / "frames.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            external_output_exists = (
+                output / "vision" / "external" / "analysis.json"
+            ).exists()
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(vision["backend"], "external-command")
+        self.assertEqual(vision["analysis_count"], 1)
+        self.assertEqual(vision["analyses"][0]["backend"], "external-command")
+        self.assertEqual(vision["analyses"][0]["ocr_text"], "external text")
+        self.assertEqual(external_input["backend"], "external-command")
+        self.assertEqual(external_input["frames"][0]["frame_id"], "frame-000001")
+        self.assertTrue(external_output_exists)
+        self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
+        self.assertEqual(manifest["artifacts"]["vision"]["analysis_count"], 1)
+
+    def test_build_command_external_command_requires_vision_command(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            with self.assertRaises(SystemExit) as exc:
+                main(
+                    [
+                        "build",
+                        "--video",
+                        str(video),
+                        "--transcript",
+                        str(transcript),
+                        "--output",
+                        str(output),
+                        "--frame-candidates-dir",
+                        str(candidate_dir),
+                        "--vision-backend",
+                        "external-command",
+                    ]
+                )
+
+        self.assertEqual(exc.exception.code, 2)
 
     def test_build_batch_runs_each_matched_lesson(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

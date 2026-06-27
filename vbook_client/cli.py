@@ -189,12 +189,16 @@ def _add_pipeline_arguments(
         )
     command_parser.add_argument(
         "--vision-backend",
-        choices=("placeholder", "manual-json"),
+        choices=("placeholder", "manual-json", "external-command"),
         help="Visual analysis backend; build defaults to placeholder",
     )
     command_parser.add_argument(
         "--visual-analysis-input",
         help="Input JSON for backends such as manual-json",
+    )
+    command_parser.add_argument(
+        "--vision-command",
+        help="External command template for the external-command vision backend",
     )
     command_parser.add_argument(
         "--visual-analysis-path",
@@ -317,6 +321,8 @@ def _run_manifest_pipeline(
                 analysis_frames,
                 backend=vision_backend,
                 visual_analysis_input=args.visual_analysis_input,
+                vision_command=args.vision_command,
+                work_dir=Path(args.output) / "vision" / "external",
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -428,6 +434,7 @@ def _run_build_batch(
             analyze_vision_placeholder=False,
             vision_backend=None,
             visual_analysis_input=None,
+            vision_command=None,
             visual_analysis_path=None,
             write_note=False,
             note_path=None,
