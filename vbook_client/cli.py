@@ -19,6 +19,11 @@ from vbook_fusion.snapshot import (
     build_fusion_prompt_snapshot,
     write_fusion_prompt_snapshot,
 )
+from vbook_pipeline.batch import (
+    BatchLessonResult,
+    discover_batch_lessons,
+    write_batch_manifest,
+)
 from vbook_pipeline.timeline import link_frames_to_transcript
 from vbook_vision.analysis import analyze_frames, write_visual_analysis
 from vbook_vision.frames import (
@@ -65,6 +70,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             },
         )
 
+    if args.command == "build-batch":
+        return _run_build_batch(args, parser)
+
     parser.print_help()
     return 0
 
@@ -85,6 +93,32 @@ def _build_parser() -> argparse.ArgumentParser:
 
     build_parser = subparsers.add_parser("build", help="Run the default MVP pipeline")
     _add_pipeline_arguments(build_parser, include_write_flags=False)
+
+    batch_parser = subparsers.add_parser(
+        "build-batch",
+        help="Run the MVP pipeline for a directory of lessons",
+    )
+    batch_parser.add_argument(
+        "--input",
+        required=True,
+        help="Input directory with media and text/",
+    )
+    batch_parser.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for batch results",
+    )
+    batch_parser.add_argument(
+        "--frame-interval-seconds",
+        type=float,
+        default=30.0,
+        help="Seconds between candidate frames for each lesson",
+    )
+    batch_parser.add_argument(
+        "--alignment-window-seconds",
+        type=float,
+        help="Seconds before and after each frame timestamp used for transcript matching",
+    )
 
     return parser
 
@@ -354,6 +388,97 @@ def _run_manifest_pipeline(
     )
     manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
     print(manifest_path)
+    return 0
+
+
+def _run_build_batch(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> int:
+    plans = discover_batch_lessons(input_dir=args.input, output_dir=args.output)
+    results: list[BatchLessonResult] = []
+    for plan in plans:
+        if plan.skip_reason is not None or plan.transcript_path is None:
+            results.append(
+                BatchLessonResult(
+                    lesson_id=plan.lesson_id,
+                    media_path=plan.media_path,
+                    transcript_path=plan.transcript_path,
+                    output_dir=plan.output_dir,
+                    status="skipped",
+                    vtext_compatible=plan.vtext_compatible,
+                    failure_reason=plan.skip_reason,
+                )
+            )
+            continue
+        build_args = argparse.Namespace(
+            command="build",
+            video=str(plan.media_path),
+            transcript=str(plan.transcript_path),
+            output=str(plan.output_dir),
+            config=None,
+            course_title="",
+            lesson_title=plan.media_path.stem,
+            frame_candidates_dir=None,
+            frame_interval_seconds=args.frame_interval_seconds,
+            select_frames=False,
+            selected_frames_dir=None,
+            min_selected_frame_interval_seconds=10.0,
+            alignment_window_seconds=args.alignment_window_seconds,
+            analyze_vision_placeholder=False,
+            vision_backend=None,
+            visual_analysis_input=None,
+            visual_analysis_path=None,
+            write_note=False,
+            note_path=None,
+            write_fusion_prompt=False,
+            fusion_prompt_path=None,
+            write_fusion_sections=False,
+            fusion_sections_path=None,
+        )
+        try:
+            _run_manifest_pipeline(
+                build_args,
+                parser,
+                defaults={
+                    "align_timeline": True,
+                    "analyze_vision_placeholder": True,
+                    "extract_frames": True,
+                    "select_frames": True,
+                    "write_fusion_prompt": True,
+                    "write_fusion_sections": True,
+                    "write_note": True,
+                },
+            )
+        except Exception as exc:
+            results.append(
+                BatchLessonResult(
+                    lesson_id=plan.lesson_id,
+                    media_path=plan.media_path,
+                    transcript_path=plan.transcript_path,
+                    output_dir=plan.output_dir,
+                    status="failed",
+                    vtext_compatible=plan.vtext_compatible,
+                    failure_reason=f"build_failed: {exc}",
+                )
+            )
+            continue
+        results.append(
+            BatchLessonResult(
+                lesson_id=plan.lesson_id,
+                media_path=plan.media_path,
+                transcript_path=plan.transcript_path,
+                output_dir=plan.output_dir,
+                status="done",
+                vtext_compatible=plan.vtext_compatible,
+                manifest_path=plan.output_dir / "manifest.json",
+            )
+        )
+    batch_manifest_path = write_batch_manifest(
+        results,
+        Path(args.output) / "batch_manifest.json",
+    )
+    print(batch_manifest_path)
     return 0
 
 

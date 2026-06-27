@@ -716,6 +716,141 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
 
+    def test_build_batch_runs_each_matched_lesson(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "input"
+            output = root / "outputs" / "batch"
+            video = input_dir / "lesson.mp4"
+            transcript = input_dir / "text" / "lesson.srt"
+            video.parent.mkdir(parents=True)
+            transcript.parent.mkdir(parents=True)
+            video.write_text("video", encoding="utf-8")
+            transcript.write_text(
+                "1\n00:00:00,000 --> 00:00:03,000\nintro\n",
+                encoding="utf-8",
+            )
+
+            with patch("vbook_client.cli.extract_frame_candidates") as extract:
+
+                def fake_extract(
+                    video_path: str,
+                    candidate_dir: Path,
+                    video_id: str,
+                    interval_seconds: float,
+                ) -> list[FrameCandidate]:
+                    directory = Path(candidate_dir)
+                    directory.mkdir(parents=True, exist_ok=True)
+                    frame = directory / "frame_000001.jpg"
+                    frame.write_bytes(b"image")
+                    return [
+                        FrameCandidate(
+                            id="frame-000001",
+                            video_id=video_id,
+                            timestamp=0.0,
+                            image_path=frame,
+                            width=0,
+                            height=0,
+                        )
+                    ]
+
+                extract.side_effect = fake_extract
+                code = main(
+                    [
+                        "build-batch",
+                        "--input",
+                        str(input_dir),
+                        "--output",
+                        str(output),
+                        "--frame-interval-seconds",
+                        "30",
+                        "--alignment-window-seconds",
+                        "5",
+                    ]
+                )
+
+            batch_manifest = json.loads(
+                (output / "batch_manifest.json").read_text(encoding="utf-8")
+            )
+            lesson_manifest = json.loads(
+                (output / "lesson" / "manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(batch_manifest["lesson_count"], 1)
+        self.assertEqual(batch_manifest["done_count"], 1)
+        self.assertEqual(batch_manifest["lessons"][0]["status"], "done")
+        self.assertEqual(
+            batch_manifest["lessons"][0]["manifest_path"],
+            (output / "lesson" / "manifest.json").as_posix(),
+        )
+        self.assertEqual(lesson_manifest["stage_status"]["manifest"], "done")
+        self.assertEqual(lesson_manifest["stage_status"]["vision_analysis"], "done")
+
+    def test_build_batch_records_missing_transcript_and_continues(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_dir = root / "input"
+            output = root / "outputs" / "batch"
+            matched_video = input_dir / "matched.mp4"
+            missing_video = input_dir / "missing.mp4"
+            transcript = input_dir / "text" / "matched.srt"
+            input_dir.mkdir()
+            transcript.parent.mkdir(parents=True)
+            matched_video.write_text("video", encoding="utf-8")
+            missing_video.write_text("video", encoding="utf-8")
+            transcript.write_text(
+                "1\n00:00:00,000 --> 00:00:03,000\nintro\n",
+                encoding="utf-8",
+            )
+
+            with patch("vbook_client.cli.extract_frame_candidates") as extract:
+
+                def fake_extract(
+                    video_path: str,
+                    candidate_dir: Path,
+                    video_id: str,
+                    interval_seconds: float,
+                ) -> list[FrameCandidate]:
+                    directory = Path(candidate_dir)
+                    directory.mkdir(parents=True, exist_ok=True)
+                    frame = directory / "frame_000001.jpg"
+                    frame.write_bytes(b"image")
+                    return [
+                        FrameCandidate(
+                            id="frame-000001",
+                            video_id=video_id,
+                            timestamp=0.0,
+                            image_path=frame,
+                            width=0,
+                            height=0,
+                        )
+                    ]
+
+                extract.side_effect = fake_extract
+                code = main(
+                    [
+                        "build-batch",
+                        "--input",
+                        str(input_dir),
+                        "--output",
+                        str(output),
+                    ]
+                )
+
+            batch_manifest = json.loads(
+                (output / "batch_manifest.json").read_text(encoding="utf-8")
+            )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(batch_manifest["lesson_count"], 2)
+        self.assertEqual(batch_manifest["done_count"], 1)
+        self.assertEqual(batch_manifest["skipped_count"], 1)
+        statuses = {lesson["lesson_id"]: lesson for lesson in batch_manifest["lessons"]}
+        self.assertEqual(statuses["matched"]["status"], "done")
+        self.assertEqual(statuses["missing"]["status"], "skipped")
+        self.assertEqual(statuses["missing"]["failure_reason"], "missing_transcript")
+
 
 if __name__ == "__main__":
     unittest.main()
