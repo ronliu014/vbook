@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Sequence
 from pathlib import Path
@@ -146,11 +147,31 @@ def _unique(values: Sequence[str]) -> list[str]:
 
 
 def write_llm_fusion_request(request: dict[str, Any], path: Path | str) -> Path:
-    raise NotImplementedError
+    """Write an LLM fusion request payload as formatted UTF-8 JSON."""
+    return _write_json(request, path)
 
 
 def write_llm_fusion_sections(
     sections: Sequence[KnowledgeSection],
     path: Path | str,
 ) -> Path:
-    raise NotImplementedError
+    """Write parsed LLM fusion sections as formatted UTF-8 JSON."""
+    return _write_json(
+        {
+            "schema_version": LLM_FUSION_SCHEMA_VERSION,
+            "intent": LLM_FUSION_SECTIONS_INTENT,
+            "section_count": len(sections),
+            "sections": list(sections),
+        },
+        path,
+    )
+
+
+def _write_json(payload: dict[str, Any], path: Path | str) -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(to_jsonable(payload), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return output_path

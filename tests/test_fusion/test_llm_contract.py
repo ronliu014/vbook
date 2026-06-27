@@ -143,6 +143,49 @@ class LlmFusionContractTest(unittest.TestCase):
             r"sections\[0\]\.source_timestamps\[1\] must be finite",
         )
 
+    def test_write_llm_fusion_request_creates_json_file(self) -> None:
+        request = {
+            "schema_version": "1",
+            "intent": "llm_fusion_request",
+            "task": "course_note_synthesis",
+            "output_contract": {},
+            "video": {},
+            "instructions": [],
+            "evidence_sections": [],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "outputs" / "lesson" / "fusion" / "llm_request.json"
+
+            written = write_llm_fusion_request(request, path)
+            data = json.loads(written.read_text(encoding="utf-8"))
+
+        self.assertEqual(written.name, "llm_request.json")
+        self.assertEqual(data["intent"], "llm_fusion_request")
+        self.assertEqual(data["schema_version"], "1")
+
+    def test_write_llm_fusion_sections_creates_json_file(self) -> None:
+        sections = [
+            KnowledgeSection(
+                title="短线选股条件",
+                summary="说明均线和成交量条件。",
+                key_points=["均线多头排列"],
+                source_timestamps=[0.0, 14.0],
+                image_refs=["outputs/lesson/frames/selected/frame_000001.jpg"],
+                tags=["llm", "evidence"],
+            )
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "outputs" / "lesson" / "fusion" / "llm_sections.json"
+
+            written = write_llm_fusion_sections(sections, path)
+            data = json.loads(written.read_text(encoding="utf-8"))
+
+        self.assertEqual(written.name, "llm_sections.json")
+        self.assertEqual(data["schema_version"], "1")
+        self.assertEqual(data["intent"], "llm_fusion_sections")
+        self.assertEqual(data["section_count"], 1)
+        self.assertEqual(data["sections"][0]["title"], "短线选股条件")
+
 
 if __name__ == "__main__":
     unittest.main()
