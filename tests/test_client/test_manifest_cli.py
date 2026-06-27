@@ -60,6 +60,85 @@ class ManifestCliTest(unittest.TestCase):
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["manifest"], "done")
 
+    def test_build_command_can_use_manual_json_visual_analysis(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            manual = root / "manual-vision.json"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+            manual.write_text(
+                json.dumps(
+                    {
+                        "analyses": [
+                            {
+                                "frame_id": "frame-000001",
+                                "visual_type": "slide",
+                                "ocr_text": "buy point",
+                                "vision_description": "A slide about a buy point.",
+                                "structured_observations": {"topic": "entry"},
+                                "confidence": 0.8,
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                    "--vision-backend",
+                    "manual-json",
+                    "--visual-analysis-input",
+                    str(manual),
+                ]
+            )
+
+            vision = json.loads(
+                (output / "vision" / "analysis.json").read_text(encoding="utf-8")
+            )
+            sections = json.loads(
+                (output / "fusion" / "sections.json").read_text(encoding="utf-8")
+            )
+            note = (output / "note.md").read_text(encoding="utf-8")
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(vision["backend"], "manual-json")
+        self.assertEqual(vision["analysis_count"], 1)
+        self.assertEqual(vision["analyses"][0]["visual_type"], "slide")
+        self.assertEqual(vision["analyses"][0]["ocr_text"], "buy point")
+        self.assertEqual(vision["analyses"][0]["backend"], "manual-json")
+        self.assertEqual(manifest["artifacts"]["vision"]["analysis_count"], 1)
+        self.assertEqual(
+            manifest["artifacts"]["vision"]["analyses"][0]["structured_observations"][
+                "topic"
+            ],
+            "entry",
+        )
+        self.assertEqual(sections["sections"][0]["image_refs"][0].endswith("frame_000001.jpg"), True)
+        self.assertIn("frame_000001.jpg", note)
+        self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
+
     def test_build_command_accepts_srt_transcript(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

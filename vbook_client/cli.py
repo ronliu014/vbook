@@ -20,7 +20,7 @@ from vbook_fusion.snapshot import (
     write_fusion_prompt_snapshot,
 )
 from vbook_pipeline.timeline import link_frames_to_transcript
-from vbook_vision.analysis import analyze_frames_placeholder, write_visual_analysis
+from vbook_vision.analysis import analyze_frames, write_visual_analysis
 from vbook_vision.frames import (
     discover_frame_candidates,
     extract_frame_candidates,
@@ -154,6 +154,15 @@ def _add_pipeline_arguments(
             help="Write placeholder visual analysis records for frames",
         )
     command_parser.add_argument(
+        "--vision-backend",
+        choices=("placeholder", "manual-json"),
+        help="Visual analysis backend; build defaults to placeholder",
+    )
+    command_parser.add_argument(
+        "--visual-analysis-input",
+        help="Input JSON for backends such as manual-json",
+    )
+    command_parser.add_argument(
         "--visual-analysis-path",
         help="Path for visual analysis JSON; defaults to <output>/vision/analysis.json",
     )
@@ -263,17 +272,26 @@ def _run_manifest_pipeline(
                 else config.alignment_window_seconds
             ),
         )
-    if _flag(args, "analyze_vision_placeholder", defaults):
+    should_analyze_vision = _should_analyze_vision(args, defaults)
+    if should_analyze_vision:
         analysis_frames = selected_frames if selected_frames is not None else frames
         if analysis_frames is None:
             parser.error(f"{args.command} requires frame metadata for vision analysis")
-        visual_analyses = analyze_frames_placeholder(analysis_frames)
+        vision_backend = _vision_backend(args, defaults)
+        try:
+            visual_analyses = analyze_frames(
+                analysis_frames,
+                backend=vision_backend,
+                visual_analysis_input=args.visual_analysis_input,
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
         visual_analysis_path = (
             Path(args.visual_analysis_path)
             if args.visual_analysis_path
             else Path(args.output) / "vision" / "analysis.json"
         )
-        write_visual_analysis(visual_analyses, visual_analysis_path)
+        write_visual_analysis(visual_analyses, visual_analysis_path, backend=vision_backend)
     if _flag(args, "write_fusion_sections", defaults):
         fusion_sections = build_placeholder_sections(
             segments=segments,
@@ -345,6 +363,31 @@ def _flag(
     defaults: dict[str, bool],
 ) -> bool:
     return bool(getattr(args, name, False) or defaults.get(name, False))
+
+
+def _should_analyze_vision(
+    args: argparse.Namespace,
+    defaults: dict[str, bool],
+) -> bool:
+    return bool(
+        getattr(args, "analyze_vision_placeholder", False)
+        or getattr(args, "vision_backend", None)
+        or defaults.get("analyze_vision_placeholder", False)
+    )
+
+
+def _vision_backend(
+    args: argparse.Namespace,
+    defaults: dict[str, bool],
+) -> str:
+    if getattr(args, "vision_backend", None):
+        return args.vision_backend
+    if (
+        getattr(args, "analyze_vision_placeholder", False)
+        or defaults.get("analyze_vision_placeholder", False)
+    ):
+        return "placeholder"
+    return "placeholder"
 
 
 def _build_video_asset(
