@@ -85,7 +85,7 @@ def write_fusion_sections(
             to_jsonable(
                 {
                     "schema_version": "1",
-                    "intent": "fusion_sections_placeholder",
+                    "intent": _fusion_sections_intent(sections),
                     "section_count": len(sections),
                     "sections": list(sections),
                 }
@@ -97,6 +97,12 @@ def write_fusion_sections(
         encoding="utf-8",
     )
     return sections_path
+
+
+def _fusion_sections_intent(sections: Sequence[KnowledgeSection]) -> str:
+    if any("evidence" in section.tags for section in sections):
+        return "fusion_sections_evidence"
+    return "fusion_sections_placeholder"
 
 
 def _build_image_refs_by_segment_id(

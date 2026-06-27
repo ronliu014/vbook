@@ -167,6 +167,22 @@ class FusionSectionsTest(unittest.TestCase):
         self.assertEqual(data["section_count"], 1)
         self.assertEqual(data["sections"][0]["summary"], "intro")
 
+    def test_write_fusion_sections_marks_evidence_intent(self) -> None:
+        sections = build_evidence_sections(
+            segments=[
+                TranscriptSegment(id="seg-000001", start=0.0, end=3.0, text="intro")
+            ]
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "outputs" / "lesson" / "fusion" / "sections.json"
+
+            written = write_fusion_sections(sections, path)
+            data = json.loads(written.read_text(encoding="utf-8"))
+
+        self.assertEqual(data["intent"], "fusion_sections_evidence")
+        self.assertEqual(data["section_count"], 1)
+        self.assertEqual(data["sections"][0]["tags"], ["evidence"])
+
 
 if __name__ == "__main__":
     unittest.main()
