@@ -397,6 +397,14 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
 
             return responder
 
+        def response_without_confidence(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            status, body = success_response(payload, handler)
+            body.pop("confidence")
+            return status, body
+
         cases: list[tuple[Responder, str]] = [
             (
                 response_with({"visual_type": "diagram"}),
@@ -409,6 +417,10 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
             (
                 response_with({"confidence": "high"}),
                 "confidence for frame-000001 must be a number or null",
+            ),
+            (
+                response_without_confidence,
+                "confidence for frame-000001 is required",
             ),
         ]
 

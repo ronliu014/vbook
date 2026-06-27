@@ -187,6 +187,9 @@ def normalize_response(
     if not isinstance(observations, dict):
         raise ValueError(f"structured_observations for {frame_id} must be an object")
 
+    if "confidence" not in response:
+        raise ValueError(f"confidence for {frame_id} is required")
+
     confidence = response.get("confidence")
     if confidence is not None:
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
