@@ -47,6 +47,11 @@ MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换�
 同时，vBook 已准备 LLM-ready request/response contract 和 deterministic parser，
 用于后续接入模型综合；当前默认输出仍使用 evidence draft，不执行模型调用。
 
+显式提供 `--llm-fusion-command` 时，vBook 会把 evidence sections 写成
+`fusion/llm_request.json`，调用外部命令生成 `fusion/llm_response.json`，再校验并写出
+`fusion/llm_sections.json`。此时 `note.md` 使用 LLM sections 渲染；未提供该参数时默认
+仍使用 deterministic evidence draft。
+
 ## 阶段 8：导出
 
 导出双核心产物：`note.md` 面向用户阅读，`manifest.json` 面向机器复跑和后续知识库。同步保存图片素材、转写记录、视觉分析 JSON 和融合结果。最终笔记中的每个重点都应能追溯到原始视频时间点和相关图片。

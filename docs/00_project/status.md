@@ -46,6 +46,9 @@ git status --short --branch
   analysis, and timeline links, including conservative adjacent-section merge.
 - LLM-ready fusion request/response contract and deterministic response parser,
   without model execution.
+- LLM fusion through explicit `--llm-fusion-command`, producing request,
+  response, parsed LLM sections, manifest records, and `note.md` from LLM
+  sections without binding vBook core to a model provider.
 - Markdown note export from transcript or fusion sections.
 - `manifest.json` output with stage statuses and artifact summaries.
 
@@ -57,7 +60,8 @@ git status --short --branch
   vBook still does not ship an embedded OCR or multimodal model provider.
 - Fusion sections are deterministic evidence drafts with conservative section
   merge, not final LLM knowledge synthesis.
-- LLM fusion execution is not wired into the CLI and no model provider is called.
+- LLM fusion execution is available only through an explicit external command;
+  vBook still does not ship an embedded model provider or model SDK integration.
 - `note.md` is structurally useful, but not yet a polished expert-level course
   note.
 - `vbook_server` is only a future boundary and has no service runtime.
@@ -78,7 +82,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after LLM fusion contract readiness:
+Latest full suite run after LLM fusion external-command integration:
 
 ```powershell
 python -m unittest discover
@@ -87,6 +91,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 106 tests
+Ran 114 tests
 OK
 ```
