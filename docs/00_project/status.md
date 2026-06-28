@@ -51,6 +51,8 @@ git status --short --branch
   sections without binding vBook core to a model provider.
 - Built-in `tools/llm_fusion_stub.py` for deterministic LLM fusion smoke checks
   without model runtimes, network services, or API credentials.
+- LLM fusion contract samples and `tools/check_llm_fusion_contract.py` for
+  external service self-tests before real model integration.
 - Markdown note export from transcript or fusion sections, including a
   first-version expert-note template for section-based notes.
 - `manifest.json` output with stage statuses and artifact summaries.
@@ -66,6 +68,8 @@ git status --short --branch
 - LLM fusion execution is available through an explicit external command and a
   deterministic smoke stub; vBook still does not ship an embedded model provider
   or model SDK integration.
+- LLM fusion contract samples validate file shape and parser compatibility;
+  they do not evaluate final model note quality.
 - `note.md` has a first-version expert-note structure, but review questions,
   glossary, learning objectives, and multi-format exports are still future work.
 - `vbook_server` is only a future boundary and has no service runtime.

@@ -387,6 +387,40 @@ python -m vbook_client build `
   --llm-fusion-command "python tools\your_llm_fusion.py --input {input} --output {output}"
 ```
 
+### 10.4 Contract samples
+
+vBook 提供可复用的 request/response 样例：
+
+```text
+docs/90_reference/samples/llm_fusion_request.valid.json
+docs/90_reference/samples/llm_fusion_response.valid.json
+docs/90_reference/samples/llm_fusion_response.invalid_markdown.txt
+docs/90_reference/samples/llm_fusion_response.invalid_schema.json
+```
+
+有效样例用于外部 command 自测和 vBook 侧验收；无效样例用于确认工具会拒绝 Markdown 包裹、
+非法 schema 或不兼容 timestamp 类型。样例只代表 contract 形态，不代表最终模型输出质量。
+
+### 10.5 Contract checker
+
+外部实现方可以用仓库内置 checker 验证 response：
+
+```powershell
+python tools\check_llm_fusion_contract.py `
+  --request docs\90_reference\samples\llm_fusion_request.valid.json `
+  --response docs\90_reference\samples\llm_fusion_response.valid.json
+```
+
+成功输出：
+
+```text
+OK: request and response match vBook LLM fusion contract
+Parsed sections: 2
+```
+
+如果 response 不是合法 JSON、顶层不是 object、字段缺失、timestamp 类型非法，checker 会返回
+非 0 exit code，并在 stderr 输出 `ERROR: <reason>`。
+
 ## 11. 验收测试
 
 外部实现方交付时，应至少提供本地测试脚本或说明，覆盖以下场景。
@@ -402,6 +436,22 @@ python -m vbook_client build `
 
 ```powershell
 python your_llm_fusion.py --input llm_request.json --output llm_response.json
+```
+
+也可以直接使用 vBook 样例 request：
+
+```powershell
+python your_llm_fusion.py `
+  --input docs\90_reference\samples\llm_fusion_request.valid.json `
+  --output runs\llm_fusion_response.json
+```
+
+然后用 checker 验证：
+
+```powershell
+python tools\check_llm_fusion_contract.py `
+  --request docs\90_reference\samples\llm_fusion_request.valid.json `
+  --response runs\llm_fusion_response.json
 ```
 
 期望：
@@ -483,8 +533,9 @@ command。
 - 运行环境说明，例如 Python 版本、依赖安装命令、环境变量。
 - 支持的模型或 endpoint 配置方式。
 - `--input` / `--output` 参数说明。
-- 一份可用的 sample `llm_request.json`。
-- 一份由工具生成的 sample `llm_response.json`。
+- 使用 `docs/90_reference/samples/llm_fusion_request.valid.json` 生成的一份
+  sample `llm_response.json`。
+- `tools/check_llm_fusion_contract.py` 对该 sample response 的通过结果。
 - 本地验收测试结果。
 - 超时、失败和重试策略说明。
 - 如果需要网络服务，提供 host、port、认证方式和健康检查方式。
