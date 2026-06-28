@@ -923,6 +923,145 @@ class ManifestCliTest(unittest.TestCase):
 
         self.assertEqual(exc.exception.code, 2)
 
+    def test_build_command_can_run_llm_fusion_external_command(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            script = root / "fake_llm_fusion.py"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+            script.write_text(
+                (
+                    "import argparse, json\n"
+                    "from pathlib import Path\n"
+                    "parser = argparse.ArgumentParser()\n"
+                    "parser.add_argument('--input', required=True)\n"
+                    "parser.add_argument('--output', required=True)\n"
+                    "args = parser.parse_args()\n"
+                    "request = json.loads(Path(args.input).read_text(encoding='utf-8'))\n"
+                    "evidence = request['evidence_sections'][0]\n"
+                    "Path(args.output).write_text(json.dumps({\n"
+                    "    'schema_version': '1',\n"
+                    "    'title': 'LLM course note',\n"
+                    "    'overview': 'LLM overview.',\n"
+                    "    'sections': [{\n"
+                    "        'title': 'LLM refined intro',\n"
+                    "        'summary': 'LLM summary from evidence.',\n"
+                    "        'key_points': ['LLM point'],\n"
+                    "        'source_timestamps': evidence['source_timestamps'],\n"
+                    "        'image_refs': evidence['image_refs'],\n"
+                    "        'tags': ['evidence', 'final'],\n"
+                    "    }],\n"
+                    "}, ensure_ascii=False), encoding='utf-8')\n"
+                ),
+                encoding="utf-8",
+            )
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                    "--llm-fusion-command",
+                    f'"{sys.executable}" "{script}" --input {{input}} --output {{output}}',
+                ]
+            )
+
+            request = json.loads(
+                (output / "fusion" / "llm_request.json").read_text(encoding="utf-8")
+            )
+            response = json.loads(
+                (output / "fusion" / "llm_response.json").read_text(encoding="utf-8")
+            )
+            llm_sections = json.loads(
+                (output / "fusion" / "llm_sections.json").read_text(encoding="utf-8")
+            )
+            evidence_sections = json.loads(
+                (output / "fusion" / "sections.json").read_text(encoding="utf-8")
+            )
+            note = (output / "note.md").read_text(encoding="utf-8")
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(request["intent"], "llm_fusion_request")
+        self.assertEqual(len(request["evidence_sections"]), 1)
+        self.assertEqual(response["title"], "LLM course note")
+        self.assertEqual(evidence_sections["intent"], "fusion_sections_evidence")
+        self.assertEqual(llm_sections["intent"], "llm_fusion_sections")
+        self.assertEqual(llm_sections["section_count"], 1)
+        self.assertEqual(llm_sections["sections"][0]["title"], "LLM refined intro")
+        self.assertEqual(
+            llm_sections["sections"][0]["tags"],
+            ["llm", "evidence", "final"],
+        )
+        self.assertIn("### LLM refined intro", note)
+        self.assertIn("LLM summary from evidence.", note)
+        self.assertEqual(manifest["stage_status"]["llm_fusion"], "done")
+        self.assertEqual(
+            manifest["artifacts"]["fusion"]["llm_request_path"],
+            (output / "fusion" / "llm_request.json").as_posix(),
+        )
+        self.assertEqual(
+            manifest["artifacts"]["fusion"]["llm_response_path"],
+            (output / "fusion" / "llm_response.json").as_posix(),
+        )
+        self.assertEqual(
+            manifest["artifacts"]["fusion"]["llm_sections_path"],
+            (output / "fusion" / "llm_sections.json").as_posix(),
+        )
+
+    def test_build_command_llm_fusion_command_requires_placeholders(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            with self.assertRaises(SystemExit) as exc:
+                main(
+                    [
+                        "build",
+                        "--video",
+                        str(video),
+                        "--transcript",
+                        str(transcript),
+                        "--output",
+                        str(output),
+                        "--frame-candidates-dir",
+                        str(candidate_dir),
+                        "--alignment-window-seconds",
+                        "3",
+                        "--llm-fusion-command",
+                        "python fake_llm.py --input {input}",
+                    ]
+                )
+
+        self.assertEqual(exc.exception.code, 2)
+
     def test_build_batch_runs_each_matched_lesson(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

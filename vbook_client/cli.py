@@ -14,6 +14,13 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, render_sections_note, write_note
+from vbook_fusion.llm_contract import (
+    build_llm_fusion_request,
+    parse_llm_fusion_response,
+    write_llm_fusion_request,
+    write_llm_fusion_sections,
+)
+from vbook_fusion.llm_external import run_llm_fusion_command
 from vbook_fusion.sections import build_evidence_sections, write_fusion_sections
 from vbook_fusion.snapshot import (
     build_fusion_prompt_snapshot,
@@ -234,6 +241,22 @@ def _add_pipeline_arguments(
         "--fusion-sections-path",
         help="Path for fusion sections JSON; defaults to <output>/fusion/sections.json",
     )
+    command_parser.add_argument(
+        "--llm-fusion-command",
+        help="External command template for LLM fusion; must contain {input} and {output}",
+    )
+    command_parser.add_argument(
+        "--llm-fusion-request-path",
+        help="Path for LLM fusion request JSON; defaults to <output>/fusion/llm_request.json",
+    )
+    command_parser.add_argument(
+        "--llm-fusion-response-path",
+        help="Path for LLM fusion response JSON; defaults to <output>/fusion/llm_response.json",
+    )
+    command_parser.add_argument(
+        "--llm-fusion-sections-path",
+        help="Path for parsed LLM fusion sections JSON; defaults to <output>/fusion/llm_sections.json",
+    )
 
 
 def _run_manifest_pipeline(
@@ -264,6 +287,23 @@ def _run_manifest_pipeline(
     )
     fusion_sections_written = False
     fusion_sections = None
+    llm_fusion_request_path = (
+        Path(args.llm_fusion_request_path)
+        if args.llm_fusion_request_path
+        else Path(args.output) / "fusion" / "llm_request.json"
+    )
+    llm_fusion_response_path = (
+        Path(args.llm_fusion_response_path)
+        if args.llm_fusion_response_path
+        else Path(args.output) / "fusion" / "llm_response.json"
+    )
+    llm_fusion_sections_path = (
+        Path(args.llm_fusion_sections_path)
+        if args.llm_fusion_sections_path
+        else Path(args.output) / "fusion" / "llm_sections.json"
+    )
+    llm_fusion_written = False
+    note_sections = None
     video_asset = _build_video_asset(
         video_path=args.video,
         output_dir=args.output,
@@ -340,6 +380,25 @@ def _run_manifest_pipeline(
         )
         write_fusion_sections(fusion_sections, fusion_sections_path)
         fusion_sections_written = True
+        note_sections = fusion_sections
+    if args.llm_fusion_command:
+        if fusion_sections is None:
+            parser.error(f"{args.command} --llm-fusion-command requires fusion sections")
+        try:
+            llm_request = build_llm_fusion_request(video_asset, fusion_sections)
+            write_llm_fusion_request(llm_request, llm_fusion_request_path)
+            response_path = run_llm_fusion_command(
+                args.llm_fusion_command,
+                request_path=llm_fusion_request_path,
+                response_path=llm_fusion_response_path,
+            )
+            llm_response = json.loads(response_path.read_text(encoding="utf-8"))
+            llm_sections = parse_llm_fusion_response(llm_response)
+            write_llm_fusion_sections(llm_sections, llm_fusion_sections_path)
+        except (ValueError, json.JSONDecodeError) as exc:
+            parser.error(str(exc))
+        llm_fusion_written = True
+        note_sections = llm_sections
     if _flag(args, "write_note", defaults):
         note_frames = (
             list(selected_frames) + list(rejected_frames or [])
@@ -347,8 +406,8 @@ def _run_manifest_pipeline(
             else frames
         )
         note_markdown = (
-            render_sections_note(video=video_asset, sections=fusion_sections)
-            if fusion_sections is not None
+            render_sections_note(video=video_asset, sections=note_sections)
+            if note_sections is not None
             else render_placeholder_note(
                 video=video_asset,
                 segments=segments,
@@ -391,6 +450,10 @@ def _run_manifest_pipeline(
         fusion_prompt_written=fusion_prompt_written,
         fusion_sections_path=fusion_sections_path,
         fusion_sections_written=fusion_sections_written,
+        llm_fusion_request_path=llm_fusion_request_path,
+        llm_fusion_response_path=llm_fusion_response_path,
+        llm_fusion_sections_path=llm_fusion_sections_path,
+        llm_fusion_written=llm_fusion_written,
     )
     manifest_path = write_manifest(manifest, Path(args.output) / "manifest.json")
     print(manifest_path)
@@ -442,6 +505,10 @@ def _run_build_batch(
             fusion_prompt_path=None,
             write_fusion_sections=False,
             fusion_sections_path=None,
+            llm_fusion_command=None,
+            llm_fusion_request_path=None,
+            llm_fusion_response_path=None,
+            llm_fusion_sections_path=None,
         )
         try:
             _run_manifest_pipeline(
