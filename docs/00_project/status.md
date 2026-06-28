@@ -49,7 +49,8 @@ git status --short --branch
 - LLM fusion through explicit `--llm-fusion-command`, producing request,
   response, parsed LLM sections, manifest records, and `note.md` from LLM
   sections without binding vBook core to a model provider.
-- Markdown note export from transcript or fusion sections.
+- Markdown note export from transcript or fusion sections, including a
+  first-version expert-note template for section-based notes.
 - `manifest.json` output with stage statuses and artifact summaries.
 
 ## What Is Still Placeholder or Partial
@@ -62,8 +63,8 @@ git status --short --branch
   merge, not final LLM knowledge synthesis.
 - LLM fusion execution is available only through an explicit external command;
   vBook still does not ship an embedded model provider or model SDK integration.
-- `note.md` is structurally useful, but not yet a polished expert-level course
-  note.
+- `note.md` has a first-version expert-note structure, but review questions,
+  glossary, learning objectives, and multi-format exports are still future work.
 - `vbook_server` is only a future boundary and has no service runtime.
 - Batch processing has a functional foundation through `build-batch`, but it
   still uses the local MVP placeholder intelligence path for each lesson.
