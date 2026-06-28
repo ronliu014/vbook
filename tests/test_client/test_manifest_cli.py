@@ -56,7 +56,10 @@ class ManifestCliTest(unittest.TestCase):
         self.assertTrue(vision_exists)
         self.assertTrue(prompt_exists)
         self.assertTrue(sections_exists)
-        self.assertIn("## Knowledge Sections", note)
+        self.assertIn("## 课程信息", note)
+        self.assertIn("## 课程总览", note)
+        self.assertIn("## 核心结论", note)
+        self.assertIn("## 知识结构", note)
         self.assertEqual(sections["intent"], "fusion_sections_evidence")
         self.assertEqual(
             sections["sections"][0]["tags"],
@@ -155,8 +158,8 @@ class ManifestCliTest(unittest.TestCase):
         self.assertIn("has_ocr", sections["sections"][0]["tags"])
         self.assertIn("frame_000001.jpg", note)
         self.assertIn("buy point", note)
-        self.assertIn("Tags:", note)
-        self.assertIn("- visual:slide", note)
+        self.assertIn("**元数据**", note)
+        self.assertIn("标签：evidence, visual:slide, has_ocr", note)
         self.assertEqual(manifest["stage_status"]["vision_analysis"], "done")
 
     def test_build_command_accepts_srt_transcript(self) -> None:
@@ -733,13 +736,15 @@ class ManifestCliTest(unittest.TestCase):
             manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertEqual(code, 0)
-        self.assertIn("## Knowledge Sections", note)
-        self.assertIn("### intro", note)
+        self.assertIn("## 课程信息", note)
+        self.assertIn("## 课程总览", note)
+        self.assertIn("## 核心结论", note)
+        self.assertIn("## 知识结构", note)
+        self.assertIn("### 1. intro", note)
         self.assertIn("intro", note)
         self.assertIn("frame_000001.jpg", note)
-        self.assertIn("Tags:", note)
-        self.assertIn("- evidence", note)
-        self.assertIn("- visual:other", note)
+        self.assertIn("**元数据**", note)
+        self.assertIn("标签：evidence, visual:other, has_image", note)
         self.assertEqual(manifest["stage_status"]["note_export"], "done")
         self.assertEqual(manifest["stage_status"]["fusion_sections"], "done")
 
@@ -1010,7 +1015,8 @@ class ManifestCliTest(unittest.TestCase):
             llm_sections["sections"][0]["tags"],
             ["llm", "evidence", "final"],
         )
-        self.assertIn("### LLM refined intro", note)
+        self.assertIn("## 知识结构", note)
+        self.assertIn("### 1. LLM refined intro", note)
         self.assertIn("LLM summary from evidence.", note)
         self.assertEqual(manifest["stage_status"]["llm_fusion"], "done")
         self.assertEqual(
