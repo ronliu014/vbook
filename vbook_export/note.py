@@ -92,49 +92,44 @@ def render_sections_note(
     video: VideoAsset,
     sections: Sequence[KnowledgeSection],
 ) -> str:
-    """Render a readable note from fused or placeholder knowledge sections."""
+    """Render a readable expert course note from fused knowledge sections."""
     section_list = sorted(sections, key=_section_sort_key)
     title = video.lesson_title or video.id
     course_title = video.course_title or ""
+    time_range = _format_course_time_range(section_list)
 
     lines = [
         f"# {title}",
         "",
-        "## Course",
+        "## 课程信息",
         "",
-        f"- Course: {course_title}",
-        f"- Lesson: {title}",
-        f"- Video: {video.path}",
+        f"- 课程：{course_title}",
+        f"- 课节：{title}",
+        f"- 视频：{video.path}",
+        f"- 知识段落：{len(section_list)}",
+        f"- 时间范围：{time_range}",
         "",
-        "## Knowledge Sections",
-        "",
-        f"- Sections: {len(section_list)}",
+        "## 课程总览",
         "",
     ]
 
     if not section_list:
-        lines.append("(empty)")
-        return "\n".join(lines) + "\n"
+        lines.append("当前没有可导出的知识段落。")
+        return "\n".join(lines).rstrip() + "\n"
 
-    for section in section_list:
-        lines.extend(
-            [
-                f"### {section.title}",
-                "",
-                section.summary,
-                "",
-                f"- Source: {_format_section_source(section)}",
-            ]
-        )
-        for image_ref in section.image_refs:
-            lines.append(f"- Image: {image_ref}")
-        if section.key_points:
-            lines.extend(["", "Key points:"])
-            lines.extend(f"- {point}" for point in section.key_points)
-        if section.tags:
-            lines.extend(["", "Tags:"])
-            lines.extend(f"- {tag}" for tag in section.tags)
-        lines.append("")
+    lines.extend(
+        [
+            f"本节共整理 {len(section_list)} 个知识段落，覆盖 {time_range}。",
+            "",
+            "## 核心结论",
+            "",
+        ]
+    )
+    lines.extend(f"- {section.title}" for section in section_list)
+    lines.extend(["", "## 知识结构", ""])
+
+    for index, section in enumerate(section_list, start=1):
+        _append_expert_section(lines, index, section)
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -146,12 +141,71 @@ def _format_time_range(segments: Sequence[TranscriptSegment]) -> str:
 
 
 def _format_section_source(section: KnowledgeSection) -> str:
-    timestamps = section.source_timestamps
-    if len(timestamps) >= 2:
-        return f"{timestamps[0]:.2f}s - {timestamps[1]:.2f}s"
-    if len(timestamps) == 1:
-        return f"{timestamps[0]:.2f}s"
-    return "(unknown)"
+    return _format_timestamps(section.source_timestamps)
+
+
+def _format_course_time_range(sections: Sequence[KnowledgeSection]) -> str:
+    timestamps = [
+        timestamp
+        for section in sections
+        for timestamp in section.source_timestamps
+    ]
+    return _format_timestamps(timestamps)
+
+
+def _format_timestamps(timestamps: Sequence[float]) -> str:
+    if not timestamps:
+        return "未知"
+    sorted_timestamps = sorted(timestamps)
+    if len(sorted_timestamps) == 1:
+        return f"{sorted_timestamps[0]:.2f}s"
+    return f"{sorted_timestamps[0]:.2f}s - {sorted_timestamps[-1]:.2f}s"
+
+
+def _append_expert_section(
+    lines: list[str],
+    index: int,
+    section: KnowledgeSection,
+) -> None:
+    lines.extend(
+        [
+            f"### {index}. {section.title}",
+            "",
+            "**讲解摘要**",
+            "",
+            section.summary or "暂无摘要。",
+            "",
+        ]
+    )
+
+    if section.key_points:
+        lines.extend(["**关键要点**", ""])
+        lines.extend(f"- {point}" for point in section.key_points)
+        lines.append("")
+
+    lines.extend(
+        [
+            "**证据与回看**",
+            "",
+            f"- 时间：{_format_section_source(section)}",
+        ]
+    )
+    lines.extend(f"- 图片：{image_ref}" for image_ref in section.image_refs)
+    lines.append("")
+
+    if section.tags:
+        lines.extend(
+            [
+                "**元数据**",
+                "",
+                f"- 标签：{_format_tags(section.tags)}",
+                "",
+            ]
+        )
+
+
+def _format_tags(tags: Sequence[str]) -> str:
+    return ", ".join(tags)
 
 
 def _section_sort_key(section: KnowledgeSection) -> tuple[float, str]:

@@ -87,7 +87,7 @@ class NoteExportTest(unittest.TestCase):
         self.assertEqual(written.name, "note.md")
         self.assertEqual(content, "# Lesson\n")
 
-    def test_render_sections_note_uses_knowledge_sections(self) -> None:
+    def test_render_sections_note_uses_expert_course_note_structure(self) -> None:
         video = VideoAsset(
             id="lesson",
             path=Path("course/lesson.mp4"),
@@ -96,38 +96,98 @@ class NoteExportTest(unittest.TestCase):
         )
         sections = [
             KnowledgeSection(
-                title="Segment seg-000002",
-                summary="case detail",
-                source_timestamps=[8.0, 12.0],
+                title="Case detail",
+                summary="Watch the follow-up case.",
+                source_timestamps=[12.0, 8.0],
                 image_refs=["outputs/lesson/frames/selected/frame_000002.jpg"],
                 key_points=["Watch volume confirmation"],
-                tags=["placeholder"],
+                tags=["llm", "final"],
             ),
             KnowledgeSection(
-                title="Segment seg-000001",
-                summary="intro",
+                title="Intro",
+                summary="Introduce moving-average support.",
                 source_timestamps=[0.0, 3.0],
                 image_refs=["outputs/lesson/frames/selected/frame_000001.jpg"],
-                key_points=[],
-                tags=["placeholder"],
+                key_points=["Define the support area"],
+                tags=["evidence", "visual:slide"],
             ),
         ]
 
         markdown = render_sections_note(video=video, sections=sections)
 
         self.assertIn("# MA Support", markdown)
-        self.assertIn("- Course: Stock Course", markdown)
-        self.assertIn("- Sections: 2", markdown)
+        self.assertIn("## 课程信息", markdown)
+        self.assertIn("- 课程：Stock Course", markdown)
+        self.assertIn("- 课节：MA Support", markdown)
+        self.assertIn("- 视频：course\\lesson.mp4", markdown.replace("/", "\\"))
+        self.assertIn("- 知识段落：2", markdown)
+        self.assertIn("- 时间范围：0.00s - 12.00s", markdown)
+        self.assertIn("## 课程总览", markdown)
+        self.assertIn("本节共整理 2 个知识段落，覆盖 0.00s - 12.00s。", markdown)
+        self.assertIn("## 核心结论", markdown)
+        self.assertIn("- Intro", markdown)
+        self.assertIn("- Case detail", markdown)
+        self.assertIn("## 知识结构", markdown)
         self.assertLess(
-            markdown.index("### Segment seg-000001"),
-            markdown.index("### Segment seg-000002"),
+            markdown.index("### 1. Intro"),
+            markdown.index("### 2. Case detail"),
         )
-        self.assertIn("intro", markdown)
-        self.assertIn("- Source: 0.00s - 3.00s", markdown)
-        self.assertIn("- Image: outputs/lesson/frames/selected/frame_000001.jpg", markdown)
-        self.assertIn("- Watch volume confirmation", markdown)
-        self.assertIn("Tags:", markdown)
-        self.assertIn("- placeholder", markdown)
+        self.assertIn("**讲解摘要**", markdown)
+        self.assertIn("Introduce moving-average support.", markdown)
+        self.assertIn("**关键要点**", markdown)
+        self.assertIn("- Define the support area", markdown)
+        self.assertIn("**证据与回看**", markdown)
+        self.assertIn("- 时间：0.00s - 3.00s", markdown)
+        self.assertIn(
+            "- 图片：outputs/lesson/frames/selected/frame_000001.jpg",
+            markdown,
+        )
+        self.assertIn("**元数据**", markdown)
+        self.assertIn("- 标签：evidence, visual:slide", markdown)
+        self.assertIn("- 时间：8.00s - 12.00s", markdown)
+
+    def test_render_sections_note_handles_empty_sections_and_empty_fields(self) -> None:
+        video = VideoAsset(
+            id="lesson",
+            path=Path("course/lesson.mp4"),
+            course_title="",
+            lesson_title="",
+        )
+
+        empty_markdown = render_sections_note(video=video, sections=[])
+
+        self.assertIn("# lesson", empty_markdown)
+        self.assertIn("## 课程信息", empty_markdown)
+        self.assertIn("- 课程：", empty_markdown)
+        self.assertIn("- 课节：lesson", empty_markdown)
+        self.assertIn("- 知识段落：0", empty_markdown)
+        self.assertIn("- 时间范围：未知", empty_markdown)
+        self.assertIn("当前没有可导出的知识段落。", empty_markdown)
+        self.assertNotIn("## 核心结论", empty_markdown)
+        self.assertNotIn("## 知识结构", empty_markdown)
+
+        sparse_markdown = render_sections_note(
+            video=video,
+            sections=[
+                KnowledgeSection(
+                    title="Sparse",
+                    summary="",
+                    source_timestamps=[],
+                    image_refs=[],
+                    key_points=[],
+                    tags=[],
+                )
+            ],
+        )
+
+        self.assertIn("### 1. Sparse", sparse_markdown)
+        self.assertIn("暂无摘要。", sparse_markdown)
+        self.assertIn("**证据与回看**", sparse_markdown)
+        self.assertIn("- 时间：未知", sparse_markdown)
+        self.assertNotIn("**关键要点**", sparse_markdown)
+        self.assertNotIn("- 图片：", sparse_markdown)
+        self.assertNotIn("**元数据**", sparse_markdown)
+        self.assertNotIn("(empty)", sparse_markdown)
 
 
 if __name__ == "__main__":
