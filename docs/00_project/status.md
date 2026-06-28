@@ -83,7 +83,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after LLM fusion external-command integration:
+Latest full suite run after expert note Markdown template integration:
 
 ```powershell
 python -m unittest discover
@@ -92,6 +92,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 114 tests
+Ran 115 tests
 OK
 ```
