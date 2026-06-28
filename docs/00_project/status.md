@@ -90,7 +90,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after LLM fusion smoke command integration:
+Latest full suite run after LLM fusion contract samples integration:
 
 ```powershell
 python -m unittest discover
@@ -99,6 +99,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 121 tests
+Ran 129 tests
 OK
 ```
