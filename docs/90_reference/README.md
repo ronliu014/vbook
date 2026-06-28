@@ -6,6 +6,8 @@ project context that are useful but not part of the main reading path.
 ## Current Source Material
 
 - [original-requirements.md](./original-requirements.md)
+- [llm-fusion-command-requirements.md](./llm-fusion-command-requirements.md)
+- [integration-response.md](./integration-response.md)
 - [qwen-vision-service-requirements.md](./qwen-vision-service-requirements.md)
 - [qwen-vision-service-integration-request.md](./qwen-vision-service-integration-request.md)
 - [../40_development/sync-protocol.md](../40_development/sync-protocol.md)
