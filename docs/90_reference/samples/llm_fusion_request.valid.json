@@ -1,0 +1,74 @@
+{
+  "schema_version": "1",
+  "intent": "llm_fusion_request",
+  "task": "course_note_synthesis",
+  "output_contract": {
+    "schema_version": "1",
+    "required_top_level_fields": [
+      "title",
+      "overview",
+      "sections"
+    ],
+    "section_required_fields": [
+      "title",
+      "summary",
+      "key_points",
+      "source_timestamps",
+      "image_refs",
+      "tags"
+    ]
+  },
+  "video": {
+    "id": "stock-course-lesson-001",
+    "course_title": "短线交易入门",
+    "lesson_title": "均线支撑与短线买点",
+    "duration_seconds": 312.5
+  },
+  "instructions": [
+    "Use only provided evidence.",
+    "Preserve source_timestamps and image_refs.",
+    "Do not invent facts not supported by evidence.",
+    "Write concise Simplified Chinese notes unless evidence is clearly another language."
+  ],
+  "evidence_sections": [
+    {
+      "title": "均线支撑的观察条件",
+      "summary": "画面展示短线买点的三个观察条件：均线多头排列、回踩不破、成交量温和放大。",
+      "key_points": [
+        "20日均线向上时，课程将其作为趋势仍在延续的观察条件。",
+        "回踩均线但没有明显跌破，是课程中提到的短线买点观察点。",
+        "成交量温和放大被用作资金参与度的辅助证据。"
+      ],
+      "source_timestamps": [
+        12.0,
+        18.5,
+        24.0
+      ],
+      "image_refs": [
+        "outputs/lesson/frames/selected/frame_000001.jpg"
+      ],
+      "tags": [
+        "evidence",
+        "visual:slide",
+        "has_ocr"
+      ]
+    },
+    {
+      "title": "避免追高",
+      "summary": "讲师提醒不要在价格已经远离均线时追入，应等待回踩确认。",
+      "key_points": [
+        "价格远离均线时，课程将其描述为短线风险升高。",
+        "等待回踩确认可以降低买点过高的风险。"
+      ],
+      "source_timestamps": [
+        46.0,
+        53.0
+      ],
+      "image_refs": [],
+      "tags": [
+        "evidence",
+        "transcript"
+      ]
+    }
+  ]
+}

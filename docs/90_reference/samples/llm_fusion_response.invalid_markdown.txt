@@ -1,0 +1,10 @@
+Here is the final course note JSON:
+
+```json
+{
+  "schema_version": "1",
+  "title": "均线支撑与短线买点",
+  "overview": "This is wrapped in Markdown and must be rejected.",
+  "sections": []
+}
+```

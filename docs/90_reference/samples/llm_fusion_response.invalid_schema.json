@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "title": "均线支撑与短线买点",
+  "overview": "This JSON parses, but the timestamp type is invalid.",
+  "sections": [
+    {
+      "title": "Invalid timestamp",
+      "summary": "The first timestamp is a boolean and must be rejected.",
+      "key_points": [
+        "This response is intentionally invalid."
+      ],
+      "source_timestamps": [
+        true
+      ],
+      "image_refs": [],
+      "tags": [
+        "final"
+      ]
+    }
+  ]
+}
