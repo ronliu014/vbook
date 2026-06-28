@@ -358,7 +358,23 @@ outputs/lesson/note.md
 outputs/lesson/manifest.json
 ```
 
-### 10.2 自定义路径
+### 10.2 Repo 内置 smoke command
+
+vBook 仓库提供一个确定性 smoke command，可用于验证集成链路：
+
+```powershell
+python -m vbook_client build `
+  --video data\lesson.mp4 `
+  --transcript data\lesson.srt `
+  --output outputs\lesson `
+  --llm-fusion-command "python tools\llm_fusion_stub.py --input {input} --output {output}"
+```
+
+该工具不调用真实模型，只把 `fusion/llm_request.json` 中的 evidence sections 转换为合法
+`fusion/llm_response.json`。它适合 smoke、CI 和排查 vBook pipeline 问题，不代表最终
+LLM 输出质量。
+
+### 10.3 自定义路径
 
 ```powershell
 python -m vbook_client build `

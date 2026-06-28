@@ -52,6 +52,10 @@ MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换�
 `fusion/llm_sections.json`。此时 `note.md` 使用 LLM sections 渲染；未提供该参数时默认
 仍使用 deterministic evidence draft。
 
+仓库内置 `tools/llm_fusion_stub.py` 可作为本地 smoke command，读取
+`fusion/llm_request.json` 并写出合法 `fusion/llm_response.json`，用于在没有真实模型服务时
+验证 request、response、parsed LLM sections 和专家笔记导出的闭环。
+
 ## 阶段 8：导出
 
 导出双核心产物：`note.md` 面向用户阅读，`manifest.json` 面向机器复跑和后续知识库。同步保存图片素材、转写记录、视觉分析 JSON 和融合结果。section-based `note.md` 使用第一版专家笔记 Markdown 模板组织 `课程信息`、`课程总览`、`核心结论` 和 `知识结构`，并保留每个重点对应的原始视频时间点、相关图片和 tags。

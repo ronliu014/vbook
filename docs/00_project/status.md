@@ -49,6 +49,8 @@ git status --short --branch
 - LLM fusion through explicit `--llm-fusion-command`, producing request,
   response, parsed LLM sections, manifest records, and `note.md` from LLM
   sections without binding vBook core to a model provider.
+- Built-in `tools/llm_fusion_stub.py` for deterministic LLM fusion smoke checks
+  without model runtimes, network services, or API credentials.
 - Markdown note export from transcript or fusion sections, including a
   first-version expert-note template for section-based notes.
 - `manifest.json` output with stage statuses and artifact summaries.
@@ -61,8 +63,9 @@ git status --short --branch
   vBook still does not ship an embedded OCR or multimodal model provider.
 - Fusion sections are deterministic evidence drafts with conservative section
   merge, not final LLM knowledge synthesis.
-- LLM fusion execution is available only through an explicit external command;
-  vBook still does not ship an embedded model provider or model SDK integration.
+- LLM fusion execution is available through an explicit external command and a
+  deterministic smoke stub; vBook still does not ship an embedded model provider
+  or model SDK integration.
 - `note.md` has a first-version expert-note structure, but review questions,
   glossary, learning objectives, and multi-format exports are still future work.
 - `vbook_server` is only a future boundary and has no service runtime.
