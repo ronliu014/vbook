@@ -9,6 +9,9 @@ local build from video plus timestamped transcript into Markdown and JSON
 artifacts, but intelligent visual understanding and final knowledge synthesis
 are not complete yet.
 
+For the operational task board, current blockers, and next recommended work,
+see [task-board.md](./task-board.md).
+
 ## Progress Log
 
 Detailed dated progress is tracked in [../70_progress/](../70_progress/).
@@ -78,10 +81,10 @@ git status --short --branch
 
 ## Most Important Next Work
 
-1. Finish the documentation foundation: glossary, status dashboard, and layer
-   indexes.
-2. Decide whether the next product milestone is real visual analysis
-   integration or batch input workflow.
+1. Finish the documentation foundation by adding the operational task board and
+   keeping layer indexes current.
+2. Complete a local smoke-test runbook that ties together the current CLI,
+   stubs, samples, checker, manifest, and note output.
 3. Add a real smoke-test sample path once both local MP4 and transcript files
    are available.
 4. Expand pipeline-stage documents under `docs/30_pipeline/`.

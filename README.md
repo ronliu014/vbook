@@ -10,8 +10,9 @@ vBook is a project for automatic video-course analysis and knowledge organizatio
 
 Start documentation from [`docs/README.md`](docs/README.md). For a quick project
 orientation, read [`docs/00_project/overview.md`](docs/00_project/overview.md),
-[`docs/00_project/glossary.md`](docs/00_project/glossary.md), and
-[`docs/00_project/status.md`](docs/00_project/status.md). The original product
+[`docs/00_project/glossary.md`](docs/00_project/glossary.md),
+[`docs/00_project/status.md`](docs/00_project/status.md), and
+[`docs/00_project/task-board.md`](docs/00_project/task-board.md). The original product
 intent remains available at [`docs/90_reference/original-requirements.md`](docs/90_reference/original-requirements.md).
 
 ## Project Status
@@ -21,7 +22,8 @@ video plus timestamped transcript into `manifest.json`, `note.md`,
 `vision/analysis.json`, `fusion/prompt.json`, and `fusion/sections.json`.
 Some stages are still placeholders or partial foundations. See
 [`docs/00_project/status.md`](docs/00_project/status.md) for the current project
-dashboard.
+state and [`docs/00_project/task-board.md`](docs/00_project/task-board.md) for
+the operational task board and next recommended work.
 
 ## Repository Layout
 

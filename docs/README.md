@@ -10,15 +10,17 @@ For project orientation:
 1. [00_project/overview.md](./00_project/overview.md)
 2. [00_project/glossary.md](./00_project/glossary.md)
 3. [00_project/status.md](./00_project/status.md)
-4. [00_project/roadmap.md](./00_project/roadmap.md)
+4. [00_project/task-board.md](./00_project/task-board.md)
+5. [00_project/roadmap.md](./00_project/roadmap.md)
 
 For development work:
 
 1. [00_project/glossary.md](./00_project/glossary.md)
 2. [00_project/status.md](./00_project/status.md)
-3. [30_pipeline/README.md](./30_pipeline/README.md)
-4. [20_architecture/README.md](./20_architecture/README.md)
-5. [40_development/README.md](./40_development/README.md)
+3. [00_project/task-board.md](./00_project/task-board.md)
+4. [30_pipeline/README.md](./30_pipeline/README.md)
+5. [20_architecture/README.md](./20_architecture/README.md)
+6. [40_development/README.md](./40_development/README.md)
 
 ## Documentation Layers
 

@@ -8,8 +8,9 @@ what, and where the project currently stands.
 1. [overview.md](./overview.md)
 2. [glossary.md](./glossary.md)
 3. [status.md](./status.md)
-4. [scope.md](./scope.md)
-5. [roadmap.md](./roadmap.md)
+4. [task-board.md](./task-board.md)
+5. [scope.md](./scope.md)
+6. [roadmap.md](./roadmap.md)
 
 ## Layer Responsibility
 
