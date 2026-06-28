@@ -5,6 +5,8 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 
 ## Current Entry Points
 
+- [smoke-tests.md](./smoke-tests.md) - local smoke runbook for CLI, stubs,
+  contract checker, manifest, and note output.
 - [../../README.md](../../README.md#development-commands)
 - [../20_architecture/output-contracts.md](../20_architecture/output-contracts.md)
 
@@ -12,7 +14,6 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 
 - `local-run.md`
 - `sample-inputs.md`
-- [smoke-tests.md](./smoke-tests.md)
 - `batch-processing.md`
 - `troubleshooting.md`
 - `outputs-cleanup.md`
