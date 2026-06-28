@@ -1032,6 +1032,72 @@ class ManifestCliTest(unittest.TestCase):
             (output / "fusion" / "llm_sections.json").as_posix(),
         )
 
+    def test_build_command_can_run_repo_llm_fusion_stub(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "lesson.mp4"
+            transcript = root / "transcript.json"
+            output = root / "outputs" / "lesson"
+            candidate_dir = output / "frames" / "candidates"
+            stub = Path("tools") / "llm_fusion_stub.py"
+            video.write_text("placeholder", encoding="utf-8")
+            transcript.write_text(
+                json.dumps({"segments": [{"start": 0, "end": 3, "text": "intro"}]}),
+                encoding="utf-8",
+            )
+            candidate_dir.mkdir(parents=True)
+            (candidate_dir / "frame_000001.jpg").write_text("a", encoding="utf-8")
+
+            code = main(
+                [
+                    "build",
+                    "--video",
+                    str(video),
+                    "--transcript",
+                    str(transcript),
+                    "--output",
+                    str(output),
+                    "--frame-candidates-dir",
+                    str(candidate_dir),
+                    "--alignment-window-seconds",
+                    "3",
+                    "--course-title",
+                    "Stock Course",
+                    "--lesson-title",
+                    "MA Support",
+                    "--llm-fusion-command",
+                    f'"{sys.executable}" "{stub}" --input {{input}} --output {{output}}',
+                ]
+            )
+
+            request = json.loads(
+                (output / "fusion" / "llm_request.json").read_text(encoding="utf-8")
+            )
+            response = json.loads(
+                (output / "fusion" / "llm_response.json").read_text(encoding="utf-8")
+            )
+            llm_sections = json.loads(
+                (output / "fusion" / "llm_sections.json").read_text(encoding="utf-8")
+            )
+            note = (output / "note.md").read_text(encoding="utf-8")
+            manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(code, 0)
+        self.assertEqual(request["intent"], "llm_fusion_request")
+        self.assertEqual(response["title"], "MA Support")
+        self.assertEqual(
+            response["overview"],
+            "Deterministic smoke synthesis from 1 evidence section.",
+        )
+        self.assertEqual(llm_sections["intent"], "llm_fusion_sections")
+        self.assertEqual(llm_sections["section_count"], 1)
+        self.assertIn("final", llm_sections["sections"][0]["tags"])
+        self.assertIn("## 课程信息", note)
+        self.assertIn("## 知识结构", note)
+        self.assertIn(llm_sections["sections"][0]["title"], note)
+        self.assertIn(llm_sections["sections"][0]["summary"], note)
+        self.assertEqual(manifest["stage_status"]["llm_fusion"], "done")
+
     def test_build_command_llm_fusion_command_requires_placeholders(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
