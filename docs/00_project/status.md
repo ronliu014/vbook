@@ -86,7 +86,7 @@ git status --short --branch
 
 ## Verification Snapshot
 
-Latest full suite run after expert note Markdown template integration:
+Latest full suite run after LLM fusion smoke command integration:
 
 ```powershell
 python -m unittest discover
@@ -95,6 +95,6 @@ python -m unittest discover
 Expected current result:
 
 ```text
-Ran 115 tests
+Ran 121 tests
 OK
 ```
