@@ -43,6 +43,10 @@ def build_manifest(
     fusion_prompt_written: bool = False,
     fusion_sections_path: Path | str | None = None,
     fusion_sections_written: bool = False,
+    llm_fusion_request_path: Path | str | None = None,
+    llm_fusion_response_path: Path | str | None = None,
+    llm_fusion_sections_path: Path | str | None = None,
+    llm_fusion_written: bool = False,
 ) -> Manifest:
     """Build the minimal manifest produced by the P2 transcript foundation."""
     video = Path(video_path)
@@ -58,6 +62,21 @@ def build_manifest(
         Path(fusion_sections_path)
         if fusion_sections_path is not None
         else output / "fusion" / "sections.json"
+    )
+    resolved_llm_fusion_request_path = (
+        Path(llm_fusion_request_path)
+        if llm_fusion_request_path is not None
+        else output / "fusion" / "llm_request.json"
+    )
+    resolved_llm_fusion_response_path = (
+        Path(llm_fusion_response_path)
+        if llm_fusion_response_path is not None
+        else output / "fusion" / "llm_response.json"
+    )
+    resolved_llm_fusion_sections_path = (
+        Path(llm_fusion_sections_path)
+        if llm_fusion_sections_path is not None
+        else output / "fusion" / "llm_sections.json"
     )
     lesson_id = output.name or video.stem
     resolved_lesson_title = lesson_title if lesson_title is not None else video.stem
@@ -75,6 +94,9 @@ def build_manifest(
         else StageStatus.SKIPPED,
         "fusion_sections": StageStatus.DONE
         if fusion_sections_written
+        else StageStatus.SKIPPED,
+        "llm_fusion": StageStatus.DONE
+        if llm_fusion_written
         else StageStatus.SKIPPED,
         "note_export": StageStatus.DONE if note_written else StageStatus.SKIPPED,
         "manifest": StageStatus.DONE,
@@ -147,6 +169,18 @@ def build_manifest(
             }
         )
 
+    if llm_fusion_written:
+        artifacts.setdefault("fusion", {}).update(
+            {
+                "llm_request_path": resolved_llm_fusion_request_path,
+                "llm_request_format": "json",
+                "llm_response_path": resolved_llm_fusion_response_path,
+                "llm_response_format": "json",
+                "llm_sections_path": resolved_llm_fusion_sections_path,
+                "llm_sections_format": "json",
+            }
+        )
+
     pipeline_run = PipelineRun(
         run_id=f"local-{lesson_id}",
         config=dict(config),
@@ -154,6 +188,9 @@ def build_manifest(
         output_paths={
             "fusion_prompt": resolved_fusion_prompt_path,
             "fusion_sections": resolved_fusion_sections_path,
+            "llm_fusion_request": resolved_llm_fusion_request_path,
+            "llm_fusion_response": resolved_llm_fusion_response_path,
+            "llm_fusion_sections": resolved_llm_fusion_sections_path,
             "note": resolved_note_path,
             "manifest": output / "manifest.json",
         },

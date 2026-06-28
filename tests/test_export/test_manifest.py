@@ -235,6 +235,76 @@ class ManifestExportTest(unittest.TestCase):
         self.assertEqual(manifest.stage_status["fusion_sections"], StageStatus.DONE)
         self.assertEqual(manifest.pipeline_run.stage_status["fusion_sections"], StageStatus.DONE)
 
+    def test_build_manifest_skips_llm_fusion_by_default(self) -> None:
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+        )
+
+        self.assertEqual(manifest.stage_status["llm_fusion"], StageStatus.SKIPPED)
+        self.assertEqual(
+            manifest.pipeline_run.stage_status["llm_fusion"],
+            StageStatus.SKIPPED,
+        )
+        self.assertEqual(
+            manifest.pipeline_run.output_paths["llm_fusion_request"],
+            Path("outputs/lesson/fusion/llm_request.json"),
+        )
+        self.assertEqual(
+            manifest.pipeline_run.output_paths["llm_fusion_response"],
+            Path("outputs/lesson/fusion/llm_response.json"),
+        )
+        self.assertEqual(
+            manifest.pipeline_run.output_paths["llm_fusion_sections"],
+            Path("outputs/lesson/fusion/llm_sections.json"),
+        )
+
+    def test_build_manifest_can_record_llm_fusion_artifacts(self) -> None:
+        manifest = build_manifest(
+            video_path=Path("course/lesson.mp4"),
+            transcript_path=Path("course/transcript.json"),
+            output_dir=Path("outputs/lesson"),
+            segments=[],
+            config={},
+            llm_fusion_request_path=Path("outputs/lesson/fusion/llm_request.json"),
+            llm_fusion_response_path=Path("outputs/lesson/fusion/llm_response.json"),
+            llm_fusion_sections_path=Path("outputs/lesson/fusion/llm_sections.json"),
+            llm_fusion_written=True,
+        )
+
+        self.assertEqual(manifest.stage_status["llm_fusion"], StageStatus.DONE)
+        self.assertEqual(
+            manifest.pipeline_run.stage_status["llm_fusion"],
+            StageStatus.DONE,
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_request_path"],
+            Path("outputs/lesson/fusion/llm_request.json"),
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_request_format"],
+            "json",
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_response_path"],
+            Path("outputs/lesson/fusion/llm_response.json"),
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_response_format"],
+            "json",
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_sections_path"],
+            Path("outputs/lesson/fusion/llm_sections.json"),
+        )
+        self.assertEqual(
+            manifest.artifacts["fusion"]["llm_sections_format"],
+            "json",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
