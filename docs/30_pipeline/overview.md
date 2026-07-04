@@ -1,5 +1,7 @@
 # vBook 处理流水线
 
+本页说明端到端数据流。每个阶段的输入、输出、关键代码、失败边界和测试入口已经拆到独立 stage docs；需要排查或验收某一阶段时，优先进入对应阶段页。
+
 ## 端到端数据流
 
 ```text
@@ -18,25 +20,37 @@ VideoAsset + TranscriptInput
 
 ## 阶段 2：音频与转写
 
+阶段文档：[transcript-import.md](./transcript-import.md)
+
 MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换为 `TranscriptSegment[]`，不关心来源。可选 adapter 可以调用外部 `vtext` CLI 生成 transcript，但 vBook 不 import vtext、不依赖 vtext 包。
 
 ## 阶段 3：视频抽帧
+
+阶段文档：[frame-extraction.md](./frame-extraction.md)
 
 按可配置间隔抽帧，例如每 2 到 5 秒一帧。每个候选帧记录来源视频、时间戳、图片路径、尺寸和抽取配置。
 
 ## 阶段 4：帧过滤
 
+阶段文档：[frame-selection.md](./frame-selection.md)
+
 过滤重复画面、纯讲师画面、空白画面和低信息量图片。MVP 的保留目标是 PPT/幻灯片和 K 线案例图。初期可使用感知哈希、画面差异、OCR 文本密度和阈值规则。
 
 ## 阶段 5：视觉分析
 
-对保留帧识别其类型和内容。MVP 支持两类高优先级视觉类型：`slide` 和 `kline_case`。默认使用多模态模型理解图片语义，OCR 后端作为 PPT 文字提取、调试和 fallback。输出统一为 OCR 文本、视觉描述、结构化观察、后端信息和置信度。
+阶段文档：[vision-analysis.md](./vision-analysis.md)
+
+对保留帧识别其类型和内容。MVP 支持两类高优先级视觉类型：`slide` 和 `kline_case`。当前本地能力包括 `placeholder`、`manual-json`、`external-command`、本地 stub 和 Qwen adapter 边界；vBook core 不内置 OCR 或多模态模型。输出统一为 OCR 文本、视觉描述、结构化观察、后端信息和置信度。
 
 ## 阶段 6：时间轴对齐
+
+阶段文档：[timeline-alignment.md](./timeline-alignment.md)
 
 按时间戳把视觉记录绑定到附近的转写片段。默认策略可使用每张图前后 10 秒的窗口，后续再加入语义相似度匹配。
 
 ## 阶段 7：知识融合
+
+阶段文档：[fusion-prompt.md](./fusion-prompt.md)、[fusion-sections.md](./fusion-sections.md)
 
 当前本地实现先使用确定性 evidence draft：把 transcript、OCR 文本、图像描述、
 结构化视觉观察和时间轴关联转换为可审计的 `KnowledgeSection[]`。它会保留图片引用、
@@ -57,6 +71,8 @@ MVP 以已有带时间戳 transcript 为标准输入。vBook 内部统一转换�
 验证 request、response、parsed LLM sections 和专家笔记导出的闭环。
 
 ## 阶段 8：导出
+
+阶段文档：[note-export.md](./note-export.md)、[manifest.md](./manifest.md)
 
 导出双核心产物：`note.md` 面向用户阅读，`manifest.json` 面向机器复跑和后续知识库。
 同步保存图片素材、转写记录、视觉分析 JSON 和融合结果。section-based `note.md` 使用增强
