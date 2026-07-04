@@ -1,6 +1,6 @@
 # Current Project Status
 
-Last updated: 2026-06-27
+Last updated: 2026-07-04
 
 ## Current Phase
 
@@ -56,8 +56,9 @@ git status --short --branch
   without model runtimes, network services, or API credentials.
 - LLM fusion contract samples and `tools/check_llm_fusion_contract.py` for
   external service self-tests before real model integration.
-- Markdown note export from transcript or fusion sections, including a
-  first-version expert-note template for section-based notes.
+- Markdown note export from transcript or fusion sections, including an
+  enhanced expert-note template with learning objectives, review index,
+  review questions, and tag index for section-based notes.
 - `manifest.json` output with stage statuses and artifact summaries.
 
 ## What Is Still Placeholder or Partial
@@ -73,20 +74,20 @@ git status --short --branch
   or model SDK integration.
 - LLM fusion contract samples validate file shape and parser compatibility;
   they do not evaluate final model note quality.
-- `note.md` has a first-version expert-note structure, but review questions,
-  glossary, learning objectives, and multi-format exports are still future work.
+- `note.md` now has deterministic learning objectives, review index, review
+  questions, and tag index, but true glossary definitions and multi-format
+  exports are still future work.
 - `vbook_server` is only a future boundary and has no service runtime.
 - Batch processing has a functional foundation through `build-batch`, but it
   still uses the local MVP placeholder intelligence path for each lesson.
 
 ## Most Important Next Work
 
-1. Finish the documentation foundation by adding the operational task board and
-   keeping layer indexes current.
-2. Complete a local smoke-test runbook that ties together the current CLI,
-   stubs, samples, checker, manifest, and note output.
-3. Add a real smoke-test sample path once both local MP4 and transcript files
+1. Execute the Qwen Vision Service integration runbook once the service team
+   confirms deployment readiness.
+2. Add a real smoke-test sample path once both local MP4 and transcript files
    are available.
+3. Complete batch workflow runbook and failure-report documentation.
 4. Expand pipeline-stage documents under `docs/30_pipeline/`.
 5. Keep `manifest.json` and `note.md` as the primary output contract while
    intelligence improves behind the same artifacts.

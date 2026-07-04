@@ -1,6 +1,6 @@
 # Project Task Board
 
-Last updated: 2026-06-28
+Last updated: 2026-07-04
 
 ## 如何阅读这个看板
 
@@ -37,7 +37,7 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 | Local MVP pipeline | `Done` | CLI 可从 video + transcript 生成 manifest、note、vision、fusion artifacts；本地 smoke runbook 已固化可重复验收路径。 | 等真实服务 ready 后执行联调 smoke。 |
 | Vision integration boundary | `Partial` | `placeholder`、`manual-json`、`external-command`、`tools/vision_qwen_adapter.py` 和 Qwen 联调 runbook 已具备边界。 | Qwen 服务 ready 后按 runbook 执行真实 health/analyze-frame smoke。 |
 | LLM fusion boundary | `Partial` | `--llm-fusion-command`、stub、request/response parser、contract samples、checker 已具备。 | 真实 LLM/Qwen 文本服务 ready 后做联调 smoke。 |
-| Expert note export | `Partial` | `note.md` 已支持第一版 section-based expert-note 模板。 | 增加 review questions、glossary、learning objectives。 |
+| Expert note export | `Partial` | `note.md` 已支持增强 section-based expert-note 模板，包含学习目标、回看索引、复习问题和标签索引。 | 后续接入真实 glossary 定义、多格式导出和更高质量 LLM synthesis。 |
 | Batch workflow | `Partial` | `build-batch` 已有基础，可按 vtext-compatible 输入批量生成 lesson outputs。 | 补批处理 runbook、失败报告和输出检查。 |
 | Server/runtime | `Planned` | `vbook_server` 仍是未来边界，没有服务运行时。 | 本地 pipeline 稳定后再设计。 |
 
@@ -55,7 +55,7 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 | --- | --- | --- |
 | 完善本地 smoke test runbook | `Done` | [smoke-tests.md](../60_operations/smoke-tests.md) 已串起 CLI check、stub、sample、checker、manifest 和 note 输出检查。 |
 | 编写 Qwen 视觉服务上线后的联调 runbook | `Done` | [qwen-vision-integration.md](../60_operations/qwen-vision-integration.md) 已说明服务 ready 后如何设置 endpoint、运行 adapter、检查成功和失败输出。 |
-| 增强专家笔记模板 | `Ready` | `note.md` 增加 review questions、glossary、learning objectives 的稳定结构。 |
+| 增强专家笔记模板 | `Done` | `note.md` 已增加学习目标、回看索引、复习问题和标签索引；内容来自现有 section 数据和固定模板。 |
 | 完善 batch workflow 说明 | `Ready` | 文档说明输入目录、输出目录、失败报告、manifest 检查和重跑策略。 |
 | 扩展 pipeline stage documents | `Ready` | `docs/30_pipeline/` 下关键阶段拥有输入、输出、状态、测试和限制说明。 |
 
@@ -63,6 +63,7 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 
 | Work | Status | 说明 |
 | --- | --- | --- |
+| Expert note enhancement | `Done` | `note.md` 新增学习目标、回看索引、复习问题和标签索引，不改变上游 schema 或外部服务 contract。 |
 | Qwen Vision integration runbook | `Done` | `docs/60_operations/qwen-vision-integration.md` 记录服务 ready 后的 health、adapter、artifact、manifest 和失败排查步骤。 |
 | Local smoke test runbook | `Done` | `docs/60_operations/smoke-tests.md` 覆盖 CLI readiness、placeholder build、vision stub、LLM stub、contract checker 和 batch smoke。 |
 | LLM fusion contract samples and checker | `Done` | 外部服务组可用样例 request/response 和 `tools/check_llm_fusion_contract.py` 自测 contract。 |
@@ -73,13 +74,13 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 
 ## 下一步推荐任务
 
-推荐下一步：增强专家笔记模板。
+推荐下一步：完善 batch workflow 说明。
 
 理由：
 
 - Qwen 服务尚未确认部署完成，真实视觉联调仍保持 blocked。
-- 本地 smoke runbook 和 Qwen 联调 runbook 已经把等待服务期间的验收路径准备好。
-- 专家笔记模板增强不依赖外部服务，可以继续提升 `note.md` 的用户价值。
+- 专家笔记模板增强已经完成，`note.md` 的本地输出价值已进一步提升。
+- batch workflow 已有基础实现，完善输入目录、输出目录、失败报告、manifest 检查和重跑策略，可以继续降低真实课程批量处理时的操作成本。
 
 ## 验证快照
 
