@@ -101,7 +101,7 @@ class NoteExportTest(unittest.TestCase):
                 source_timestamps=[12.0, 8.0],
                 image_refs=["outputs/lesson/frames/selected/frame_000002.jpg"],
                 key_points=["Watch volume confirmation"],
-                tags=["llm", "final"],
+                tags=["llm", "final", "visual:slide"],
             ),
             KnowledgeSection(
                 title="Intro",
@@ -124,10 +124,58 @@ class NoteExportTest(unittest.TestCase):
         self.assertIn("- 时间范围：0.00s - 12.00s", markdown)
         self.assertIn("## 课程总览", markdown)
         self.assertIn("本节共整理 2 个知识段落，覆盖 0.00s - 12.00s。", markdown)
+        self.assertIn("## 学习目标", markdown)
+        self.assertIn("- 掌握：Define the support area", markdown)
+        self.assertIn("- 掌握：Watch volume confirmation", markdown)
         self.assertIn("## 核心结论", markdown)
         self.assertIn("- Intro", markdown)
         self.assertIn("- Case detail", markdown)
         self.assertIn("## 知识结构", markdown)
+        self.assertIn("## 回看索引", markdown)
+        self.assertIn(
+            "- Intro：0.00s - 3.00s；图片：outputs/lesson/frames/selected/frame_000001.jpg",
+            markdown,
+        )
+        self.assertIn(
+            "- Case detail：8.00s - 12.00s；图片：outputs/lesson/frames/selected/frame_000002.jpg",
+            markdown,
+        )
+        self.assertIn("## 复习问题", markdown)
+        self.assertIn("Intro 的核心观点是什么？请回看 0.00s - 3.00s。", markdown)
+        self.assertIn("哪些图片证据支持 Intro 这一段的判断？", markdown)
+        self.assertIn(
+            "Case detail 的核心观点是什么？请回看 8.00s - 12.00s。",
+            markdown,
+        )
+        self.assertIn("## 标签索引", markdown)
+        self.assertLess(markdown.index("- `evidence`"), markdown.index("- `final`"))
+        self.assertLess(markdown.index("- `final`"), markdown.index("- `llm`"))
+        self.assertLess(markdown.index("- `llm`"), markdown.index("- `visual:slide`"))
+        self.assertEqual(markdown.count("- `visual:slide`"), 1)
+        self.assertLess(
+            markdown.index("## 课程总览"),
+            markdown.index("## 学习目标"),
+        )
+        self.assertLess(
+            markdown.index("## 学习目标"),
+            markdown.index("## 核心结论"),
+        )
+        self.assertLess(
+            markdown.index("## 核心结论"),
+            markdown.index("## 知识结构"),
+        )
+        self.assertLess(
+            markdown.index("## 知识结构"),
+            markdown.index("## 回看索引"),
+        )
+        self.assertLess(
+            markdown.index("## 回看索引"),
+            markdown.index("## 复习问题"),
+        )
+        self.assertLess(
+            markdown.index("## 复习问题"),
+            markdown.index("## 标签索引"),
+        )
         self.assertLess(
             markdown.index("### 1. Intro"),
             markdown.index("### 2. Case detail"),
@@ -163,8 +211,12 @@ class NoteExportTest(unittest.TestCase):
         self.assertIn("- 知识段落：0", empty_markdown)
         self.assertIn("- 时间范围：未知", empty_markdown)
         self.assertIn("当前没有可导出的知识段落。", empty_markdown)
+        self.assertNotIn("## 学习目标", empty_markdown)
         self.assertNotIn("## 核心结论", empty_markdown)
         self.assertNotIn("## 知识结构", empty_markdown)
+        self.assertNotIn("## 回看索引", empty_markdown)
+        self.assertNotIn("## 复习问题", empty_markdown)
+        self.assertNotIn("## 标签索引", empty_markdown)
 
         sparse_markdown = render_sections_note(
             video=video,
@@ -180,13 +232,21 @@ class NoteExportTest(unittest.TestCase):
             ],
         )
 
+        self.assertIn("## 学习目标", sparse_markdown)
+        self.assertIn("- 理解：Sparse", sparse_markdown)
         self.assertIn("### 1. Sparse", sparse_markdown)
         self.assertIn("暂无摘要。", sparse_markdown)
         self.assertIn("**证据与回看**", sparse_markdown)
         self.assertIn("- 时间：未知", sparse_markdown)
+        self.assertIn("## 回看索引", sparse_markdown)
+        self.assertIn("- Sparse：未知", sparse_markdown)
+        self.assertIn("## 复习问题", sparse_markdown)
+        self.assertIn("Sparse 的核心观点是什么？请结合本节笔记回看。", sparse_markdown)
+        self.assertNotIn("哪些图片证据支持 Sparse", sparse_markdown)
         self.assertNotIn("**关键要点**", sparse_markdown)
         self.assertNotIn("- 图片：", sparse_markdown)
         self.assertNotIn("**元数据**", sparse_markdown)
+        self.assertNotIn("## 标签索引", sparse_markdown)
         self.assertNotIn("(empty)", sparse_markdown)
 
 

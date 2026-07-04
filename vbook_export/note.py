@@ -121,15 +121,21 @@ def render_sections_note(
         [
             f"本节共整理 {len(section_list)} 个知识段落，覆盖 {time_range}。",
             "",
-            "## 核心结论",
+            "## 学习目标",
             "",
         ]
     )
+    _append_learning_objectives(lines, section_list)
+    lines.extend(["", "## 核心结论", ""])
     lines.extend(f"- {section.title}" for section in section_list)
     lines.extend(["", "## 知识结构", ""])
 
     for index, section in enumerate(section_list, start=1):
         _append_expert_section(lines, index, section)
+
+    _append_review_index(lines, section_list)
+    _append_review_questions(lines, section_list)
+    _append_tag_index(lines, section_list)
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -202,6 +208,68 @@ def _append_expert_section(
                 "",
             ]
         )
+
+
+def _append_learning_objectives(
+    lines: list[str],
+    sections: Sequence[KnowledgeSection],
+) -> None:
+    for section in sections:
+        if section.key_points:
+            lines.extend(f"- 掌握：{point}" for point in section.key_points)
+        else:
+            lines.append(f"- 理解：{section.title}")
+
+
+def _append_review_index(
+    lines: list[str],
+    sections: Sequence[KnowledgeSection],
+) -> None:
+    lines.extend(["", "## 回看索引", ""])
+    for section in sections:
+        image_suffix = (
+            f"；图片：{_format_image_refs(section.image_refs)}"
+            if section.image_refs
+            else ""
+        )
+        lines.append(
+            f"- {section.title}：{_format_section_source(section)}{image_suffix}"
+        )
+
+
+def _append_review_questions(
+    lines: list[str],
+    sections: Sequence[KnowledgeSection],
+) -> None:
+    lines.extend(["", "## 复习问题", ""])
+    for section in sections:
+        if section.source_timestamps:
+            lines.append(
+                f"- {section.title} 的核心观点是什么？"
+                f"请回看 {_format_section_source(section)}。"
+            )
+        else:
+            lines.append(
+                f"- {section.title} 的核心观点是什么？请结合本节笔记回看。"
+            )
+        if section.image_refs:
+            lines.append(f"- 哪些图片证据支持 {section.title} 这一段的判断？")
+
+
+def _append_tag_index(
+    lines: list[str],
+    sections: Sequence[KnowledgeSection],
+) -> None:
+    tags = sorted({tag for section in sections for tag in section.tags})
+    if not tags:
+        return
+
+    lines.extend(["", "## 标签索引", ""])
+    lines.extend(f"- `{tag}`" for tag in tags)
+
+
+def _format_image_refs(image_refs: Sequence[str]) -> str:
+    return ", ".join(image_refs)
 
 
 def _format_tags(tags: Sequence[str]) -> str:
