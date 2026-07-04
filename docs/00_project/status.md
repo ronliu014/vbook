@@ -62,6 +62,9 @@ git status --short --branch
 - Batch processing through `build-batch`, including vtext-compatible input
   discovery, per-lesson outputs, batch manifest summary, and an operations
   runbook for failure handling and reruns.
+- Pipeline stage documents under `docs/30_pipeline/`, covering transcript
+  import, frame extraction, frame selection, vision analysis, timeline
+  alignment, fusion prompt, fusion sections, note export, and manifest.
 - `manifest.json` output with stage statuses and artifact summaries.
 
 ## What Is Still Placeholder or Partial
@@ -89,10 +92,9 @@ git status --short --branch
 
 1. Execute the Qwen Vision Service integration runbook once the service team
    confirms deployment readiness.
-2. Add a real smoke-test sample path once both local MP4 and transcript files
-   are available.
-3. Expand pipeline-stage documents under `docs/30_pipeline/`.
-4. Keep `manifest.json` and `note.md` as the primary output contract while
+2. Define the real smoke fixture requirements for MP4 plus transcript
+   validation.
+3. Keep `manifest.json` and `note.md` as the primary output contract while
    intelligence improves behind the same artifacts.
 
 ## Verification Snapshot

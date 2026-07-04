@@ -33,7 +33,7 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 
 | Area | Status | 当前说明 | 下一步 |
 | --- | --- | --- | --- |
-| Documentation foundation | `Partial` | 文档分层、术语库、状态页、任务看板、reference 文档、本地 smoke runbook 和 Qwen 联调 runbook 已经建立。 | 继续补齐 pipeline stage docs。 |
+| Documentation foundation | `Partial` | 文档分层、术语库、状态页、任务看板、reference 文档、本地 smoke runbook、Qwen 联调 runbook 和 pipeline stage docs 已经建立。 | 继续梳理真实 smoke fixture 要求。 |
 | Local MVP pipeline | `Done` | CLI 可从 video + transcript 生成 manifest、note、vision、fusion artifacts；本地 smoke runbook 已固化可重复验收路径。 | 等真实服务 ready 后执行联调 smoke。 |
 | Vision integration boundary | `Partial` | `placeholder`、`manual-json`、`external-command`、`tools/vision_qwen_adapter.py` 和 Qwen 联调 runbook 已具备边界。 | Qwen 服务 ready 后按 runbook 执行真实 health/analyze-frame smoke。 |
 | LLM fusion boundary | `Partial` | `--llm-fusion-command`、stub、request/response parser、contract samples、checker 已具备。 | 真实 LLM/Qwen 文本服务 ready 后做联调 smoke。 |
@@ -57,12 +57,13 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 | 编写 Qwen 视觉服务上线后的联调 runbook | `Done` | [qwen-vision-integration.md](../60_operations/qwen-vision-integration.md) 已说明服务 ready 后如何设置 endpoint、运行 adapter、检查成功和失败输出。 |
 | 增强专家笔记模板 | `Done` | `note.md` 已增加学习目标、回看索引、复习问题和标签索引；内容来自现有 section 数据和固定模板。 |
 | 完善 batch workflow 说明 | `Done` | [batch-processing.md](../60_operations/batch-processing.md) 已说明输入目录、输出目录、失败报告、manifest 检查和重跑策略。 |
-| 扩展 pipeline stage documents | `Ready` | `docs/30_pipeline/` 下关键阶段拥有输入、输出、状态、测试和限制说明。 |
+| 扩展 pipeline stage documents | `Done` | `docs/30_pipeline/` 下关键阶段已有输入、输出、状态、测试和限制说明。 |
 
 ## 最近完成
 
 | Work | Status | 说明 |
 | --- | --- | --- |
+| Pipeline stage documents | `Done` | `docs/30_pipeline/` 已具备 README matrix、overview 阶段链接，以及 transcript、frame、vision、timeline、fusion、note 和 manifest 阶段页。 |
 | Batch processing runbook | `Done` | `docs/60_operations/batch-processing.md` 记录 `build-batch` 输入、输出、manifest、失败处理和重跑策略。 |
 | Expert note enhancement | `Done` | `note.md` 新增学习目标、回看索引、复习问题和标签索引，不改变上游 schema 或外部服务 contract。 |
 | Qwen Vision integration runbook | `Done` | `docs/60_operations/qwen-vision-integration.md` 记录服务 ready 后的 health、adapter、artifact、manifest 和失败排查步骤。 |
@@ -75,13 +76,13 @@ vBook 处于 local MVP pipeline 阶段。本地 pipeline 已经可以从视频�
 
 ## 下一步推荐任务
 
-推荐下一步：扩展 pipeline stage documents。
+推荐下一步：梳理真实 smoke fixture 要求。
 
 理由：
 
 - Qwen 服务尚未确认部署完成，真实视觉联调仍保持 blocked。
-- batch workflow 说明已经完成，等待服务期间的本地操作路径更清晰。
-- `docs/30_pipeline/` 仍缺少关键阶段的输入、输出、状态、测试和限制说明，补齐后可以让后续真实服务联调和批量处理更容易定位问题。
+- pipeline stage documents 已补齐，阶段边界和验收入口更清楚。
+- 下一步需要明确可长期复用或可外部挂载的 MP4 + transcript 样例要求，方便服务 ready 后执行稳定验收。
 
 ## 验证快照
 
