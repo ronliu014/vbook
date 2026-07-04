@@ -7,6 +7,8 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 
 - [smoke-tests.md](./smoke-tests.md) - local smoke runbook for CLI, stubs,
   contract checker, manifest, and note output.
+- [batch-processing.md](./batch-processing.md) - batch input, batch manifest,
+  failure handling, and rerun strategy runbook.
 - [qwen-vision-integration.md](./qwen-vision-integration.md) - service-ready
   integration runbook for Qwen Vision Service.
 - [../../README.md](../../README.md#development-commands)
@@ -16,6 +18,5 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
 
 - `local-run.md`
 - `sample-inputs.md`
-- `batch-processing.md`
 - `troubleshooting.md`
 - `outputs-cleanup.md`

@@ -59,6 +59,9 @@ git status --short --branch
 - Markdown note export from transcript or fusion sections, including an
   enhanced expert-note template with learning objectives, review index,
   review questions, and tag index for section-based notes.
+- Batch processing through `build-batch`, including vtext-compatible input
+  discovery, per-lesson outputs, batch manifest summary, and an operations
+  runbook for failure handling and reruns.
 - `manifest.json` output with stage statuses and artifact summaries.
 
 ## What Is Still Placeholder or Partial
@@ -78,8 +81,9 @@ git status --short --branch
   questions, and tag index, but true glossary definitions and multi-format
   exports are still future work.
 - `vbook_server` is only a future boundary and has no service runtime.
-- Batch processing has a functional foundation through `build-batch`, but it
-  still uses the local MVP placeholder intelligence path for each lesson.
+- Batch processing is documented and functional for the local MVP path, but it
+  still lacks concurrency, manifest-based resume, automatic rerun of
+  failed/skipped lessons, and real-service batch validation.
 
 ## Most Important Next Work
 
@@ -87,9 +91,8 @@ git status --short --branch
    confirms deployment readiness.
 2. Add a real smoke-test sample path once both local MP4 and transcript files
    are available.
-3. Complete batch workflow runbook and failure-report documentation.
-4. Expand pipeline-stage documents under `docs/30_pipeline/`.
-5. Keep `manifest.json` and `note.md` as the primary output contract while
+3. Expand pipeline-stage documents under `docs/30_pipeline/`.
+4. Keep `manifest.json` and `note.md` as the primary output contract while
    intelligence improves behind the same artifacts.
 
 ## Verification Snapshot
