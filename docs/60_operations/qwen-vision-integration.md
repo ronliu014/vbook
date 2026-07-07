@@ -42,7 +42,11 @@ Prompt profile:   vbook_visual_analysis_v1
 Timeout:          120 seconds per frame
 Recommended concurrency: 1
 Model:            qwen3-vl:8b
-Known pending:    deployment performance baseline
+Warmup:           about 21 seconds on first request
+Warm latency:      about 6.2 seconds per frame for the service test slide
+Verified health:  2026-07-07 from the vBook workspace
+Adapter smoke:    passed on 2026-07-07 with two selected frames
+Known pending:    reusable real fixture and true transcript quality smoke
 ```
 
 If the service team changes endpoint, auth, model, timeout, or image limits,
@@ -102,6 +106,9 @@ Expected success checks:
 - `model.provider == "qwen"`.
 - `model.name` is non-empty; current expected value is `qwen3-vl:8b`.
 
+Latest vBook-side check on 2026-07-07 returned `status=ok`,
+`model_loaded=true`, and model `qwen3-vl:8b`.
+
 If `/health` returns HTTP `503`, record the response body and ask the service
 team whether the model is still loading or the backend is unavailable. Do not
 continue to the adapter build until the service is healthy.
@@ -135,6 +142,25 @@ python -m vbook_client build `
   --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120 --prompt-profile vbook_visual_analysis_v1"
 ```
 
+Latest vBook-side adapter smoke on 2026-07-07 used:
+
+```powershell
+python -m vbook_client build `
+  --video E:\projects\my_app\temp\三分钟学会选短线个股.mp4 `
+  --transcript outputs\qwen-vision-smoke\input_transcript.json `
+  --output outputs\qwen-vision-smoke\lesson `
+  --course-title QwenVisionSmoke `
+  --lesson-title 三分钟学会选短线个股 `
+  --frame-interval-seconds 240 `
+  --min-selected-frame-interval-seconds 240 `
+  --alignment-window-seconds 180 `
+  --vision-backend external-command `
+  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120 --prompt-profile vbook_visual_analysis_v1"
+```
+
+That smoke used a temporary smoke-only transcript, so it validates adapter and
+artifact correctness, not final note quality.
+
 ## Step 3: Artifact Checks
 
 Expected artifacts:
@@ -154,6 +180,9 @@ Check:
 - `vision/analysis.json` exists.
 - `manifest.json` exists.
 - `note.md` exists.
+
+Latest vBook-side adapter smoke produced all expected artifacts under
+`outputs/qwen-vision-smoke/lesson/`.
 
 ## Step 4: Manifest Checks
 
@@ -208,8 +237,10 @@ history.
 ## Timeout and Performance Notes
 
 - Current recommended per-frame timeout is `120` seconds.
-- First request may be slower if it triggers model loading.
-- Deployment performance baseline is still pending from the service team.
+- First request may be slower if it triggers model loading; the service-team
+  baseline reports about `21` seconds for cold start.
+- The service-team warm baseline reports about `6.2` seconds per frame for one
+  1280x720 test slide on `192.168.0.33`.
 - The first adapter version requests frames serially.
 - Timeout does not automatically mean a vBook bug; it may indicate model
   warmup, GPU contention, service-side timeout, or network issues.
@@ -303,6 +334,10 @@ The first Qwen Vision integration smoke passes only when:
 - `vision/analysis.json` contains at least one frame whose `ocr_text` or
   `vision_description` is related to the image.
 - There is no unexplained schema mismatch.
+
+Latest vBook-side adapter smoke met these criteria on 2026-07-07 with 2
+selected frames. The first frame matched a talking-head scene with subtitle
+`这也是我们散户的优势`; the second frame matched a slide about `量比排行榜`.
 
 ## Related Documents
 

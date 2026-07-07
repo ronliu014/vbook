@@ -165,13 +165,26 @@ Per-frame server timeout:   120 秒（超时返回 504）
 Recommended client timeout: 120 秒（与 vBook adapter 默认一致）
 Rate limit / QPS:           无限流；建议逐帧串行（与 adapter 默认一致）
 Recommended concurrency:    1（单实例单 GPU；如需更高并发见文末扩展说明）
-Model warmup time:          待实测（首次请求会触发模型加载，可能较慢）
-Expected average latency:   待实测
-Expected p95 latency:       待实测
+Model warmup time:          首次请求触发加载（约 21 秒），之后进入稳态
+Measured latency (warm):    ~6.2 秒/帧（稳态；见下方实测说明）
 ```
 
-> 性能数字需在 `192.168.0.33` 部署后用真实图片实测，部署完成后补充给 vBook。
-> 部署机器为双 RTX 4090，视觉模型 `qwen3-vl:8b` 独占一块 GPU（与 qwen3.6 隔离，互不抢显存）。
+**实测基线（2026-07-06，192.168.0.33）**
+
+在目标机器（双 RTX 4090，`qwen3-vl:8b` 独占 GPU 1，与 qwen3.6 隔离互不抢显存）上，
+用同一张内置测试幻灯片 `tests/fixtures/test_slide.png`（48 KB，1280x720）连续两次实测：
+
+| 场景 | 端到端 | 模型推理 | visual_type | OCR | confidence |
+| --- | --- | --- | --- | --- | --- |
+| 冷启动（首帧，含模型加载） | 21365 ms | 21319 ms | `slide` | 109 字符 | 0.95 |
+| **预热后（稳态）** | **6200 ms** | **6186 ms** | `slide` | 109 字符 | 0.95 |
+
+> 说明：
+> - **首帧慢是模型加载开销**，之后稳定在 ~6 秒/帧。vBook 批量处理时首帧偏慢属正常。
+> - 结果稳定：两次 `visual_type`、OCR 长度、confidence 完全一致。
+> - vBook 侧建议：客户端超时保持 120 秒（覆盖冷启动）；逐帧串行；估算批量总时长
+>   按 ~6 秒/帧 + 首次一次性 ~21 秒（例如 100 帧约 11 分钟）。
+> - 这仍是单张幻灯片的数据点；不同图片内容耗时会有差异，后续可积累平均/p95。
 
 ## 10. 日志
 
@@ -183,14 +196,15 @@ Expected p95 latency:       待实测
 
 | 自测项 | 状态 |
 | --- | --- |
-| `GET /health` 返回 `status=ok` | 待部署后实测 |
-| clear slide → `visual_type=slide` + 非空 OCR/描述 | 待部署后实测 |
-| K-line → `visual_type=kline_case` 或 `other` | 待部署后实测 |
-| invalid request → 400 `invalid_request` 结构化错误 | ✅ 已通过单元测试 |
-| unknown prompt profile → 400 `unsupported_prompt_profile` | ✅ 已通过单元测试 |
+| `GET /health` 返回 `status=ok`、`model_loaded=true` | ✅ 实测通过（192.168.0.33） |
+| clear slide → `visual_type=slide` + 非空 OCR | ✅ 实测通过（OCR 109 字符，confidence 0.95） |
+| K-line → `visual_type=kline_case` 或 `other` | 待补测（有测试图 `test_kline.png`） |
+| invalid request → 400 `invalid_request` 结构化错误 | ✅ 实测通过 + 单元测试 |
+| unknown prompt profile → 400 `unsupported_prompt_profile` | ✅ 实测通过 + 单元测试 |
 
-> 仓库内提供 `scripts/verify.ps1` 一键端到端验证，及 `tools/generate_test_image.py`
-> 生成内容已知的 slide/K-line 测试图。部署后我们会跑完整自测并回填上表。
+> 通过 `scripts/verify.ps1` 一键端到端验证：环境/Ollama/API/错误处理/真实图片分析
+> 共 15 项检查全部通过（2026-07-06，目标机器双 4090）。K-line 场景待用
+> `tests/fixtures/test_kline.png` 补测一次即可勾选。
 
 ## 契约对齐记录
 

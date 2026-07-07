@@ -7,12 +7,12 @@ ship vBook work.
 
 - [../../AGENTS.md](../../AGENTS.md)
 - [sync-protocol.md](./sync-protocol.md)
+- [commands.md](./commands.md)
 - [../../README.md](../../README.md#development-commands)
 
 ## Planned Documents
 
 - `setup.md`
-- `commands.md`
 - `coding-style.md`
 - `testing.md`
 - `git-workflow.md`

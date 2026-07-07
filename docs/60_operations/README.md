@@ -11,6 +11,8 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
   failure handling, and rerun strategy runbook.
 - [qwen-vision-integration.md](./qwen-vision-integration.md) - service-ready
   integration runbook for Qwen Vision Service.
+- [vault-enhancement-preview.md](./vault-enhancement-preview.md) - preview-only
+  vault note enhancement output, without writing back to `F:\vault`.
 - [../../README.md](../../README.md#development-commands)
 - [../20_architecture/output-contracts.md](../20_architecture/output-contracts.md)
 

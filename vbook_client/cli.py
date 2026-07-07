@@ -14,6 +14,7 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, render_sections_note, write_note
+from vbook_export.vault_preview import load_preview_sources, write_preview_package
 from vbook_fusion.llm_contract import (
     build_llm_fusion_request,
     parse_llm_fusion_response,
@@ -80,7 +81,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "build-batch":
         return _run_build_batch(args, parser)
 
+    if args.command == "vault-preview":
+        return _run_vault_preview(args, parser)
+
     parser.print_help()
+    return 0
+
+
+def _run_vault_preview(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> int:
+    try:
+        sources = load_preview_sources(args.vault_note, args.lesson_output)
+        package = write_preview_package(sources, args.output)
+    except (ValueError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+    print(package.manifest_path)
     return 0
 
 
@@ -125,6 +142,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "--alignment-window-seconds",
         type=float,
         help="Seconds before and after each frame timestamp used for transcript matching",
+    )
+
+    preview_parser = subparsers.add_parser(
+        "vault-preview",
+        help="Write a preview-only vault enhancement package",
+    )
+    preview_parser.add_argument("--vault-note", required=True, help="Existing vault note path")
+    preview_parser.add_argument(
+        "--lesson-output",
+        required=True,
+        help="Existing vBook lesson output directory",
+    )
+    preview_parser.add_argument(
+        "--output",
+        required=True,
+        help="Preview output directory",
     )
 
     return parser
