@@ -319,6 +319,71 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
         self.assertIn("invalid_request", result.stderr)
         self.assertIn("image_base64 is required", result.stderr)
 
+    def test_continue_on_error_writes_placeholder_analysis(self) -> None:
+        def service_error(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            return (
+                503,
+                {
+                    "error": {
+                        "code": "model_busy",
+                        "message": "worker timed out",
+                        "retryable": True,
+                    },
+                    "request_id": payload["request_id"],
+                },
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+
+            with RecordingQwenServer(service_error) as server:
+                result = _run_adapter(
+                    input_path,
+                    output_path,
+                    server.endpoint,
+                    extra_args=["--continue-on-error"],
+                )
+
+            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.stderr, "")
+            self.assertTrue(output_path.exists())
+            analyses = load_manual_visual_analysis(
+                [
+                    FrameCandidate(
+                        id="frame-000001",
+                        video_id="lesson",
+                        timestamp=12.5,
+                        image_path=image,
+                        width=1280,
+                        height=720,
+                    )
+                ],
+                output_path,
+                backend="external-command",
+            )
+
+        self.assertEqual(len(server.requests), 1)
+        self.assertEqual(len(analyses), 1)
+        analysis = analyses[0]
+        self.assertEqual(analysis.frame_id, "frame-000001")
+        self.assertEqual(analysis.visual_type, VisualType.OTHER)
+        self.assertEqual(analysis.ocr_text, "")
+        self.assertIn("unavailable", analysis.vision_description)
+        self.assertIsNone(analysis.confidence)
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["status"],
+            "error",
+        )
+        self.assertIn(
+            "model_busy",
+            analysis.structured_observations["qwen_service"]["message"],
+        )
+
     def test_rejects_frame_id_mismatch(self) -> None:
         def mismatched_response(
             payload: dict[str, Any],

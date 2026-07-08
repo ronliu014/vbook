@@ -14,6 +14,7 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, render_sections_note, write_note
+from vbook_export.vault_enhance import write_vtext_first_package
 from vbook_export.vault_preview import load_preview_sources, write_preview_package
 from vbook_fusion.llm_contract import (
     build_llm_fusion_request,
@@ -84,6 +85,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "vault-preview":
         return _run_vault_preview(args, parser)
 
+    if args.command == "vault-enhance":
+        return _run_vault_enhance(args, parser)
+
     parser.print_help()
     return 0
 
@@ -95,6 +99,23 @@ def _run_vault_preview(
     try:
         sources = load_preview_sources(args.vault_note, args.lesson_output)
         package = write_preview_package(sources, args.output)
+    except (ValueError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+    print(package.manifest_path)
+    return 0
+
+
+def _run_vault_enhance(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> int:
+    try:
+        package = write_vtext_first_package(
+            vtext_note_path=args.vtext_note,
+            lesson_output_dir=args.lesson_output,
+            output_note_path=args.output_note,
+            manifest_path=args.manifest_output,
+        )
     except (ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
     print(package.manifest_path)
@@ -158,6 +179,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output",
         required=True,
         help="Preview output directory",
+    )
+
+    enhance_parser = subparsers.add_parser(
+        "vault-enhance",
+        help="Write a vtext-first vBook enhanced vault note",
+    )
+    enhance_parser.add_argument("--vtext-note", required=True, help="vtext note path")
+    enhance_parser.add_argument(
+        "--lesson-output",
+        required=True,
+        help="Existing vBook lesson output directory",
+    )
+    enhance_parser.add_argument(
+        "--output-note",
+        required=True,
+        help="vBook enhanced output note path",
+    )
+    enhance_parser.add_argument(
+        "--manifest-output",
+        help="Manifest output path; defaults to <output-note>.manifest.json",
     )
 
     return parser

@@ -1,4 +1,19 @@
-# Vault Enhancement Preview
+# Deprecated: Vault Enhancement Preview
+
+> Status: deprecated on 2026-07-07.
+>
+> This runbook describes the old preview workflow that appends a vBook-generated
+> visual enhancement section after an existing note. It is useful only for
+> historical reproduction of that preview package. It should not be used as the
+> current workflow for vault-quality notes.
+>
+> The current direction is vtext-first: use vtext's Markdown note as the
+> authoritative source text, preserve its headings/lists/emphasis, and have
+> vBook insert selected screenshots plus short captions into a separate
+> lowercase `vbook` output directory.
+>
+> Current design:
+> [../80_superpowers/specs/2026-07-07-vtext-first-vault-augmentation-design.md](../80_superpowers/specs/2026-07-07-vtext-first-vault-augmentation-design.md).
 
 ## Purpose
 

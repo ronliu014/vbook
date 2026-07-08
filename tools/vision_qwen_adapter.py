@@ -46,6 +46,11 @@ def main(argv: list[str] | None = None) -> int:
         default=DEFAULT_PROMPT_PROFILE,
         help="Prompt profile sent to the Qwen Vision Service",
     )
+    parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Write an error placeholder for failed frames instead of aborting.",
+    )
     parser.add_argument("--token", help="Optional bearer token")
     args = parser.parse_args(argv)
 
@@ -58,14 +63,19 @@ def main(argv: list[str] | None = None) -> int:
         for frame in frames:
             frame_id = str(frame["frame_id"])
             payload = build_qwen_request(frame, args.prompt_profile)
-            response = post_json(
-                endpoint=args.endpoint,
-                payload=payload,
-                token=token,
-                timeout_seconds=args.timeout_seconds,
-                frame_id=frame_id,
-            )
-            analyses.append(normalize_response(frame_id, response))
+            try:
+                response = post_json(
+                    endpoint=args.endpoint,
+                    payload=payload,
+                    token=token,
+                    timeout_seconds=args.timeout_seconds,
+                    frame_id=frame_id,
+                )
+                analyses.append(normalize_response(frame_id, response))
+            except ValueError as exc:
+                if not args.continue_on_error:
+                    raise
+                analyses.append(build_error_analysis(frame_id, str(exc)))
         write_output(output_path, analyses)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -222,6 +232,22 @@ def normalize_response(
         "vision_description": response["vision_description"],
         "structured_observations": _merge_service_debug(observations, response),
         "confidence": confidence,
+    }
+
+
+def build_error_analysis(frame_id: str, message: str) -> dict[str, Any]:
+    return {
+        "frame_id": frame_id,
+        "visual_type": "other",
+        "ocr_text": "",
+        "vision_description": "Visual analysis unavailable because the Qwen Vision Service failed for this frame.",
+        "structured_observations": {
+            "qwen_service": {
+                "status": "error",
+                "message": message,
+            }
+        },
+        "confidence": None,
     }
 
 

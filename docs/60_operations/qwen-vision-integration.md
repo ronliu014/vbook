@@ -142,6 +142,25 @@ python -m vbook_client build `
   --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120 --prompt-profile vbook_visual_analysis_v1"
 ```
 
+For real course-length previews, prefer resilient mode so one slow or failed
+frame does not block the whole lesson output:
+
+```powershell
+python -m vbook_client build `
+  --video path\to\lesson.mp4 `
+  --transcript path\to\lesson.srt `
+  --output outputs\qwen-vision-real `
+  --vision-backend external-command `
+  --vision-command "python tools\vision_qwen_adapter.py --input {input} --output {output} --endpoint http://192.168.0.33:8866/analyze-frame --timeout-seconds 120 --prompt-profile vbook_visual_analysis_v1 --continue-on-error"
+```
+
+`--continue-on-error` belongs to `tools\vision_qwen_adapter.py`, not to the
+vBook CLI itself. When it is enabled, a failed frame is written as a valid
+manual-json-compatible `visual_type = other` analysis with
+`structured_observations.qwen_service.status = error`. This keeps
+`note.md`, `manifest.json`, and vault-preview generation moving while still
+making failed frames visible for later reprocessing.
+
 Latest vBook-side adapter smoke on 2026-07-07 used:
 
 ```powershell
@@ -244,6 +263,11 @@ history.
 - The first adapter version requests frames serially.
 - Timeout does not automatically mean a vBook bug; it may indicate model
   warmup, GPU contention, service-side timeout, or network issues.
+- Real course frames can have much longer tail latency than the service team's
+  single-slide warm baseline. Dense stock-chart or trading-software screens
+  should be treated as possible long-tail frames.
+- Use strict mode for contract smoke and `--continue-on-error` for long lesson
+  preview runs where partial visual coverage is better than a failed build.
 
 ## Common Failures
 
@@ -284,6 +308,13 @@ frame id and service error message to the service team.
 Record the frame id, timeout value, and whether this was the first request after
 startup. Ask the service team for warmup and latency status. Consider increasing
 `--timeout-seconds` only after service-side status is understood.
+
+For course-length preview runs, add `--continue-on-error` inside
+`--vision-command` so the adapter writes an error placeholder and continues to
+the remaining frames. Keep the generated `vision/external/analysis.json` and
+`vision/analysis.json`; frames with
+`structured_observations.qwen_service.status = error` are candidates for later
+targeted reprocessing.
 
 ### Qwen service returned invalid JSON
 
