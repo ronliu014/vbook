@@ -12,6 +12,43 @@ from vbook_common.types import FrameCandidate
 
 
 class ManifestCliTest(unittest.TestCase):
+    def test_vault_enhance_accepts_image_selection_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note = root / "vtext.md"
+            lesson_output = root / "lesson-output"
+            output_note = root / "vbook.md"
+            manifest_path = root / "vbook.manifest.json"
+            vtext_note.write_text("# lesson\n", encoding="utf-8")
+            lesson_output.mkdir()
+            manifest_path.write_text("{}", encoding="utf-8")
+
+            with patch("vbook_client.cli.write_vtext_first_package") as enhance:
+                enhance.return_value.manifest_path = manifest_path
+                buffer = io.StringIO()
+                with redirect_stdout(buffer):
+                    code = main(
+                        [
+                            "vault-enhance",
+                            "--vtext-note",
+                            str(vtext_note),
+                            "--lesson-output",
+                            str(lesson_output),
+                            "--output-note",
+                            str(output_note),
+                            "--max-images-per-note",
+                            "2",
+                            "--min-image-gap-seconds",
+                            "180",
+                        ]
+                    )
+                call_kwargs = enhance.call_args.kwargs
+
+        self.assertEqual(code, 0)
+        self.assertEqual(call_kwargs["max_images_per_note"], 2)
+        self.assertEqual(call_kwargs["min_image_gap_seconds"], 180.0)
+        self.assertIn(str(manifest_path), buffer.getvalue())
+
     def test_build_command_writes_default_mvp_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

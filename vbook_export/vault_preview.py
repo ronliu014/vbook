@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from vbook_export.visual_selection import visual_value_key
+
 
 @dataclass(frozen=True)
 class PreviewSources:
@@ -339,11 +341,10 @@ def _analysis_has_qwen_error(analysis: dict[str, Any] | None) -> bool:
 def _image_selection_key(
     ref: str,
     analyses_by_image: dict[str, dict[str, Any]],
-) -> tuple[float, int, int, str]:
+) -> tuple[int, float, int, int, int, float, str]:
     analysis = _analysis_for_ref(ref, analyses_by_image)
     timestamp = _analysis_timestamp(analysis)
-    ocr = str(analysis.get("ocr_text") or "") if analysis else ""
-    return (timestamp, 1 if ocr.strip() else 0, len(ocr), ref)
+    return visual_value_key(analysis, timestamp, ref)
 
 
 def _analysis_timestamp(analysis: dict[str, Any] | None) -> float:

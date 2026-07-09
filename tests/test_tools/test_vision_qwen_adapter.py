@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import tempfile
 import threading
 import unittest
@@ -57,7 +58,10 @@ class RecordingQwenServer:
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(response)))
                 self.end_headers()
-                self.wfile.write(response)
+                try:
+                    self.wfile.write(response)
+                except OSError:
+                    return
 
             def log_message(self, format: str, *args: Any) -> None:
                 return
@@ -383,6 +387,89 @@ class VisionQwenAdapterToolTest(unittest.TestCase):
             "model_busy",
             analysis.structured_observations["qwen_service"]["message"],
         )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["error_kind"],
+            "service_error",
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["http_status"],
+            503,
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["service_error_code"],
+            "model_busy",
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["service_error_message"],
+            "worker timed out",
+        )
+        self.assertIs(
+            analysis.structured_observations["qwen_service"]["service_retryable"],
+            True,
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["endpoint"],
+            server.endpoint,
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["prompt_profile"],
+            "vbook_visual_analysis_v1",
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["timeout_seconds"],
+            5.0,
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["request"]["frame_id"],
+            "frame-000001",
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["request"]["video_id"],
+            "lesson",
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["request"]["timestamp"],
+            12.5,
+        )
+        self.assertEqual(
+            analysis.structured_observations["qwen_service"]["request"]["image_path"],
+            str(image),
+        )
+
+    def test_continue_on_error_marks_client_timeout_separately(self) -> None:
+        def slow_response(
+            payload: dict[str, Any],
+            handler: BaseHTTPRequestHandler,
+        ) -> tuple[int, dict[str, Any]]:
+            time.sleep(0.2)
+            return success_response(payload, handler)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            input_path, _image = _write_frame_input(root)
+            output_path = root / "analysis.json"
+
+            with RecordingQwenServer(slow_response) as server:
+                result = _run_adapter(
+                    input_path,
+                    output_path,
+                    server.endpoint,
+                    extra_args=[
+                        "--timeout-seconds",
+                        "0.01",
+                        "--continue-on-error",
+                    ],
+                )
+
+            self.assertEqual(result.returncode, 0)
+            data = json.loads(output_path.read_text(encoding="utf-8"))
+
+        service = data["analyses"][0]["structured_observations"]["qwen_service"]
+        self.assertEqual(service["status"], "error")
+        self.assertEqual(service["error_kind"], "client_timeout")
+        self.assertEqual(service["endpoint"], server.endpoint)
+        self.assertEqual(service["timeout_seconds"], 0.01)
+        self.assertIn("timed out", service["message"])
 
     def test_rejects_frame_id_mismatch(self) -> None:
         def mismatched_response(

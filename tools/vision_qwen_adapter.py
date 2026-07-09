@@ -24,6 +24,21 @@ DEFAULT_PROMPT_PROFILE = "vbook_visual_analysis_v1"
 ENV_TOKEN = "VBOOK_QWEN_VISION_TOKEN"
 
 
+class QwenAdapterError(ValueError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_kind: str | None = None,
+        http_status: int | None = None,
+        service_error: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_kind = error_kind
+        self.http_status = http_status
+        self.service_error = service_error
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Call a Qwen Vision Service and write manual-json visual analysis."
@@ -75,7 +90,15 @@ def main(argv: list[str] | None = None) -> int:
             except ValueError as exc:
                 if not args.continue_on_error:
                     raise
-                analyses.append(build_error_analysis(frame_id, str(exc)))
+                analyses.append(
+                    build_error_analysis(
+                        frame,
+                        exc,
+                        endpoint=args.endpoint,
+                        prompt_profile=args.prompt_profile,
+                        timeout_seconds=args.timeout_seconds,
+                    )
+                )
         write_output(output_path, analyses)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
@@ -162,17 +185,26 @@ def post_json(
             raw = response.read()
     except urllib.error.HTTPError as exc:
         raw = exc.read()
+        service_error = _parse_service_error(raw)
         detail = _format_service_error(raw)
         message = f"Qwen service returned HTTP {exc.code} for {frame_id}"
         if detail:
             message = f"{message}: {detail}"
-        raise ValueError(message) from exc
-    except urllib.error.URLError as exc:
-        raise ValueError(
-            f"Qwen service request failed for {frame_id}: {exc.reason}"
+        raise QwenAdapterError(
+            message,
+            error_kind="service_error",
+            http_status=exc.code,
+            service_error=service_error,
         ) from exc
+    except urllib.error.URLError as exc:
+        message = f"Qwen service request failed for {frame_id}: {exc.reason}"
+        error_kind = "client_timeout" if _looks_like_timeout(exc.reason) else "request_failure"
+        raise QwenAdapterError(message, error_kind=error_kind) from exc
     except TimeoutError as exc:
-        raise ValueError(f"Qwen service request timed out for {frame_id}") from exc
+        raise QwenAdapterError(
+            f"Qwen service request timed out for {frame_id}",
+            error_kind="client_timeout",
+        ) from exc
 
     if status < 200 or status >= 300:
         raise ValueError(f"Qwen service returned HTTP {status} for {frame_id}")
@@ -235,19 +267,80 @@ def normalize_response(
     }
 
 
-def build_error_analysis(frame_id: str, message: str) -> dict[str, Any]:
+def build_error_analysis(
+    frame: dict[str, Any],
+    error: ValueError | str,
+    *,
+    endpoint: str,
+    prompt_profile: str,
+    timeout_seconds: float,
+) -> dict[str, Any]:
+    frame_id = str(frame["frame_id"])
+    message = str(error)
+    qwen_service = {
+        "status": "error",
+        "error_kind": _error_kind(error),
+        "message": message,
+        "endpoint": endpoint,
+        "prompt_profile": prompt_profile,
+        "timeout_seconds": float(timeout_seconds),
+        "request": _error_request_metadata(frame),
+    }
+    qwen_service.update(_error_debug_metadata(error))
     return {
         "frame_id": frame_id,
         "visual_type": "other",
         "ocr_text": "",
         "vision_description": "Visual analysis unavailable because the Qwen Vision Service failed for this frame.",
         "structured_observations": {
-            "qwen_service": {
-                "status": "error",
-                "message": message,
-            }
+            "qwen_service": qwen_service
         },
         "confidence": None,
+    }
+
+
+def _error_kind(error: ValueError | str) -> str:
+    if isinstance(error, QwenAdapterError) and error.error_kind:
+        return error.error_kind
+    message = str(error)
+    text = message.lower()
+    if "returned http" in text:
+        return "service_error"
+    if "timed out" in text:
+        return "client_timeout"
+    if "request failed" in text:
+        return "request_failure"
+    if "invalid" in text or "mismatch" in text or "must be" in text:
+        return "response_validation_error"
+    return "adapter_error"
+
+
+def _error_debug_metadata(error: ValueError | str) -> dict[str, Any]:
+    if not isinstance(error, QwenAdapterError):
+        return {}
+    metadata: dict[str, Any] = {}
+    if error.http_status is not None:
+        metadata["http_status"] = error.http_status
+    service_error = error.service_error
+    if service_error:
+        code = service_error.get("code")
+        message = service_error.get("message")
+        retryable = service_error.get("retryable")
+        if isinstance(code, str):
+            metadata["service_error_code"] = code
+        if isinstance(message, str):
+            metadata["service_error_message"] = message
+        if isinstance(retryable, bool):
+            metadata["service_retryable"] = retryable
+    return metadata
+
+
+def _error_request_metadata(frame: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "frame_id": str(frame["frame_id"]),
+        "video_id": _string_or_default(frame.get("video_id"), ""),
+        "timestamp": _number_or_default(frame.get("timestamp"), 0.0),
+        "image_path": str(frame["image_path"]),
     }
 
 
@@ -364,18 +457,30 @@ def _number_or_default(value: Any, default: float) -> float:
     return default
 
 
-def _format_service_error(raw: bytes) -> str:
+def _looks_like_timeout(value: Any) -> bool:
+    return "timed out" in str(value).lower() or "timeout" in str(value).lower()
+
+
+def _parse_service_error(raw: bytes) -> dict[str, Any] | None:
     if not raw:
-        return ""
+        return None
     text = raw.decode("utf-8", errors="replace")
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        return text[:500]
+        return None
     if not isinstance(data, dict):
-        return text[:500]
+        return None
     error = data.get("error")
-    if not isinstance(error, dict):
+    return error if isinstance(error, dict) else None
+
+
+def _format_service_error(raw: bytes) -> str:
+    if not raw:
+        return ""
+    error = _parse_service_error(raw)
+    if not error:
+        text = raw.decode("utf-8", errors="replace")
         return text[:500]
     code = error.get("code")
     message = error.get("message")

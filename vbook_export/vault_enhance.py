@@ -8,12 +8,14 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from vbook_export.vault_preview import (
     PreviewScene,
     build_preview_scenes,
     load_preview_sources,
 )
+from vbook_export.visual_selection import visual_value_key
 
 
 @dataclass(frozen=True)
@@ -40,11 +42,26 @@ class _VisualInsert:
     caption: str
 
 
+@dataclass(frozen=True)
+class _ImageSelectionPolicy:
+    max_images_per_note: int | None
+    min_image_gap_seconds: float
+    include_error_images: bool = False
+
+
+@dataclass(frozen=True)
+class _ImageSelectionResult:
+    scenes: list[PreviewScene]
+    skipped_error_image_count: int
+
+
 def write_vtext_first_package(
     vtext_note_path: Path | str,
     lesson_output_dir: Path | str,
     output_note_path: Path | str,
     manifest_path: Path | str | None = None,
+    max_images_per_note: int | None = None,
+    min_image_gap_seconds: float = 0.0,
 ) -> VaultEnhancePackage:
     """Write a vBook-enhanced note while keeping the vtext source read-only."""
     sources = load_preview_sources(vtext_note_path, lesson_output_dir)
@@ -55,6 +72,10 @@ def write_vtext_first_package(
         else output_path.with_suffix(".manifest.json")
     )
     assets_dir = output_path.parent / "assets" / output_path.stem
+    image_policy = _validate_image_selection_policy(
+        max_images_per_note=max_images_per_note,
+        min_image_gap_seconds=min_image_gap_seconds,
+    )
 
     analyses_by_image = _analyses_by_image_path(sources.vision)
     scenes = [
@@ -62,8 +83,13 @@ def write_vtext_first_package(
         for scene in build_preview_scenes(sources)
         if scene.primary_image_ref is not None
     ]
-    inserts = _build_visual_inserts(
+    selection = _select_scenes_for_insertion(
         scenes=scenes,
+        analyses_by_image=analyses_by_image,
+        policy=image_policy,
+    )
+    inserts = _build_visual_inserts(
+        scenes=selection.scenes,
         analyses_by_image=analyses_by_image,
         assets_dir=assets_dir,
         link_prefix=Path("assets") / output_path.stem,
@@ -91,6 +117,13 @@ def write_vtext_first_package(
                 "assets_dir": str(assets_dir),
                 "inserted_image_count": inserted_count,
                 "unmatched_image_count": unmatched_count,
+                "image_selection": {
+                    "max_images_per_note": image_policy.max_images_per_note,
+                    "min_image_gap_seconds": image_policy.min_image_gap_seconds,
+                    "candidate_scene_count": len(scenes),
+                    "selected_scene_count": len(selection.scenes),
+                    "skipped_error_image_count": selection.skipped_error_image_count,
+                },
                 "asset_count": len(copied_assets),
                 "assets": [str(path) for path in copied_assets],
                 "safety": {"source_vtext": "read_only"},
@@ -106,6 +139,143 @@ def write_vtext_first_package(
         manifest_path=manifest,
         asset_paths=copied_assets,
     )
+
+
+def _validate_image_selection_policy(
+    *,
+    max_images_per_note: int | None,
+    min_image_gap_seconds: float,
+) -> _ImageSelectionPolicy:
+    if max_images_per_note is not None and max_images_per_note < 0:
+        raise ValueError("max_images_per_note must be greater than or equal to 0")
+    if min_image_gap_seconds < 0:
+        raise ValueError("min_image_gap_seconds must be greater than or equal to 0")
+    return _ImageSelectionPolicy(
+        max_images_per_note=max_images_per_note,
+        min_image_gap_seconds=float(min_image_gap_seconds),
+    )
+
+
+def _select_scenes_for_insertion(
+    *,
+    scenes: list[PreviewScene],
+    analyses_by_image: dict[str, dict[str, Any]],
+    policy: _ImageSelectionPolicy,
+) -> _ImageSelectionResult:
+    skipped_error_count = 0
+    eligible: list[PreviewScene] = []
+    for scene in scenes:
+        if scene.primary_image_ref is None:
+            continue
+        if (
+            not policy.include_error_images
+            and _analysis_has_qwen_error(
+                _analysis_for_ref(scene.primary_image_ref, analyses_by_image)
+            )
+        ):
+            skipped_error_count += 1
+            continue
+        eligible.append(scene)
+
+    gap_filtered = _apply_min_gap_policy(
+        eligible,
+        analyses_by_image,
+        policy.min_image_gap_seconds,
+    )
+    budgeted = _apply_max_images_policy(
+        gap_filtered,
+        analyses_by_image,
+        policy.max_images_per_note,
+    )
+    return _ImageSelectionResult(
+        scenes=budgeted,
+        skipped_error_image_count=skipped_error_count,
+    )
+
+
+def _apply_min_gap_policy(
+    scenes: list[PreviewScene],
+    analyses_by_image: dict[str, dict[str, Any]],
+    min_gap_seconds: float,
+) -> list[PreviewScene]:
+    if min_gap_seconds <= 0 or len(scenes) <= 1:
+        return scenes
+    ordered = sorted(scenes, key=_scene_timestamp)
+    clusters: list[list[PreviewScene]] = []
+    for scene in ordered:
+        if not clusters:
+            clusters.append([scene])
+            continue
+        previous_timestamp = _scene_timestamp(clusters[-1][-1])
+        if _scene_timestamp(scene) - previous_timestamp < min_gap_seconds:
+            clusters[-1].append(scene)
+        else:
+            clusters.append([scene])
+    selected = [
+        max(cluster, key=lambda scene: _scene_final_value_key(scene, analyses_by_image))
+        for cluster in clusters
+    ]
+    return sorted(selected, key=lambda scene: scenes.index(scene))
+
+
+def _apply_max_images_policy(
+    scenes: list[PreviewScene],
+    analyses_by_image: dict[str, dict[str, Any]],
+    max_images_per_note: int | None,
+) -> list[PreviewScene]:
+    if max_images_per_note is None or len(scenes) <= max_images_per_note:
+        return scenes
+    ranked = sorted(
+        scenes,
+        key=lambda scene: _scene_budget_key(scene, analyses_by_image),
+        reverse=True,
+    )
+    kept_ids = {id(scene) for scene in ranked[:max_images_per_note]}
+    return [scene for scene in scenes if id(scene) in kept_ids]
+
+
+def _scene_final_value_key(
+    scene: PreviewScene,
+    analyses_by_image: dict[str, dict[str, Any]],
+) -> tuple[int, float, int, int, int, float, str]:
+    analysis = _analysis_for_scene(scene, analyses_by_image)
+    return visual_value_key(analysis, _scene_timestamp(scene), scene.title)
+
+
+def _scene_budget_key(
+    scene: PreviewScene,
+    analyses_by_image: dict[str, dict[str, Any]],
+) -> tuple[int, float, int, int, int, float, str]:
+    analysis = _analysis_for_scene(scene, analyses_by_image)
+    return visual_value_key(analysis, _scene_timestamp(scene), scene.title)
+
+
+def _scene_timestamp(scene: PreviewScene) -> float:
+    if scene.end_timestamp is not None:
+        return scene.end_timestamp
+    if scene.start_timestamp is not None:
+        return scene.start_timestamp
+    return 0.0
+
+
+def _analysis_for_scene(
+    scene: PreviewScene,
+    analyses_by_image: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    if scene.primary_image_ref is None:
+        return None
+    return _analysis_for_ref(scene.primary_image_ref, analyses_by_image)
+
+
+def _analysis_confidence(analysis: dict[str, Any] | None) -> float:
+    if not analysis:
+        return 0.0
+    confidence = analysis.get("confidence")
+    if isinstance(confidence, bool):
+        return 0.0
+    if isinstance(confidence, (int, float)):
+        return float(confidence)
+    return 0.0
 
 
 def _build_visual_inserts(
@@ -345,6 +515,16 @@ def _analysis_for_ref(
     return analyses_by_image.get(ref) or analyses_by_image.get(Path(ref).name)
 
 
+def _analysis_has_qwen_error(analysis: dict[str, Any] | None) -> bool:
+    if not analysis:
+        return False
+    observations = analysis.get("structured_observations")
+    if not isinstance(observations, dict):
+        return False
+    service = observations.get("qwen_service")
+    return isinstance(service, dict) and service.get("status") == "error"
+
+
 def _analysis_topic(analysis: dict[str, Any]) -> str:
     observations = analysis.get("structured_observations")
     if not isinstance(observations, dict):
@@ -416,4 +596,4 @@ def _unique(values: list[str]) -> list[str]:
 
 
 def _markdown_path(path: Path) -> str:
-    return str(path).replace("\\", "/")
+    return "/".join(quote(part, safe="") for part in path.parts)

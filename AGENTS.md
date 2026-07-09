@@ -36,3 +36,31 @@ The repository uses `main` with remote `https://github.com/ronliu014/vbook.git`.
 vBook may borrow design ideas from `vtext` (`https://github.com/ronliu014/vtext.git`), especially the already implemented video-to-audio-to-text-to-knowledge workflow, but it must not depend on or vendor vtext code. Treat the projects as aligned today but independently evolving.
 
 Use `sync/` as the protocol directory for Windows and Linux Codex collaboration. Refer to the Windows-side Codex as `wcodex` and the Linux-side Codex as `lcodex` in sync messages, handoffs, and task files.
+
+## vsync Cross-Project Coordination
+
+vBook participates in `vsync/v1` as the integration hub for the v-series video-note processing cluster. Use vsync as the central mailbox for durable communication with `vtext` and `vision`; do not rely on chat history as the cross-project record.
+
+Canonical protocol:
+
+- `E:/projects/my_app/vsync/PROTOCOL.md`
+
+Mailbox:
+
+- inbox: `E:/projects/my_app/vsync/mailbox/inbox/vbook/README.md`
+- outbox: `E:/projects/my_app/vsync/mailbox/outbox/vbook/README.md`
+- messages: `E:/projects/my_app/vsync/mailbox/messages/`
+
+When creating, replying to, querying, indexing, or auditing cross-project messages, use:
+
+- `E:/projects/my_app/vsync/skills/cross-project-communication/SKILL.md`
+
+Rules:
+
+- Store canonical cross-project messages in `vsync/mailbox/messages/`.
+- Index sent messages in `vsync/mailbox/outbox/vbook/README.md`.
+- Check received messages in `vsync/mailbox/inbox/vbook/README.md`.
+- Use `Protocol: vsync/v1` and `Mailbox-Path:` in new message envelopes.
+- Do not write mailbox copies into `vtext` or `vision` repositories.
+- Update vBook docs only when a mailbox message changes durable vBook-owned facts such as contracts, runbooks, operations, compatibility, defaults, latency, risk, or backlog.
+- Keep videos, generated notes, extracted frames, large logs, and model artifacts out of vsync messages; link paths and summarize evidence instead.

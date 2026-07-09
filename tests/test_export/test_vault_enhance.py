@@ -202,6 +202,181 @@ class VaultEnhanceTest(unittest.TestCase):
         self.assertEqual(package.manifest_path, manifest_path)
         self.assertTrue(manifest_exists)
 
+    def test_url_encodes_markdown_image_paths_with_spaces(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output, _ = _write_lesson_fixture(root)
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson with spaces.md"
+
+            write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "![构建股票池之前的准备](assets/lesson%20with%20spaces/frame_000002.jpg)",
+            enhanced,
+        )
+        self.assertNotIn("](assets/lesson with spaces/frame_000002.jpg)", enhanced)
+
+    def test_keeps_final_visual_within_min_gap_window(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output = _write_multi_scene_fixture(
+                root,
+                [
+                    _SceneFixture("起势观察", 60.0, "frame_000001.jpg", "板书刚开始"),
+                    _SceneFixture("买点确认", 110.0, "frame_000002.jpg", "完成态买点确认页"),
+                    _SceneFixture("复盘执行", 360.0, "frame_000003.jpg", "复盘执行页"),
+                ],
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            package = write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+                min_image_gap_seconds=120.0,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+            manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
+
+        self.assertNotIn("frame_000001.jpg", enhanced)
+        self.assertIn("frame_000002.jpg", enhanced)
+        self.assertIn("frame_000003.jpg", enhanced)
+        self.assertEqual(manifest["inserted_image_count"], 2)
+        self.assertEqual(manifest["image_selection"]["min_image_gap_seconds"], 120.0)
+
+    def test_honors_max_images_per_note_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output = _write_multi_scene_fixture(
+                root,
+                [
+                    _SceneFixture("起势观察", 60.0, "frame_000001.jpg", "起势观察页"),
+                    _SceneFixture("买点确认", 240.0, "frame_000002.jpg", "买点确认页"),
+                    _SceneFixture("复盘执行", 420.0, "frame_000003.jpg", "复盘执行页"),
+                ],
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            package = write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+                max_images_per_note=2,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+            manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(enhanced.count("![起势观察]"), 0)
+        self.assertEqual(enhanced.count("![买点确认]"), 1)
+        self.assertEqual(enhanced.count("![复盘执行]"), 1)
+        self.assertEqual(manifest["inserted_image_count"], 2)
+        self.assertEqual(manifest["image_selection"]["max_images_per_note"], 2)
+
+    def test_skips_structured_qwen_error_visuals(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output = _write_multi_scene_fixture(
+                root,
+                [
+                    _SceneFixture(
+                        "起势观察",
+                        60.0,
+                        "frame_000001.jpg",
+                        "起势观察页",
+                        qwen_error=True,
+                    ),
+                    _SceneFixture("买点确认", 240.0, "frame_000002.jpg", "买点确认页"),
+                ],
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            package = write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+            manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
+
+        self.assertNotIn("frame_000001.jpg", enhanced)
+        self.assertIn("frame_000002.jpg", enhanced)
+        self.assertEqual(manifest["image_selection"]["skipped_error_image_count"], 1)
+
+    def test_prefers_dense_completed_board_over_later_transition_frame(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output = _write_multi_scene_fixture(
+                root,
+                [
+                    _SceneFixture(
+                        "反抽反弹反转",
+                        180.0,
+                        "frame_000001.jpg",
+                        "完成态板书，包含反抽、反弹、反转的定义、区别、位置和操作要点",
+                    ),
+                    _SceneFixture(
+                        "反抽反弹反转",
+                        240.0,
+                        "frame_000002.jpg",
+                        "过渡页，准备进入下一节",
+                    ),
+                ],
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+
+        self.assertIn("frame_000001.jpg", enhanced)
+        self.assertNotIn("frame_000002.jpg", enhanced)
+
+    def test_prefers_later_same_topic_frame_when_ocr_density_is_only_noise(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            vtext_note, lesson_output = _write_multi_scene_fixture(
+                root,
+                [
+                    _SceneFixture(
+                        "反抽反弹反转",
+                        180.0,
+                        "frame_000001.jpg",
+                        "行情面板和风险提示文字很多，但讲解还在普通观察阶段",
+                    ),
+                    _SceneFixture(
+                        "反抽反弹反转",
+                        240.0,
+                        "frame_000002.jpg",
+                        "继续讲解反抽反弹反转",
+                    ),
+                ],
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+
+        self.assertNotIn("frame_000001.jpg", enhanced)
+        self.assertIn("frame_000002.jpg", enhanced)
+
 
 def _write_lesson_fixture(
     root: Path,
@@ -334,6 +509,93 @@ def _rewrite_single_visual(
         ),
         encoding="utf-8",
     )
+
+
+class _SceneFixture:
+    def __init__(
+        self,
+        title: str,
+        timestamp: float,
+        image_name: str,
+        description: str,
+        *,
+        qwen_error: bool = False,
+    ) -> None:
+        self.title = title
+        self.timestamp = timestamp
+        self.image_name = image_name
+        self.description = description
+        self.qwen_error = qwen_error
+
+
+def _write_multi_scene_fixture(
+    root: Path,
+    scenes: list[_SceneFixture],
+) -> tuple[Path, Path]:
+    lesson_output = root / "lesson-output"
+    selected_dir = lesson_output / "frames" / "selected"
+    vtext_note = root / "vault" / "20_Learning" / "vtext" / "lesson.md"
+    selected_dir.mkdir(parents=True)
+    vtext_note.parent.mkdir(parents=True)
+    (lesson_output / "vision").mkdir(parents=True)
+    (lesson_output / "fusion").mkdir(parents=True)
+    vtext_note.write_text(
+        "# 龙头战法\n\n"
+        + "\n\n".join(
+            f"## {scene.title}\n\n{scene.description}。" for scene in scenes
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    analyses = []
+    sections = []
+    for index, scene in enumerate(scenes, start=1):
+        image = selected_dir / scene.image_name
+        image.write_bytes(f"image {index}".encode("utf-8"))
+        analysis = {
+            "frame_id": f"frame-{index:06d}",
+            "image_path": str(image),
+            "timestamp": scene.timestamp,
+            "ocr_text": scene.title + "\n" + scene.description,
+            "vision_description": scene.description,
+            "structured_observations": {
+                "topic": scene.title,
+                "qwen_service": {
+                    "request_id": f"vbook-frame-{index:06d}",
+                },
+            },
+            "confidence": 0.9,
+        }
+        if scene.qwen_error:
+            analysis["structured_observations"]["qwen_service"] = {
+                "status": "error",
+                "error_kind": "service_error",
+                "http_status": 504,
+                "service_error_code": "timeout",
+            }
+        analyses.append(analysis)
+        sections.append(
+            {
+                "title": scene.title,
+                "summary": scene.description,
+                "source_timestamps": [scene.timestamp - 30.0, scene.timestamp],
+                "image_refs": [str(image)],
+                "key_points": [scene.description],
+            }
+        )
+    (lesson_output / "manifest.json").write_text(
+        json.dumps({"stage_status": {"vision_analysis": "done"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (lesson_output / "vision" / "analysis.json").write_text(
+        json.dumps({"analysis_count": len(analyses), "analyses": analyses}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    (lesson_output / "fusion" / "sections.json").write_text(
+        json.dumps({"sections": sections}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return vtext_note, lesson_output
 
 
 if __name__ == "__main__":

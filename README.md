@@ -137,6 +137,24 @@ conda run -n App python -m vbook_client vault-preview `
   --output "outputs\vault-enhancement-preview\<series>\<lesson>"
 ```
 
+For current vault-quality output, use the vtext-first `vault-enhance` workflow.
+It preserves the source vtext note, copies selected screenshots, and writes a
+separate vBook note plus manifest:
+
+```powershell
+conda run -n App python -m vbook_client vault-enhance `
+  --vtext-note "F:\vault\20_Learning\vtext\<series>\<lesson>.md" `
+  --lesson-output "outputs\<lesson-output>" `
+  --output-note "F:\vault\20_Learning\vbook\<series>\<lesson>.md" `
+  --max-images-per-note 3 `
+  --min-image-gap-seconds 180
+```
+
+See [`docs/60_operations/vault-enhance.md`](docs/60_operations/vault-enhance.md)
+for the current image-budget guidance. The tested Qwen baseline is `240s` for
+stable visual extraction; denser full-course sweeps should wait for smarter
+selection and retry policy.
+
 ## Sync Roles
 
 - `wcodex` - Windows-side Codex agent.

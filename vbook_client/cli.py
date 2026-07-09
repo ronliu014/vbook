@@ -115,6 +115,8 @@ def _run_vault_enhance(
             lesson_output_dir=args.lesson_output,
             output_note_path=args.output_note,
             manifest_path=args.manifest_output,
+            max_images_per_note=args.max_images_per_note,
+            min_image_gap_seconds=args.min_image_gap_seconds,
         )
     except (ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
@@ -199,6 +201,17 @@ def _build_parser() -> argparse.ArgumentParser:
     enhance_parser.add_argument(
         "--manifest-output",
         help="Manifest output path; defaults to <output-note>.manifest.json",
+    )
+    enhance_parser.add_argument(
+        "--max-images-per-note",
+        type=int,
+        help="Maximum images inserted into the enhanced note",
+    )
+    enhance_parser.add_argument(
+        "--min-image-gap-seconds",
+        type=float,
+        default=0.0,
+        help="Minimum seconds between inserted images; nearby scenes keep the later completed page",
     )
 
     return parser

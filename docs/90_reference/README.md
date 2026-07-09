@@ -13,8 +13,12 @@ reading path.
 - [vbook-text-integration-request.md](./vbook-text-integration-request.md)
 - [vtext-integration-response-summary.md](./vtext-integration-response-summary.md)
 - [integration-response.md](./integration-response.md)
+- [vsync-adoption.md](./vsync-adoption.md)
 - [qwen-vision-service-requirements.md](./qwen-vision-service-requirements.md)
 - [qwen-vision-service-integration-request.md](./qwen-vision-service-integration-request.md)
+- [vbook-vision-qwen-timeout-investigation-request.md](./vbook-vision-qwen-timeout-investigation-request.md)
+- [vbook-vision-qwen-timeout-investigation-response.md](./vbook-vision-qwen-timeout-investigation-response.md)
+- [vision-vbook-qwen-timeout-investigation-response.md](./vision-vbook-qwen-timeout-investigation-response.md)
 - [../40_development/sync-protocol.md](../40_development/sync-protocol.md)
 
 ## Sample Artifacts
