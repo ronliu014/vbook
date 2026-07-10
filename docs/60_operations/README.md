@@ -13,6 +13,16 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
   integration runbook for Qwen Vision Service.
 - [vault-enhance.md](./vault-enhance.md) - current vtext-first workflow that
   writes image-enhanced notes under the lowercase `vbook` output tree.
+- [experiment-workspace.md](./experiment-workspace.md) - user-provided
+  `F:/vbook` workspace layout for input registries and formal experiment
+  outputs.
+- [experiment-workflow.md](./experiment-workflow.md) - standard phase-by-phase
+  runbook for repeatable route and model experiments.
+- [experiment-artifacts.md](./experiment-artifacts.md) - project-local layout
+  for experiment inputs, requests, responses, renders, reviews, comparisons,
+  and decisions.
+- [experiment-datasets.md](./experiment-datasets.md) - canonical local paths,
+  real-course sample set, route labels, and review checklist for experiments.
 - [../../README.md](../../README.md#development-commands)
 - [../20_architecture/output-contracts.md](../20_architecture/output-contracts.md)
 

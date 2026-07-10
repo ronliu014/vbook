@@ -8,6 +8,8 @@ ship vBook work.
 - [../../AGENTS.md](../../AGENTS.md)
 - [sync-protocol.md](./sync-protocol.md)
 - [commands.md](./commands.md)
+- [experiment-protocol.md](./experiment-protocol.md) - standard protocol for
+  recording, comparing, and reviewing technical attempts.
 - [../../README.md](../../README.md#development-commands)
 
 ## Planned Documents

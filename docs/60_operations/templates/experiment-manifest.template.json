@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "experiment_id": "E20260710-semantic-visual-note",
+  "route_label": "semantic_visual_note",
+  "branch": "codex-semantic-visual-note-test",
+  "baseline_ref": "v0.1.0",
+  "dataset_id": "investment-camp-hanke-basic-v1",
+  "input_root": "F:/vbook/inputs/investment-camp-hanke-basic-v1",
+  "output_root": "F:/vbook/experiments",
+  "experiment_root": "F:/vbook/experiments/E20260710-semantic-visual-note",
+  "status": "planned",
+  "created_at": "2026-07-10",
+  "vault_write": "disabled",
+  "lessons": [],
+  "routes": [],
+  "providers": [],
+  "artifacts": {
+    "inputs": "inputs/",
+    "requests": "requests/",
+    "responses": "responses/",
+    "renders": "renders/",
+    "reviews": "reviews/",
+    "comparisons": "comparisons/",
+    "decision": "decision.md"
+  }
+}

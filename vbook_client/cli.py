@@ -14,6 +14,7 @@ from vbook_common.types import VideoAsset
 from vbook_common.version import __version__
 from vbook_export.manifest import build_manifest, write_manifest
 from vbook_export.note import render_placeholder_note, render_sections_note, write_note
+from vbook_export.semantic_visual_note import write_semantic_visual_note_package
 from vbook_export.vault_enhance import write_vtext_first_package
 from vbook_export.vault_preview import load_preview_sources, write_preview_package
 from vbook_fusion.llm_contract import (
@@ -88,6 +89,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "vault-enhance":
         return _run_vault_enhance(args, parser)
 
+    if args.command == "semantic-visual-note":
+        return _run_semantic_visual_note(args, parser)
+
     parser.print_help()
     return 0
 
@@ -117,6 +121,26 @@ def _run_vault_enhance(
             manifest_path=args.manifest_output,
             max_images_per_note=args.max_images_per_note,
             min_image_gap_seconds=args.min_image_gap_seconds,
+        )
+    except (ValueError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+    print(package.manifest_path)
+    return 0
+
+
+def _run_semantic_visual_note(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> int:
+    try:
+        package = write_semantic_visual_note_package(
+            lesson_output_dir=args.lesson_output,
+            output_dir=args.output,
+            transcript_path=args.transcript,
+            transcript_source_label=args.transcript_source_label,
+            llm_fusion_command=args.llm_fusion_command,
+            llm_response_path=args.llm_response,
+            max_visuals_per_request=args.max_visuals_per_request,
         )
     except (ValueError, json.JSONDecodeError) as exc:
         parser.error(str(exc))
@@ -212,6 +236,43 @@ def _build_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.0,
         help="Minimum seconds between inserted images; nearby scenes keep the later completed page",
+    )
+
+    semantic_visual_parser = subparsers.add_parser(
+        "semantic-visual-note",
+        help="Experimental transcript-and-visual-first note synthesis package",
+    )
+    semantic_visual_parser.add_argument(
+        "--lesson-output",
+        required=True,
+        help="Existing vBook lesson output directory with manifest and vision artifacts",
+    )
+    semantic_visual_parser.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for the experimental request or preview note",
+    )
+    semantic_visual_parser.add_argument(
+        "--transcript",
+        help="Optional corrected timestamped transcript; defaults to manifest transcript segments",
+    )
+    semantic_visual_parser.add_argument(
+        "--transcript-source-label",
+        default="semantic_verified",
+        help="Label for the transcript source recorded in the request",
+    )
+    semantic_visual_parser.add_argument(
+        "--llm-fusion-command",
+        help="External command template for model synthesis; must contain {input} and {output}",
+    )
+    semantic_visual_parser.add_argument(
+        "--llm-response",
+        help="Existing model response JSON to render as a preview note",
+    )
+    semantic_visual_parser.add_argument(
+        "--max-visuals-per-request",
+        type=int,
+        help="Maximum non-error visual evidence records included in the model request",
     )
 
     return parser

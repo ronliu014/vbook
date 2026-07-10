@@ -22,6 +22,15 @@ For development work:
 5. [20_architecture/README.md](./20_architecture/README.md)
 6. [40_development/README.md](./40_development/README.md)
 
+For technical experiments and route comparisons:
+
+1. [40_development/experiment-protocol.md](./40_development/experiment-protocol.md)
+2. [60_operations/experiment-workspace.md](./60_operations/experiment-workspace.md)
+3. [60_operations/experiment-workflow.md](./60_operations/experiment-workflow.md)
+4. [60_operations/experiment-artifacts.md](./60_operations/experiment-artifacts.md)
+5. [60_operations/experiment-datasets.md](./60_operations/experiment-datasets.md)
+6. [70_progress/2026-07-10-note-synthesis-experiment-plan.md](./70_progress/2026-07-10-note-synthesis-experiment-plan.md)
+
 ## Documentation Layers
 
 | Layer | Purpose |

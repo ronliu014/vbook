@@ -1,0 +1,45 @@
+{
+  "schema_version": "1",
+  "dataset_id": "investment-camp-hanke-basic-v1",
+  "input_root": "F:/vbook/inputs/investment-camp-hanke-basic-v1",
+  "description": "Small real-course evaluation set for vBook note synthesis experiments.",
+  "source_roots": {
+    "video": "F:/downloads/allwin/投资训练营",
+    "vtext_notes": "F:/vault/20_Learning/vtext/投资训练营",
+    "lesson_outputs": "E:/projects/my_app/vbook/outputs",
+    "baseline_previews": "E:/projects/my_app/vbook/outputs/post-deploy-vault-enhance/240s"
+  },
+  "default_frame_interval_seconds": 240,
+  "lessons": [
+    {
+      "lesson_id": "lesson-001",
+      "title": "如何筛选龙头股？",
+      "course": "韩珂龙头班：基础篇",
+      "vtext_note": "F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/如何筛选龙头股？.md",
+      "lesson_output": "E:/projects/my_app/vbook/outputs/interval-sweep-qwen/240s/韩珂龙头班：基础篇/如何筛选龙头股？",
+      "baseline_preview": "E:/projects/my_app/vbook/outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/如何筛选龙头股？.md",
+      "transcript_source_label": "vtext_semantic_verified",
+      "known_issues": []
+    },
+    {
+      "lesson_id": "lesson-002",
+      "title": "龙头股的上涨逻辑是什么？",
+      "course": "韩珂龙头班：基础篇",
+      "vtext_note": "F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？.md",
+      "lesson_output": "E:/projects/my_app/vbook/outputs/interval-sweep-qwen/240s/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？",
+      "baseline_preview": "E:/projects/my_app/vbook/outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？.md",
+      "transcript_source_label": "vtext_semantic_verified",
+      "known_issues": []
+    },
+    {
+      "lesson_id": "lesson-003",
+      "title": "反抽 反弹 反转",
+      "course": "韩珂龙头班：基础篇",
+      "vtext_note": "F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/反抽 反弹 反转.md",
+      "lesson_output": "E:/projects/my_app/vbook/outputs/post-deploy-controlled-qwen/240s/韩珂龙头班：基础篇/反抽 反弹 反转",
+      "baseline_preview": "E:/projects/my_app/vbook/outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/反抽 反弹 反转.md",
+      "transcript_source_label": "vtext_semantic_verified",
+      "known_issues": []
+    }
+  ]
+}
