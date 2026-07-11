@@ -221,6 +221,36 @@ For this stage, mark external model routes as `paused`, not `failed`.
    local route.
 6. Compare all available local routes before reopening external model adapters.
 
+## Implementation Status
+
+Status on 2026-07-11:
+
+- Created `F:/vbook/experiments/E20260711-existing-model-baselines`.
+- Registered the three-lesson dataset under `inputs/dataset.json`.
+- Copied the existing `vtext_first_vault_enhance` previews into the formal
+  experiment layout and copied per-lesson assets so Markdown image links resolve.
+- Added `tools/qwen_visual_evidence_pack.py` to generate Qwen evidence
+  inspection Markdown with copied assets.
+- Added `tools/semantic_visual_rule_baseline.py` to generate a deterministic
+  transcript+visual-first local baseline without external APIs.
+- Generated all three local routes for all three registered lessons.
+- Checked Markdown image links across rendered outputs: `25` links, `0`
+  missing.
+
+Formal output root:
+
+```text
+F:/vbook/experiments/E20260711-existing-model-baselines
+```
+
+Key route outputs:
+
+```text
+renders/vtext_first_vault_enhance/baseline/<lesson>/note.md
+renders/qwen_visual_evidence_240s/baseline/<lesson>/visual-evidence.md
+renders/semantic_visual_rule_baseline/baseline/<lesson>/note.md
+```
+
 ## Decision Rule
 
 Do not wait for OpenAI, Claude, or GLM to become available before improving the
