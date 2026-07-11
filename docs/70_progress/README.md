@@ -9,6 +9,7 @@ to reconstruct it from chat history or dated logs.
 
 ## Current Progress Logs
 
+- [2026-07-11-existing-model-baseline-plan.md](./2026-07-11-existing-model-baseline-plan.md)
 - [2026-07-04-service-wait-pause.md](./2026-07-04-service-wait-pause.md)
 - [2026-07-10-note-synthesis-experiment-plan.md](./2026-07-10-note-synthesis-experiment-plan.md)
 - [2026-06-25.md](./2026-06-25.md)

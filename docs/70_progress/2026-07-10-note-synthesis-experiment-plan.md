@@ -116,6 +116,17 @@ Interpretation:
 
 ## Model Comparison Backlog
 
+Status update on 2026-07-11:
+
+- External OpenAI, Claude, and GLM API calls are paused pending administrator
+  coordination for the AI distribution center.
+- They should not block current route evaluation.
+- Continue with existing local/reproducible capabilities first: Qwen visual
+  evidence, vtext-first enhancement, and deterministic semantic+visual
+  baselines.
+- See
+  [2026-07-11-existing-model-baseline-plan.md](./2026-07-11-existing-model-baseline-plan.md).
+
 Candidate APIs:
 
 - Qwen VL: existing visual baseline.
