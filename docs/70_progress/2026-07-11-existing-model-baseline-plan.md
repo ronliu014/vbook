@@ -356,6 +356,9 @@ docs/80_superpowers/plans/2026-07-15-experiment-review-round.md
 - The review package keeps automatic preflight status, candidate preview paths,
   route labels, fixed scoring fields, user review prompts, and a decision
   template together.
+- Extended the same tool with review finalization so the user's selected route
+  can be written back to `review-manifest.json`, `review-sheet.csv`,
+  `user-review.md`, and `decision-template.md` without ad hoc scripts.
 
 Expected current experiment review package:
 
@@ -372,3 +375,5 @@ Implication:
 - Future route/model experiments should not rely on ad hoc user comments alone.
 - Each comparison round should preserve both the automatic hygiene result and
   the user's qualitative preference in a stable package.
+- A completed review round now has both a generated comparison package and a
+  finalized machine-readable decision.

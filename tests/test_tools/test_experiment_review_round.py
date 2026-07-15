@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.experiment_review_round import create_review_round
+from tools.experiment_review_round import create_review_round, finalize_review_round
 
 
 class ExperimentReviewRoundTest(unittest.TestCase):
@@ -120,6 +120,69 @@ class ExperimentReviewRoundTest(unittest.TestCase):
                     round_id="../outside",
                     dataset_id="dataset",
                 )
+
+    def test_finalizes_review_round_with_selected_route(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "experiment"
+            _write_note(
+                root
+                / "renders"
+                / "vtext_first_vault_enhance"
+                / "baseline"
+                / "如何筛选龙头股？"
+                / "note.md",
+                "# 如何筛选龙头股？\n",
+            )
+            _write_note(
+                root
+                / "renders"
+                / "semantic_visual_rule_baseline"
+                / "baseline"
+                / "如何筛选龙头股？"
+                / "note.md",
+                "# Rule Baseline\n",
+            )
+            _write_preflight(
+                root / "comparisons" / "vtext-first-preflight.json",
+                root / "renders" / "vtext_first_vault_enhance" / "baseline",
+                ok=True,
+            )
+            create_review_round(
+                experiment_root=root,
+                round_id="round-002",
+                dataset_id="dataset",
+            )
+
+            package = finalize_review_round(
+                experiment_root=root,
+                round_id="round-002",
+                selected_route="vtext_first_vault_enhance",
+                decision_status="continue",
+                reason="User selected the best readable document effect.",
+                user_review_summary="vtext-first wins; rule baseline is a control.",
+                selected_route_note=(
+                    "User selected current best readable document; richer than "
+                    "pure vtext text-only notes."
+                ),
+                auxiliary_route_note="Auxiliary artifact; not a readable note candidate.",
+            )
+
+            manifest = json.loads(package.manifest_path.read_text(encoding="utf-8"))
+            rows = _read_csv(package.review_sheet_path)
+            decision = package.decision_template_path.read_text(encoding="utf-8")
+            user_review = package.user_review_path.read_text(encoding="utf-8")
+
+        self.assertEqual(manifest["review_status"], "winner_selected")
+        self.assertEqual(manifest["selected_route"], "vtext_first_vault_enhance")
+        self.assertEqual(manifest["decision_status"], "continue")
+        by_route = {row["route"]: row for row in rows}
+        self.assertEqual(by_route["vtext_first_vault_enhance"]["user_preference"], "3")
+        self.assertEqual(by_route["vtext_first_vault_enhance"]["semantic_coverage"], "3")
+        self.assertEqual(by_route["semantic_visual_rule_baseline"]["user_preference"], "1")
+        self.assertIn("# Decision round-002", decision)
+        self.assertIn("Best readable-note route: `vtext_first_vault_enhance`", decision)
+        self.assertIn("## Review Outcome", user_review)
+        self.assertIn("Selected readable-note route: `vtext_first_vault_enhance`", user_review)
 
 
 def _write_note(path: Path, markdown: str) -> None:

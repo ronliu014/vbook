@@ -265,6 +265,27 @@ End each experiment with one decision:
 Record the reason. Do not delete outputs immediately; keep preview artifacts
 until the dated progress note has enough evidence to reconstruct the result.
 
+Finalize the review round after the user chooses a route:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_review_round.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --round-id round-001 \
+  --dataset-id <dataset-id> \
+  --selected-route <route-label> \
+  --decision-status continue \
+  --reason "<short reason>" \
+  --user-review-summary "<short user preference summary>"
+```
+
+Finalization updates:
+
+- `review-manifest.json` with `review_status`, `selected_route`, and
+  `decision_status`;
+- `review-sheet.csv` with route preference scores and reviewer notes;
+- `user-review.md` with a `Review Outcome` section;
+- `decision-template.md` as the final decision record for the round.
+
 ## Phase 8: Summary
 
 Write or update a dated progress log under `docs/70_progress/`.

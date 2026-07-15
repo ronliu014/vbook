@@ -80,13 +80,40 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--experiment-root", required=True)
     parser.add_argument("--round-id", required=True)
     parser.add_argument("--dataset-id", required=True)
+    parser.add_argument("--selected-route")
+    parser.add_argument("--decision-status", default="continue")
+    parser.add_argument("--reason", default="")
+    parser.add_argument("--user-review-summary", default="")
+    parser.add_argument(
+        "--selected-route-note",
+        default=(
+            "User selected current best readable document; richer and more "
+            "accurate than pure vtext text-only notes."
+        ),
+    )
+    parser.add_argument(
+        "--auxiliary-route-note",
+        default="Auxiliary artifact; not a readable note candidate.",
+    )
     args = parser.parse_args(argv)
 
-    package = create_review_round(
-        experiment_root=args.experiment_root,
-        round_id=args.round_id,
-        dataset_id=args.dataset_id,
-    )
+    if args.selected_route:
+        package = finalize_review_round(
+            experiment_root=args.experiment_root,
+            round_id=args.round_id,
+            selected_route=args.selected_route,
+            decision_status=args.decision_status,
+            reason=args.reason,
+            user_review_summary=args.user_review_summary,
+            selected_route_note=args.selected_route_note,
+            auxiliary_route_note=args.auxiliary_route_note,
+        )
+    else:
+        package = create_review_round(
+            experiment_root=args.experiment_root,
+            round_id=args.round_id,
+            dataset_id=args.dataset_id,
+        )
     print(str(package.output_dir))
     return 0
 
@@ -135,6 +162,82 @@ def create_review_round(
             candidates=candidates,
         ),
         encoding="utf-8",
+    )
+
+    return ReviewRoundPackage(
+        output_dir=output_dir,
+        manifest_path=manifest_path,
+        review_sheet_path=review_sheet_path,
+        user_review_path=user_review_path,
+        decision_template_path=decision_template_path,
+        candidates=candidates,
+    )
+
+
+def finalize_review_round(
+    *,
+    experiment_root: Path | str,
+    round_id: str,
+    selected_route: str,
+    decision_status: str,
+    reason: str,
+    user_review_summary: str,
+    selected_route_note: str,
+    auxiliary_route_note: str,
+) -> ReviewRoundPackage:
+    root = Path(experiment_root)
+    output_dir = _review_output_dir(root, round_id)
+    manifest_path = output_dir / "review-manifest.json"
+    review_sheet_path = output_dir / "review-sheet.csv"
+    user_review_path = output_dir / "user-review.md"
+    decision_template_path = output_dir / "decision-template.md"
+    if not manifest_path.is_file():
+        raise ValueError(f"review manifest does not exist: {manifest_path}")
+    if not review_sheet_path.is_file():
+        raise ValueError(f"review sheet does not exist: {review_sheet_path}")
+
+    rows = _read_review_sheet(review_sheet_path)
+    if not any(row.get("route") == selected_route for row in rows):
+        raise ValueError(f"selected route is not in review sheet: {selected_route}")
+    _apply_final_scores(
+        rows=rows,
+        selected_route=selected_route,
+        selected_route_note=selected_route_note,
+        auxiliary_route_note=auxiliary_route_note,
+    )
+    _write_review_sheet_rows(review_sheet_path, rows)
+
+    manifest = _read_json_object(manifest_path)
+    if manifest is None:
+        raise ValueError(f"review manifest must be a JSON object: {manifest_path}")
+    manifest["review_status"] = "winner_selected"
+    manifest["selected_route"] = selected_route
+    manifest["decision_status"] = decision_status
+    manifest["user_review_summary"] = user_review_summary
+    manifest["finalized_at"] = datetime.now(timezone.utc).isoformat()
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    candidates = _candidates_from_manifest(manifest)
+    decision_template_path.write_text(
+        _render_final_decision(
+            round_id=round_id,
+            dataset_id=str(manifest.get("dataset_id") or ""),
+            experiment_root=root,
+            candidates=candidates,
+            selected_route=selected_route,
+            decision_status=decision_status,
+            reason=reason,
+            user_review_summary=user_review_summary,
+        ),
+        encoding="utf-8",
+    )
+    _write_user_review_outcome(
+        path=user_review_path,
+        selected_route=selected_route,
+        user_review_summary=user_review_summary,
     )
 
     return ReviewRoundPackage(
@@ -227,11 +330,49 @@ def _route_from_preflight_root(experiment_root: Path, value: Any) -> str:
 
 
 def _write_review_sheet(path: Path, candidates: list[ReviewCandidate]) -> None:
+    _write_review_sheet_rows(path, [candidate.to_sheet_row() for candidate in candidates])
+
+
+def _write_review_sheet_rows(path: Path, rows: list[dict[str, str]]) -> None:
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=_REVIEW_COLUMNS)
         writer.writeheader()
-        for candidate in candidates:
-            writer.writerow(candidate.to_sheet_row())
+        for row in rows:
+            writer.writerow({column: row.get(column, "") for column in _REVIEW_COLUMNS})
+
+
+def _read_review_sheet(path: Path) -> list[dict[str, str]]:
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _apply_final_scores(
+    *,
+    rows: list[dict[str, str]],
+    selected_route: str,
+    selected_route_note: str,
+    auxiliary_route_note: str,
+) -> None:
+    selected_score_fields = (
+        "semantic_coverage",
+        "visual_recovery",
+        "image_choice",
+        "image_placement",
+        "error_handling",
+        "text_discipline",
+        "preview_safety",
+    )
+    for row in rows:
+        if row.get("route") == selected_route:
+            for field in selected_score_fields:
+                row[field] = "3"
+            row["traceability"] = "2"
+            row["user_preference"] = "3"
+            row["reviewer_notes"] = selected_route_note
+        else:
+            row["user_preference"] = "1"
+            if not row.get("reviewer_notes"):
+                row["reviewer_notes"] = auxiliary_route_note
 
 
 def _write_manifest(
@@ -368,6 +509,99 @@ def _render_decision_template(
         "",
     ]
     return "\n".join(lines)
+
+
+def _render_final_decision(
+    *,
+    round_id: str,
+    dataset_id: str,
+    experiment_root: Path,
+    candidates: list[ReviewCandidate],
+    selected_route: str,
+    decision_status: str,
+    reason: str,
+    user_review_summary: str,
+) -> str:
+    routes = sorted({candidate.route for candidate in candidates})
+    lessons = sorted(
+        {candidate.lesson for candidate in candidates if candidate.route == selected_route}
+    )
+    selected_statuses = sorted(
+        {candidate.preflight_status for candidate in candidates if candidate.route == selected_route}
+    )
+    preflight_summary = (
+        ", ".join(selected_statuses) if selected_statuses else "not_applicable"
+    )
+    lines = [
+        f"# Decision {round_id}",
+        "",
+        f"- Experiment: `{experiment_root}`",
+        f"- Dataset: `{dataset_id}`",
+        f"- Candidate routes: {', '.join(f'`{route}`' for route in routes)}",
+        "",
+        "## Decision",
+        "",
+        f"- Best readable-note route: `{selected_route}`",
+        f"- Decision status: {decision_status}",
+        f"- Reason: {reason}",
+        "",
+        "## Evidence",
+        "",
+        f"- Automatic preflight: `{selected_route}` status is `{preflight_summary}`.",
+        f"- User preference: {user_review_summary}",
+        f"- Strongest lesson examples: {', '.join(f'`{lesson}`' for lesson in lessons)}.",
+        "- Must-fix issues: continue tracking semantic completeness, image choice, and placement in future review rounds.",
+        "",
+        "## Next Step",
+        "",
+        f"- Continue with `{selected_route}` according to the recorded decision status.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _write_user_review_outcome(
+    *,
+    path: Path,
+    selected_route: str,
+    user_review_summary: str,
+) -> None:
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    outcome = (
+        "## Review Outcome\n\n"
+        f"- Selected readable-note route: `{selected_route}`\n"
+        f"- User preference: {user_review_summary}\n"
+        "- Auxiliary routes remain evidence/debugging/control artifacts unless a future review round promotes them.\n\n"
+    )
+    if "## Review Outcome" in text:
+        before, after = text.split("## Review Outcome", 1)
+        if "## Review Rubric" in after:
+            _, after_rubric = after.split("## Review Rubric", 1)
+            text = before.rstrip() + "\n\n" + outcome + "## Review Rubric" + after_rubric
+        else:
+            text = before.rstrip() + "\n\n" + outcome
+    elif "## Review Rubric" in text:
+        text = text.replace("## Review Rubric", outcome + "## Review Rubric", 1)
+    else:
+        text = text.rstrip() + "\n\n" + outcome
+    path.write_text(text, encoding="utf-8")
+
+
+def _candidates_from_manifest(manifest: dict[str, Any]) -> list[ReviewCandidate]:
+    candidates = []
+    for item in manifest.get("candidates", []):
+        if not isinstance(item, dict):
+            continue
+        candidates.append(
+            ReviewCandidate(
+                lesson=str(item.get("lesson") or ""),
+                route=str(item.get("route") or ""),
+                variant=str(item.get("variant") or ""),
+                preview_path=Path(str(item.get("preview_path") or "")),
+                preflight_status=str(item.get("preflight_status") or "not_applicable"),
+            )
+        )
+    return candidates
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

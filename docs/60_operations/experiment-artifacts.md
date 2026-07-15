@@ -258,6 +258,24 @@ Automatic preflight status is supporting evidence only. A passing preflight does
 not mean the route wins; it only means the preview is mechanically safe enough
 for user comparison.
 
+After the user chooses the best route, finalize the round:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_review_round.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --round-id round-002 \
+  --dataset-id <dataset-id> \
+  --selected-route <route-label> \
+  --decision-status continue \
+  --reason "<short reason>" \
+  --user-review-summary "<short user preference summary>"
+```
+
+Finalization keeps the user's decision machine-readable in
+`review-manifest.json`, fills the standard preference fields in
+`review-sheet.csv`, adds a `Review Outcome` section to `user-review.md`, and
+writes the final decision into `decision-template.md`.
+
 ### User Review Template
 
 Use this template when asking the user to compare outputs:
