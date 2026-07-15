@@ -258,6 +258,11 @@ Status on 2026-07-15:
 - User reviewed the generated local baseline outputs.
 - User concluded that `vtext_first_vault_enhance` gives the best document
   effect among the currently available routes.
+- User clarified that compared with pure vtext text-only notes,
+  `vtext_first_vault_enhance` is much better in information richness and
+  perceived accuracy.
+- User clarified that `qwen_visual_evidence_240s` and
+  `semantic_visual_rule_baseline` do not read like usable notes.
 - The formal experiment decision was updated:
 
 ```text
@@ -274,9 +279,11 @@ Implications:
 
 - Treat `vtext_first_vault_enhance` as the current winning baseline for
   near-term hardening and potential preview publication.
-- Keep `qwen_visual_evidence_240s` as a visual evidence/debugging route.
-- Keep `semantic_visual_rule_baseline` as a deterministic control, not as the
-  preferred user-facing output.
+- Treat `vtext_first_vault_enhance` as the only current readable-note candidate.
+- Keep `qwen_visual_evidence_240s` as a visual evidence/debugging route, not as
+  a readable note candidate.
+- Keep `semantic_visual_rule_baseline` as a deterministic engineering control,
+  not as a user-facing note candidate.
 - Keep external OpenAI, Claude, and GLM model routes paused until the AI
   distribution center is ready.
 
