@@ -339,3 +339,36 @@ Implication:
 - Preflight passing is required before publication or user comparison rounds,
   but it does not replace user scoring for image value, insertion location, or
   note readability.
+
+## Review Round Standardization
+
+Status on 2026-07-15:
+
+- Added a design and implementation plan for standard user review rounds:
+
+```text
+docs/80_superpowers/specs/2026-07-15-experiment-review-round-design.md
+docs/80_superpowers/plans/2026-07-15-experiment-review-round.md
+```
+
+- Added `tools/experiment_review_round.py` to generate repeatable review
+  packages under `reviews/<round-id>/`.
+- The review package keeps automatic preflight status, candidate preview paths,
+  route labels, fixed scoring fields, user review prompts, and a decision
+  template together.
+
+Expected current experiment review package:
+
+```text
+F:/vbook/experiments/E20260711-existing-model-baselines/reviews/round-002/
+  review-manifest.json
+  review-sheet.csv
+  user-review.md
+  decision-template.md
+```
+
+Implication:
+
+- Future route/model experiments should not rely on ad hoc user comments alone.
+- Each comparison round should preserve both the automatic hygiene result and
+  the user's qualitative preference in a stable package.

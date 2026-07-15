@@ -209,6 +209,30 @@ F:/vbook/experiments/<experiment-id>/renders/<route-label>/<provider-or-baseline
 Use the rubric in
 [../40_development/experiment-protocol.md](../40_development/experiment-protocol.md).
 
+Create a standard review round package before asking the user to compare
+candidate outputs:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_review_round.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --round-id round-001 \
+  --dataset-id <dataset-id>
+```
+
+The package is written under:
+
+```text
+F:/vbook/experiments/<experiment-id>/reviews/<round-id>/
+  review-manifest.json
+  review-sheet.csv
+  user-review.md
+  decision-template.md
+```
+
+Use `review-sheet.csv` as the numeric scoring table and `user-review.md` as the
+human-facing checklist. Use `decision-template.md` only after the user has
+reviewed comparable outputs.
+
 Required checks for every preview:
 
 | Check | Evidence |
@@ -224,8 +248,8 @@ Required checks for every preview:
 Use numeric scores from `0` to `3` and short reviewer notes.
 
 User review is required before choosing a best implementation route. Use the
-template in [experiment-artifacts.md](./experiment-artifacts.md), and ask the
-user to compare the same lesson across candidate outputs.
+standard review round package and ask the user to compare the same lesson
+across candidate outputs.
 
 ## Phase 7: Decision
 

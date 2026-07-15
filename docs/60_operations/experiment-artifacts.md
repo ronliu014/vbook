@@ -219,7 +219,44 @@ reviews/
   developer-review.md
   user-review-template.md
   user-review-round-001.md
+  round-002/
+    review-manifest.json
+    review-sheet.csv
+    user-review.md
+    decision-template.md
 ```
+
+### Standard Review Round
+
+Create a review round package with:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_review_round.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --round-id round-002 \
+  --dataset-id <dataset-id>
+```
+
+Files:
+
+- `review-manifest.json`: machine-readable list of candidates, preview paths,
+  route variants, and imported preflight statuses.
+- `review-sheet.csv`: fixed scoring table for developer and user review.
+- `user-review.md`: human-facing checklist grouped by lesson and route.
+- `decision-template.md`: final decision scaffold to fill after review.
+
+The generated sheet uses the standard dimensions:
+
+```text
+lesson,route,variant,readable_note_candidate,preview_path,preflight_status,
+semantic_coverage,visual_recovery,image_choice,image_placement,
+error_handling,text_discipline,traceability,preview_safety,
+user_preference,reviewer_notes
+```
+
+Automatic preflight status is supporting evidence only. A passing preflight does
+not mean the route wins; it only means the preview is mechanically safe enough
+for user comparison.
 
 ### User Review Template
 
