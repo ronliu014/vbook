@@ -147,3 +147,36 @@ The preflight currently checks:
 Treat a failing preflight as a blocker for publication. Treat a passing
 preflight as an automated hygiene check only; image usefulness, placement
 quality, and note readability still require human review.
+
+## Publication Dry Run
+
+After preflight, user review, finalization, and maturity gate pass, create a
+dry-run vault publication plan before writing anything to `F:\vault`.
+
+```powershell
+& "D:\anaconda3\envs\App\python.exe" tools\vault_publication_plan.py `
+  --experiment-root "F:\vbook\experiments\E20260711-existing-model-baselines" `
+  --route vtext_first_vault_enhance `
+  --variant baseline `
+  --target-vault-root "F:\vault\20_Learning\vbook\投资训练营\韩珂龙头班：基础篇" `
+  --plan-id "vtext_first_vault_enhance-round-002"
+```
+
+The dry-run plan writes only under:
+
+```text
+F:\vbook\experiments\<experiment-id>\publication-plans\<plan-id>\
+```
+
+It records:
+
+- source preview note paths;
+- proposed target vault note paths;
+- source asset files;
+- proposed target asset paths;
+- Markdown image link counts;
+- missing image counts;
+- `vault_write: disabled`.
+
+Do not publish to `F:\vault` until the dry-run plan has been reviewed and the
+user explicitly approves the publication step.

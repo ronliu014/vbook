@@ -397,3 +397,22 @@ Expected current gate reports:
 F:/vbook/experiments/E20260711-existing-model-baselines/comparisons/maturity-gate-vtext_first_vault_enhance.json
 F:/vbook/experiments/E20260711-existing-model-baselines/comparisons/maturity-gate-vtext_first_vault_enhance.md
 ```
+
+## Publication Dry Run
+
+Status on 2026-07-15:
+
+- Added `tools/vault_publication_plan.py` to generate dry-run publication plans
+  for routes that have passed maturity gate.
+- The plan records proposed source preview notes, target vault notes, source
+  assets, target asset paths, image link counts, and missing image counts.
+- The tool never writes to `F:/vault`; it writes only under
+  `F:/vbook/experiments/<experiment-id>/publication-plans/<plan-id>/`.
+
+Expected current publication plan:
+
+```text
+F:/vbook/experiments/E20260711-existing-model-baselines/publication-plans/vtext_first_vault_enhance-round-002/
+  publication-plan.json
+  publication-plan.md
+```

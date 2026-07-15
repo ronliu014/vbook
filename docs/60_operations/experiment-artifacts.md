@@ -33,6 +33,7 @@ F:/vbook/experiments/<experiment-id>/
   renders/
   reviews/
   comparisons/
+  publication-plans/
   decision.md
 ```
 
@@ -349,6 +350,33 @@ human-readable summary for progress notes. Gate status values:
 - `fail`: route was reviewed but did not meet the route-quality threshold.
 - `blocked`: required evidence is missing, such as final review, preflight, or
   enough rendered lessons.
+
+## Publication Plans
+
+`publication-plans/` stores dry-run plans for reviewed routes that are being
+considered for vault publication.
+
+```text
+publication-plans/
+  vtext_first_vault_enhance-round-002/
+    publication-plan.json
+    publication-plan.md
+```
+
+Create plans with:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/vault_publication_plan.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --route <route-label> \
+  --variant <variant> \
+  --target-vault-root "F:/vault/20_Learning/vbook/<course>/<series>" \
+  --plan-id <plan-id>
+```
+
+Publication plans are dry-run artifacts only. They must not copy, move, delete,
+or overwrite vault files. They show what a later approved publication command
+would affect.
 
 ## Minimal Experiment Example
 
