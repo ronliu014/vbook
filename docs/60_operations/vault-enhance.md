@@ -111,3 +111,39 @@ the selection counts in the generated manifest.
 
 For first review runs, point `--output-note` at an `outputs\...` preview path.
 After the generated note is accepted, write to the lowercase `vbook` vault tree.
+
+## Preflight Before Review Or Publication
+
+Run the vtext-first preflight checker before asking for human review or before
+publishing an accepted preview into `F:\vault\20_Learning\vbook`.
+
+Example for repo-local previews:
+
+```powershell
+& "D:\anaconda3\envs\App\python.exe" tools\vtext_first_preflight.py `
+  --root "E:\projects\my_app\vbook\outputs\post-deploy-vault-enhance\240s\韩珂龙头班：基础篇" `
+  --json-output "E:\projects\my_app\vbook\outputs\post-deploy-vault-enhance\240s\vtext-first-preflight.json" `
+  --markdown-output "E:\projects\my_app\vbook\outputs\post-deploy-vault-enhance\240s\vtext-first-preflight.md"
+```
+
+Example for formal experiment renders:
+
+```powershell
+& "D:\anaconda3\envs\App\python.exe" tools\vtext_first_preflight.py `
+  --root "F:\vbook\experiments\E20260711-existing-model-baselines\renders\vtext_first_vault_enhance\baseline"
+```
+
+The preflight currently checks:
+
+- Markdown image links resolve after URL decoding, so VSCode preview can display
+  copied assets.
+- Each note has a sibling `manifest.json` or `<note>.manifest.json`.
+- Manifest safety metadata keeps the vtext source read-only.
+- Experiment outputs do not point directly at `F:\vault\20_Learning\vbook` or
+  `F:\vault\20_Learning\vtext`.
+- Qwen `status=error` or `HTTP 504` placeholders are not present in rendered
+  notes or inserted visual evidence.
+
+Treat a failing preflight as a blocker for publication. Treat a passing
+preflight as an automated hygiene check only; image usefulness, placement
+quality, and note readability still require human review.

@@ -297,3 +297,45 @@ candidates, not as blockers for evaluating:
 - whether image placement is stable;
 - whether transcript+visual-first preserves more semantics;
 - whether the resulting notes are useful enough for user review.
+
+## vtext-first Hardening Update
+
+Status on 2026-07-15:
+
+- Added `tools/vtext_first_preflight.py` as the automated hygiene gate for the
+  winning readable-note route.
+- The checker validates Markdown image paths, required manifest presence,
+  vtext read-only safety metadata, unsafe direct vault output paths, and Qwen
+  error/504 placeholder leakage.
+- Repo-local `240s` previews passed preflight:
+
+```text
+root: E:/projects/my_app/vbook/outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇
+notes: 3
+manifests: 3
+image_links: 3
+missing_images: 0
+errors: 0
+warnings: 0
+```
+
+- Formal experiment `vtext_first_vault_enhance` baseline renders also passed
+  preflight:
+
+```text
+root: F:/vbook/experiments/E20260711-existing-model-baselines/renders/vtext_first_vault_enhance/baseline
+notes: 3
+manifests: 3
+image_links: 3
+missing_images: 0
+errors: 0
+warnings: 0
+```
+
+Implication:
+
+- `vtext_first_vault_enhance` remains the current winning readable-note route
+  and is now the hardening target.
+- Preflight passing is required before publication or user comparison rounds,
+  but it does not replace user scoring for image value, insertion location, or
+  note readability.
