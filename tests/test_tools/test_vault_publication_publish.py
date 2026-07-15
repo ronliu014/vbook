@@ -3,7 +3,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.vault_publication_publish import publish_from_plan
+from tools.vault_publication_publish import (
+    create_publication_conflict_report,
+    publish_from_plan,
+)
 
 
 class VaultPublicationPublishTest(unittest.TestCase):
@@ -70,6 +73,38 @@ class VaultPublicationPublishTest(unittest.TestCase):
                     confirm_plan_id="plan-001",
                     overwrite=False,
                 )
+
+    def test_conflict_report_classifies_existing_target_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_path, target_note, target_asset = _write_plan(root)
+            target_note.parent.mkdir(parents=True)
+            target_note.write_text("existing", encoding="utf-8")
+            target_asset.parent.mkdir(parents=True)
+            target_asset.write_bytes(b"image")
+
+            report = create_publication_conflict_report(plan_path=plan_path)
+
+            self.assertEqual(report.status, "conflicts_detected")
+            self.assertEqual(report.note_conflict_count, 1)
+            self.assertEqual(report.asset_conflict_count, 1)
+            self.assertTrue(report.json_path.is_file())
+            self.assertTrue(report.markdown_path.is_file())
+
+            payload = json.loads(report.json_path.read_text(encoding="utf-8"))
+            item = payload["items"][0]
+            self.assertEqual(item["note"]["target_state"], "exists")
+            self.assertEqual(item["note"]["hash_state"], "different")
+            self.assertEqual(item["note"]["planned_action_without_overwrite"], "block")
+            self.assertEqual(item["note"]["planned_action_with_overwrite"], "overwrite")
+            self.assertEqual(item["assets"][0]["target_state"], "exists")
+            self.assertEqual(item["assets"][0]["hash_state"], "same")
+            self.assertEqual(item["assets"][0]["planned_action_without_overwrite"], "skip_same")
+            self.assertEqual(item["assets"][0]["planned_action_with_overwrite"], "skip_same")
+            self.assertIn(
+                "Vault Publication Conflicts",
+                report.markdown_path.read_text(encoding="utf-8"),
+            )
 
 
 def _write_plan(root: Path) -> tuple[Path, Path, Path]:

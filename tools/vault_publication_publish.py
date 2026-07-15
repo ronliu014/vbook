@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 from dataclasses import dataclass
@@ -19,15 +20,35 @@ class PublicationResult:
     copied_asset_count: int
 
 
+@dataclass(frozen=True)
+class PublicationConflictReport:
+    status: str
+    plan_path: Path
+    json_path: Path
+    markdown_path: Path
+    note_conflict_count: int
+    asset_conflict_count: int
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Apply an approved vBook vault publication plan."
     )
     parser.add_argument("--plan", required=True)
+    parser.add_argument(
+        "--conflict-report",
+        action="store_true",
+        help="Write a read-only target conflict report and do not copy files.",
+    )
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-plan-id")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.conflict_report:
+        report = create_publication_conflict_report(plan_path=args.plan)
+        print(str(report.json_path))
+        return 0
 
     result = publish_from_plan(
         plan_path=args.plan,
@@ -94,6 +115,58 @@ def publish_from_plan(
     return result
 
 
+def create_publication_conflict_report(
+    *, plan_path: Path | str
+) -> PublicationConflictReport:
+    path = Path(plan_path)
+    plan = _read_plan(path)
+    _validate_plan(plan)
+    _validate_report_inputs(plan)
+
+    json_path = path.parent / "publication-conflicts.json"
+    markdown_path = path.parent / "publication-conflicts.md"
+    items = [_conflict_item(plan_item) for plan_item in _plan_items(plan)]
+    note_conflict_count = sum(
+        1 for item in items if item["note"]["target_state"] == "exists"
+    )
+    asset_conflict_count = sum(
+        1
+        for item in items
+        for asset in item["assets"]
+        if asset["target_state"] == "exists"
+    )
+    status = (
+        "conflicts_detected"
+        if note_conflict_count or asset_conflict_count
+        else "no_conflicts"
+    )
+    payload = {
+        "schema_version": "1",
+        "kind": "vault_publication_conflict_report",
+        "plan_id": str(plan.get("plan_id") or ""),
+        "status": status,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "plan_path": str(path),
+        "target_vault_root": str(plan.get("target_vault_root") or ""),
+        "note_conflict_count": note_conflict_count,
+        "asset_conflict_count": asset_conflict_count,
+        "items": items,
+    }
+    json_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    markdown_path.write_text(_render_conflict_markdown(payload), encoding="utf-8")
+    return PublicationConflictReport(
+        status=status,
+        plan_path=path,
+        json_path=json_path,
+        markdown_path=markdown_path,
+        note_conflict_count=note_conflict_count,
+        asset_conflict_count=asset_conflict_count,
+    )
+
+
 def _read_plan(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8-sig"))
     if not isinstance(data, dict):
@@ -131,6 +204,21 @@ def _validate_targets(*, plan: dict[str, Any], overwrite: bool) -> None:
                 raise FileExistsError(f"target asset already exists: {target}")
 
 
+def _validate_report_inputs(plan: dict[str, Any]) -> None:
+    target_root = Path(str(plan.get("target_vault_root") or "")).resolve()
+    for item in _plan_items(plan):
+        target_note = Path(str(item.get("target_note") or "")).resolve()
+        _require_under(target_note, target_root)
+        _require_source_file(Path(str(item.get("source_note") or "")))
+        for asset in item.get("assets", []):
+            if not isinstance(asset, dict):
+                continue
+            source = Path(str(asset.get("source") or ""))
+            target = Path(str(asset.get("target") or "")).resolve()
+            _require_under(target, target_root)
+            _require_source_file(source)
+
+
 def _copy_plan_files(plan: dict[str, Any]) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     copied_notes: list[dict[str, str]] = []
     copied_assets: list[dict[str, str]] = []
@@ -153,6 +241,61 @@ def _copy_plan_files(plan: dict[str, Any]) -> tuple[list[dict[str, str]], list[d
 
 def _plan_items(plan: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in plan.get("items", []) if isinstance(item, dict)]
+
+
+def _conflict_item(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "lesson": str(item.get("lesson") or ""),
+        "note": _file_conflict(
+            source=Path(str(item.get("source_note") or "")),
+            target=Path(str(item.get("target_note") or "")),
+        ),
+        "assets": [
+            _file_conflict(
+                source=Path(str(asset.get("source") or "")),
+                target=Path(str(asset.get("target") or "")),
+            )
+            for asset in item.get("assets", [])
+            if isinstance(asset, dict)
+        ],
+    }
+
+
+def _file_conflict(*, source: Path, target: Path) -> dict[str, Any]:
+    source_size = source.stat().st_size
+    source_hash = _sha256(source)
+    if target.is_file():
+        target_size = target.stat().st_size
+        target_hash = _sha256(target)
+        hash_state = "same" if source_hash == target_hash else "different"
+        without_overwrite = "skip_same" if hash_state == "same" else "block"
+        with_overwrite = "skip_same" if hash_state == "same" else "overwrite"
+    else:
+        target_size = None
+        target_hash = None
+        hash_state = "missing"
+        without_overwrite = "copy"
+        with_overwrite = "copy"
+    return {
+        "source": str(source),
+        "target": str(target),
+        "target_state": "exists" if target.is_file() else "missing",
+        "hash_state": hash_state,
+        "source_size": source_size,
+        "target_size": target_size,
+        "source_sha256": source_hash,
+        "target_sha256": target_hash,
+        "planned_action_without_overwrite": without_overwrite,
+        "planned_action_with_overwrite": with_overwrite,
+    }
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _require_source_file(path: Path) -> None:
@@ -192,6 +335,47 @@ def _render_result_markdown(payload: dict[str, Any]) -> str:
         for item in payload["copied_assets"]:
             lines.append(f"- `{item['source']}` -> `{item['target']}`")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_conflict_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        f"# Vault Publication Conflicts: {payload['plan_id']}",
+        "",
+        f"- Status: `{payload['status']}`",
+        f"- Target vault root: `{payload['target_vault_root']}`",
+        f"- Existing target notes: {payload['note_conflict_count']}",
+        f"- Existing target assets: {payload['asset_conflict_count']}",
+        "",
+        "## Items",
+        "",
+    ]
+    for item in payload["items"]:
+        lines.append(f"### {item['lesson']}")
+        lines.append("")
+        lines.extend(_render_conflict_file_lines("Note", item["note"]))
+        if item["assets"]:
+            lines.append("")
+            lines.append("Assets:")
+            for asset in item["assets"]:
+                lines.extend(_render_conflict_file_lines("- Asset", asset))
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_conflict_file_lines(label: str, file_item: dict[str, Any]) -> list[str]:
+    return [
+        f"{label}: `{file_item['target_state']}` / `{file_item['hash_state']}`",
+        f"- source: `{file_item['source']}`",
+        f"- target: `{file_item['target']}`",
+        (
+            "- planned without overwrite: "
+            f"`{file_item['planned_action_without_overwrite']}`"
+        ),
+        (
+            "- planned with overwrite: "
+            f"`{file_item['planned_action_with_overwrite']}`"
+        ),
+    ]
 
 
 if __name__ == "__main__":
