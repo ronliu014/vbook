@@ -180,3 +180,34 @@ It records:
 
 Do not publish to `F:\vault` until the dry-run plan has been reviewed and the
 user explicitly approves the publication step.
+
+## Controlled Publication
+
+Only run controlled publication after the user explicitly approves a specific
+`publication-plan.json`.
+
+Audit the plan without copying files:
+
+```powershell
+& "D:\anaconda3\envs\App\python.exe" tools\vault_publication_publish.py `
+  --plan "F:\vbook\experiments\E20260711-existing-model-baselines\publication-plans\vtext_first_vault_enhance-round-002\publication-plan.json"
+```
+
+Apply the approved plan:
+
+```powershell
+& "D:\anaconda3\envs\App\python.exe" tools\vault_publication_publish.py `
+  --plan "F:\vbook\experiments\E20260711-existing-model-baselines\publication-plans\vtext_first_vault_enhance-round-002\publication-plan.json" `
+  --apply `
+  --confirm-plan-id vtext_first_vault_enhance-round-002
+```
+
+Safety rules:
+
+- The plan id in `--confirm-plan-id` must match the JSON plan.
+- Targets must remain under the plan's `target_vault_root`.
+- Source files must exist.
+- Plans with missing images are rejected.
+- Existing target files are rejected by default.
+- Use `--overwrite` only after a separate review confirms replacement is
+  intended.

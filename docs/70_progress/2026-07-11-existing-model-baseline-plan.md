@@ -416,3 +416,15 @@ F:/vbook/experiments/E20260711-existing-model-baselines/publication-plans/vtext_
   publication-plan.json
   publication-plan.md
 ```
+
+## Controlled Publish Tool
+
+Status on 2026-07-15:
+
+- Added `tools/vault_publication_publish.py` to apply an approved publication
+  plan.
+- The tool defaults to audit mode and only copies files when `--apply` and a
+  matching `--confirm-plan-id` are provided.
+- The tool validates target paths, source existence, missing-image counts, and
+  overwrite policy before copying.
+- Real publication to `F:/vault` remains a separate user-approved step.

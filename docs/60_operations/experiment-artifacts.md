@@ -378,6 +378,19 @@ Publication plans are dry-run artifacts only. They must not copy, move, delete,
 or overwrite vault files. They show what a later approved publication command
 would affect.
 
+After explicit user approval, apply a plan with:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/vault_publication_publish.py \
+  --plan "F:/vbook/experiments/<experiment-id>/publication-plans/<plan-id>/publication-plan.json" \
+  --apply \
+  --confirm-plan-id <plan-id>
+```
+
+The publish tool writes `publication-result.json` and `publication-result.md`
+beside the plan. Existing target files are rejected unless `--overwrite` is
+provided.
+
 ## Minimal Experiment Example
 
 For a semantic visual note experiment:
