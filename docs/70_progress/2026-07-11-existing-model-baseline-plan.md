@@ -251,6 +251,35 @@ renders/qwen_visual_evidence_240s/baseline/<lesson>/visual-evidence.md
 renders/semantic_visual_rule_baseline/baseline/<lesson>/note.md
 ```
 
+## User Review Update
+
+Status on 2026-07-15:
+
+- User reviewed the generated local baseline outputs.
+- User concluded that `vtext_first_vault_enhance` gives the best document
+  effect among the currently available routes.
+- The formal experiment decision was updated:
+
+```text
+F:/vbook/experiments/E20260711-existing-model-baselines/decision.md
+```
+
+Current preferred route:
+
+```text
+vtext_first_vault_enhance
+```
+
+Implications:
+
+- Treat `vtext_first_vault_enhance` as the current winning baseline for
+  near-term hardening and potential preview publication.
+- Keep `qwen_visual_evidence_240s` as a visual evidence/debugging route.
+- Keep `semantic_visual_rule_baseline` as a deterministic control, not as the
+  preferred user-facing output.
+- Keep external OpenAI, Claude, and GLM model routes paused until the AI
+  distribution center is ready.
+
 ## Decision Rule
 
 Do not wait for OpenAI, Claude, or GLM to become available before improving the
