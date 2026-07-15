@@ -18,6 +18,9 @@ class PublicationResult:
     result_markdown_path: Path
     copied_note_count: int
     copied_asset_count: int
+    backup_dir: Path | None = None
+    backed_up_note_count: int = 0
+    backed_up_asset_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -43,6 +46,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--confirm-plan-id")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--backup-existing",
+        action="store_true",
+        help="Back up existing target files before an overwrite apply.",
+    )
+    parser.add_argument("--backup-dir")
     args = parser.parse_args(argv)
 
     if args.conflict_report:
@@ -55,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
         apply=args.apply,
         confirm_plan_id=args.confirm_plan_id,
         overwrite=args.overwrite,
+        backup_existing=args.backup_existing,
+        backup_dir=args.backup_dir,
     )
     print(str(result.result_json_path))
     return 0
@@ -66,6 +77,8 @@ def publish_from_plan(
     apply: bool,
     confirm_plan_id: str | None,
     overwrite: bool,
+    backup_existing: bool = False,
+    backup_dir: Path | str | None = None,
 ) -> PublicationResult:
     path = Path(plan_path)
     plan = _read_plan(path)
@@ -73,6 +86,8 @@ def publish_from_plan(
     plan_id = str(plan.get("plan_id") or "")
     if apply and confirm_plan_id != plan_id:
         raise ValueError("confirm_plan_id must match the publication plan id")
+    if backup_existing and not (apply and overwrite):
+        raise ValueError("backup_existing requires apply and overwrite")
 
     result_dir = path.parent
     result_json_path = result_dir / "publication-result.json"
@@ -80,8 +95,19 @@ def publish_from_plan(
 
     copied_notes: list[dict[str, str]] = []
     copied_assets: list[dict[str, str]] = []
+    backed_up_notes: list[dict[str, Any]] = []
+    backed_up_assets: list[dict[str, Any]] = []
+    resolved_backup_dir: Path | None = None
     if apply:
         _validate_targets(plan=plan, overwrite=overwrite)
+        if backup_existing:
+            resolved_backup_dir = (
+                Path(backup_dir) if backup_dir is not None else _default_backup_dir(path)
+            )
+            backed_up_notes, backed_up_assets = _backup_existing_targets(
+                plan=plan,
+                backup_dir=resolved_backup_dir,
+            )
         copied_notes, copied_assets = _copy_plan_files(plan)
 
     status = "applied" if apply else "dry_run"
@@ -92,6 +118,9 @@ def publish_from_plan(
         result_markdown_path=result_markdown_path,
         copied_note_count=len(copied_notes),
         copied_asset_count=len(copied_assets),
+        backup_dir=resolved_backup_dir,
+        backed_up_note_count=len(backed_up_notes),
+        backed_up_asset_count=len(backed_up_assets),
     )
     payload = {
         "schema_version": "1",
@@ -100,10 +129,16 @@ def publish_from_plan(
         "status": status,
         "applied": apply,
         "overwrite": overwrite,
+        "backup_existing": backup_existing,
+        "backup_dir": str(resolved_backup_dir) if resolved_backup_dir else None,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "plan_path": str(path),
         "copied_note_count": len(copied_notes),
         "copied_asset_count": len(copied_assets),
+        "backed_up_note_count": len(backed_up_notes),
+        "backed_up_asset_count": len(backed_up_assets),
+        "backed_up_notes": backed_up_notes,
+        "backed_up_assets": backed_up_assets,
         "copied_notes": copied_notes,
         "copied_assets": copied_assets,
     }
@@ -239,6 +274,96 @@ def _copy_plan_files(plan: dict[str, Any]) -> tuple[list[dict[str, str]], list[d
     return copied_notes, copied_assets
 
 
+def _backup_existing_targets(
+    *, plan: dict[str, Any], backup_dir: Path
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    target_root = Path(str(plan.get("target_vault_root") or "")).resolve()
+    files_dir = backup_dir / "files"
+    backed_up_notes: list[dict[str, Any]] = []
+    backed_up_assets: list[dict[str, Any]] = []
+    seen_targets: set[str] = set()
+    for item in _plan_items(plan):
+        target_note = Path(str(item.get("target_note") or "")).resolve()
+        note_backup = _backup_target_file(
+            target=target_note,
+            target_root=target_root,
+            files_dir=files_dir,
+            seen_targets=seen_targets,
+        )
+        if note_backup is not None:
+            backed_up_notes.append(note_backup)
+        for asset in item.get("assets", []):
+            if not isinstance(asset, dict):
+                continue
+            target = Path(str(asset.get("target") or "")).resolve()
+            asset_backup = _backup_target_file(
+                target=target,
+                target_root=target_root,
+                files_dir=files_dir,
+                seen_targets=seen_targets,
+            )
+            if asset_backup is not None:
+                backed_up_assets.append(asset_backup)
+    payload = {
+        "schema_version": "1",
+        "kind": "vault_publication_backup",
+        "plan_id": str(plan.get("plan_id") or ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "target_vault_root": str(target_root),
+        "backup_dir": str(backup_dir),
+        "backed_up_note_count": len(backed_up_notes),
+        "backed_up_asset_count": len(backed_up_assets),
+        "backed_up_notes": backed_up_notes,
+        "backed_up_assets": backed_up_assets,
+    }
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    (backup_dir / "publication-backup.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (backup_dir / "publication-backup.md").write_text(
+        _render_backup_markdown(payload),
+        encoding="utf-8",
+    )
+    return backed_up_notes, backed_up_assets
+
+
+def _backup_target_file(
+    *,
+    target: Path,
+    target_root: Path,
+    files_dir: Path,
+    seen_targets: set[str],
+) -> dict[str, Any] | None:
+    if not target.is_file():
+        return None
+    key = str(target)
+    if key in seen_targets:
+        return None
+    seen_targets.add(key)
+    relative = target.relative_to(target_root)
+    backup_path = files_dir / relative
+    if backup_path.exists():
+        raise FileExistsError(f"backup file already exists: {backup_path}")
+    backup_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(target, backup_path)
+    return {
+        "target": str(target),
+        "backup": str(backup_path),
+        "relative_path": str(relative),
+        "size": target.stat().st_size,
+        "sha256": _sha256(target),
+    }
+
+
+def _default_backup_dir(plan_path: Path) -> Path:
+    return (
+        plan_path.parent
+        / "publication-backups"
+        / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    )
+
+
 def _plan_items(plan: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in plan.get("items", []) if isinstance(item, dict)]
 
@@ -317,12 +442,35 @@ def _render_result_markdown(payload: dict[str, Any]) -> str:
         f"- Status: `{payload['status']}`",
         f"- Applied: `{payload['applied']}`",
         f"- Overwrite: `{payload['overwrite']}`",
+        f"- Backup existing: `{payload['backup_existing']}`",
+        f"- Backup dir: `{payload['backup_dir']}`",
+        f"- Backed up notes: {payload['backed_up_note_count']}",
+        f"- Backed up assets: {payload['backed_up_asset_count']}",
         f"- Copied notes: {payload['copied_note_count']}",
         f"- Copied assets: {payload['copied_asset_count']}",
         "",
-        "## Notes",
+        "## Backups",
         "",
     ]
+    if not payload["backed_up_notes"] and not payload["backed_up_assets"]:
+        lines.append("No existing targets backed up.")
+    else:
+        if payload["backed_up_notes"]:
+            lines.append("Notes:")
+            for item in payload["backed_up_notes"]:
+                lines.append(f"- `{item['target']}` -> `{item['backup']}`")
+        if payload["backed_up_assets"]:
+            lines.append("")
+            lines.append("Assets:")
+            for item in payload["backed_up_assets"]:
+                lines.append(f"- `{item['target']}` -> `{item['backup']}`")
+    lines.extend(
+        [
+            "",
+            "## Notes",
+            "",
+        ]
+    )
     if not payload["copied_notes"]:
         lines.append("No notes copied.")
     else:
@@ -334,6 +482,32 @@ def _render_result_markdown(payload: dict[str, Any]) -> str:
     else:
         for item in payload["copied_assets"]:
             lines.append(f"- `{item['source']}` -> `{item['target']}`")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _render_backup_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        f"# Vault Publication Backup: {payload['plan_id']}",
+        "",
+        f"- Target vault root: `{payload['target_vault_root']}`",
+        f"- Backup dir: `{payload['backup_dir']}`",
+        f"- Backed up notes: {payload['backed_up_note_count']}",
+        f"- Backed up assets: {payload['backed_up_asset_count']}",
+        "",
+        "## Notes",
+        "",
+    ]
+    if not payload["backed_up_notes"]:
+        lines.append("No notes backed up.")
+    else:
+        for item in payload["backed_up_notes"]:
+            lines.append(f"- `{item['target']}` -> `{item['backup']}`")
+    lines.extend(["", "## Assets", ""])
+    if not payload["backed_up_assets"]:
+        lines.append("No assets backed up.")
+    else:
+        for item in payload["backed_up_assets"]:
+            lines.append(f"- `{item['target']}` -> `{item['backup']}`")
     return "\n".join(lines).rstrip() + "\n"
 
 

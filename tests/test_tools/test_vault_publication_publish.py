@@ -46,6 +46,43 @@ class VaultPublicationPublishTest(unittest.TestCase):
             self.assertEqual(result.copied_note_count, 1)
             self.assertEqual(result.copied_asset_count, 1)
 
+    def test_apply_with_overwrite_can_backup_existing_targets_first(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_path, target_note, target_asset = _write_plan(root)
+            backup_dir = root / "backup"
+            target_note.parent.mkdir(parents=True)
+            target_note.write_text("existing note", encoding="utf-8")
+            target_asset.parent.mkdir(parents=True)
+            target_asset.write_bytes(b"existing image")
+
+            result = publish_from_plan(
+                plan_path=plan_path,
+                apply=True,
+                confirm_plan_id="plan-001",
+                overwrite=True,
+                backup_existing=True,
+                backup_dir=backup_dir,
+            )
+
+            self.assertEqual(result.status, "applied")
+            self.assertEqual(result.backed_up_note_count, 1)
+            self.assertEqual(result.backed_up_asset_count, 1)
+            self.assertEqual(target_note.read_text(encoding="utf-8"), "# Lesson\n")
+            self.assertEqual(target_asset.read_bytes(), b"image")
+
+            payload = json.loads(result.result_json_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["backup_existing"], True)
+            self.assertEqual(payload["backup_dir"], str(backup_dir))
+            self.assertEqual(payload["backed_up_note_count"], 1)
+            self.assertEqual(payload["backed_up_asset_count"], 1)
+            note_backup = Path(payload["backed_up_notes"][0]["backup"])
+            asset_backup = Path(payload["backed_up_assets"][0]["backup"])
+            self.assertEqual(note_backup.read_text(encoding="utf-8"), "existing note")
+            self.assertEqual(asset_backup.read_bytes(), b"existing image")
+            self.assertTrue((backup_dir / "publication-backup.json").is_file())
+            self.assertTrue((backup_dir / "publication-backup.md").is_file())
+
     def test_rejects_apply_without_matching_confirmation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
