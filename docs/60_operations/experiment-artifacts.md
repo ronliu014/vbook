@@ -312,6 +312,8 @@ comparisons/
   route-comparison.md
   model-comparison.md
   scorecard.csv
+  maturity-gate-<route-label>.json
+  maturity-gate-<route-label>.md
 ```
 
 Required comparison dimensions:
@@ -325,6 +327,28 @@ Required comparison dimensions:
 - traceability;
 - preview safety;
 - user preference.
+
+### Maturity Gate Reports
+
+After a review round is finalized, run:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_maturity_gate.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --route <route-label> \
+  --round-id <round-id> \
+  --json-output "F:/vbook/experiments/<experiment-id>/comparisons/maturity-gate-<route-label>.json" \
+  --markdown-output "F:/vbook/experiments/<experiment-id>/comparisons/maturity-gate-<route-label>.md"
+```
+
+The JSON report is the machine-readable gate result. The Markdown report is the
+human-readable summary for progress notes. Gate status values:
+
+- `pass`: route has enough evidence to be treated as a production-candidate
+  hardening target.
+- `fail`: route was reviewed but did not meet the route-quality threshold.
+- `blocked`: required evidence is missing, such as final review, preflight, or
+  enough rendered lessons.
 
 ## Minimal Experiment Example
 

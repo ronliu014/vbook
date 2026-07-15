@@ -377,3 +377,23 @@ Implication:
   the user's qualitative preference in a stable package.
 - A completed review round now has both a generated comparison package and a
   finalized machine-readable decision.
+
+## Maturity Gate
+
+Status on 2026-07-15:
+
+- Added `tools/experiment_maturity_gate.py` to evaluate whether a route has
+  enough recorded evidence to become a production-candidate hardening target.
+- The gate reads rendered lesson outputs, finalized review round metadata,
+  review sheet scores, preflight status, and preview paths.
+- Required gate evidence includes at least three rendered lessons, finalized
+  `winner_selected` review state, selected route match, preflight `pass`,
+  user preference score of at least `3`, and previews staying inside the
+  experiment root.
+
+Expected current gate reports:
+
+```text
+F:/vbook/experiments/E20260711-existing-model-baselines/comparisons/maturity-gate-vtext_first_vault_enhance.json
+F:/vbook/experiments/E20260711-existing-model-baselines/comparisons/maturity-gate-vtext_first_vault_enhance.md
+```

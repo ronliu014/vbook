@@ -286,6 +286,23 @@ Finalization updates:
 - `user-review.md` with a `Review Outcome` section;
 - `decision-template.md` as the final decision record for the round.
 
+After finalization, run the maturity gate for the selected route:
+
+```text
+D:/anaconda3/envs/App/python.exe tools/experiment_maturity_gate.py \
+  --experiment-root "F:/vbook/experiments/<experiment-id>" \
+  --route <route-label> \
+  --round-id round-001 \
+  --json-output "F:/vbook/experiments/<experiment-id>/comparisons/maturity-gate-<route-label>.json" \
+  --markdown-output "F:/vbook/experiments/<experiment-id>/comparisons/maturity-gate-<route-label>.md"
+```
+
+The gate checks that the selected route has at least three rendered lessons,
+passed preflight, was selected in a finalized review round, has sufficient user
+preference scores, and keeps preview paths inside the experiment root. A passing
+gate means the route may be treated as a production-candidate hardening target;
+it does not publish anything to vault.
+
 ## Phase 8: Summary
 
 Write or update a dated progress log under `docs/70_progress/`.
@@ -322,9 +339,10 @@ Next:
 Before calling a route a candidate for production, it must pass:
 
 - at least three registered lessons;
-- at least one structured response validation run;
 - Markdown preview inspection;
 - image-link existence checks;
 - route comparison against `vtext_first_vault_enhance`;
 - user review on the strongest candidate outputs;
+- finalized review round with selected route;
+- maturity gate status `pass`;
 - dated progress summary with decision and known risks.
