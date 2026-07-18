@@ -71,6 +71,35 @@ F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/comparisons/
 F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtext_first_vault_enhance/baseline/
 ```
 
+## Review Round
+
+Formal user review package:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/reviews/round-001/review-manifest.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/reviews/round-001/review-sheet.csv
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/reviews/round-001/user-review.md
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/reviews/round-001/decision-template.md
+```
+
+Review manifest summary:
+
+- Review round: `round-001`
+- Candidate count: 3
+- Candidate route: `vtext_first_vault_enhance`
+- Candidate variant: `baseline`
+- Readable note candidate: `yes`
+- Preflight status: `pass`
+- Review status: awaiting user scoring and decision
+
+Preview notes to inspect:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtext_first_vault_enhance/baseline/反抽 反弹 反转/note.md
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtext_first_vault_enhance/baseline/如何筛选龙头股？/note.md
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtext_first_vault_enhance/baseline/龙头股的上涨逻辑是什么？/note.md
+```
+
 ## Findings
 
 - Batch orchestration works through `vbook_client production-batch-preview`.
@@ -78,6 +107,8 @@ F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtex
 - vtext source notes remain read-only.
 - Preflight confirms Markdown image links resolve and no Qwen error placeholders
   were inserted.
+- Review package was generated successfully and gives the user a stable scoring
+  entry point before any vault publication plan is created.
 - The main blocker for larger 10-20 lesson batches is dataset availability:
   more vtext Markdown notes and matching 240s lesson-output directories are
   needed.
@@ -85,6 +116,6 @@ F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtex
 ## Decision
 
 - Status: continue.
-- Next: either generate or locate additional matched lesson-output packages for
-  the remaining `投资训练营` lessons, then rerun the same production-batch preview
-  workflow with a larger input manifest.
+- Next: user reviews `reviews/round-001/user-review.md` and the three preview
+  notes. After explicit approval, create a publication plan; otherwise generate
+  or locate additional matched lesson-output packages and rerun a larger batch.
