@@ -310,3 +310,82 @@ Current production posture:
   proceed as preview-first until the remaining Han Ke lesson outputs are
   generated and sampled.
 - No new content was published to `F:/vault/20_Learning/vbook` in this patrol.
+
+## 2026-07-18 Preview Update: Second Han Ke Lesson
+
+Generated a 240s lesson-output for:
+
+```text
+F:/downloads/allwin/投资训练营/韩珂龙头班：基础篇/主力军情 内盘 外盘.mp4
+```
+
+Lesson output:
+
+```text
+outputs/hanke-basic-new-qwen-240s/韩珂龙头班：基础篇/主力军情 内盘 外盘
+```
+
+Artifact check:
+
+- `manifest.json`: present
+- `vision/analysis.json`: present
+- `fusion/sections.json`: present
+- `note.md`: present
+- selected frames: 11
+- stage status: core stages done
+
+Qwen visual analysis:
+
+- analysis count: 11
+- success frames: 8
+- structured HTTP 504 timeout placeholders: 3
+- successful visual types include `kline_case` and `slide`
+
+Generated a 2-lesson preview batch:
+
+```text
+F:/vbook/inputs/hanke-basic-new-visual-preview-002/batch-input.json
+F:/vbook/experiments/E20260718-hanke-basic-new-visual-preview-002
+```
+
+Included lessons:
+
+- `不同战法的黄金分割线如何画`
+- `主力军情 内盘 外盘`
+
+Preflight:
+
+- ok: true
+- notes: 2
+- manifests: 2
+- image links: 2
+- missing images: 0
+- errors: 0
+- warnings: 0
+
+Manual preview check for `主力军情 内盘 外盘`:
+
+- selected image: `frame_000004.jpg`
+- image content: high-value annotated page explaining fake/real capital inflow
+  and outflow through matched orders, with K-line and capital-flow data
+- insertion location: `四、实战案例分析` / `案例 1：长江电力（大跌 + 资金流入）`
+- link path: `assets/note/frame_000004.jpg`
+- result: image location is semantically close enough for preview-first
+  production review
+
+Updated audit after the second lesson-output:
+
+- Published: 4
+- Ready for preview: 2
+- Waiting for 240s lesson output: 7
+- Waiting for both vtext and lesson output: 950
+
+Remaining Han Ke basic lessons needing 240s lesson-output:
+
+- `如何借力游资抓龙头？`
+- `如何识别龙头股是否出货？`
+- `新手如何做好国债逆回购`
+- `止损对短线交易的重要性`
+- `短线龙头与中线龙头的区别`
+- `龙头股到底该怎么低吸？`
+- `龙头股战法简介`
