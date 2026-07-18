@@ -281,3 +281,96 @@ Required next gate before any vault write:
    `--overwrite --backup-existing`.
 3. After apply, run `tools/vault_publication_postcheck.py` against
    `publication-result.json` and accept publication only when status is `pass`.
+
+## Publication Apply And Postcheck
+
+The user authorized applying the publication plan with overwrite and backup:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-plan.json
+```
+
+First apply result:
+
+- Plan id: `vtext_first_vault_enhance-production-batch-002`
+- Target vault root:
+  `F:/vault/20_Learning/vbook/投资训练营/韩珂龙头班：基础篇`
+- Apply flags: `--overwrite --backup-existing`
+- Copied notes: 4
+- Copied assets: 4
+- Initial backup:
+  `F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-backups/20260718T034337Z`
+
+The first postcheck failed even though copied file hashes matched:
+
+- Postcheck status: `fail`
+- File checks: 8
+- Hash matches: 8
+- Hash mismatches: 0
+- Markdown image links: 4
+- Missing Markdown images: 4
+
+Root cause:
+
+- The published Markdown still contained preview-local image links such as
+  `assets/note/frame_000007.jpg`.
+- The publication plan copied images into vault-stable lesson asset directories,
+  for example `assets/<lesson>/frame_000007.jpg`.
+- Therefore the target Markdown linked to paths that did not exist after
+  publication, even though the note and image files were copied correctly.
+
+Tool fix:
+
+- `tools/vault_publication_plan.py` now stages publishable notes under
+  `publication-plans/<plan-id>/staged-notes/`.
+- Manifest items keep `original_source_note` for traceability.
+- Manifest `source_note` now points to the staged Markdown file that should be
+  copied to the vault.
+- Staged notes rewrite Markdown image links to URL-encoded vault-stable relative
+  paths such as `assets/<urlencoded lesson>/frame_000007.jpg`.
+- Asset targets remain normal filesystem paths under `assets/<lesson>/`.
+
+Regression coverage:
+
+- `tests/test_tools/test_vault_publication_plan.py` includes
+  `test_stages_note_with_vault_stable_asset_links`.
+- The test verifies that publication planning does not overwrite the preview
+  note, records the original source note, rewrites staged Markdown links, and
+  keeps asset targets as vault filesystem paths.
+
+After the fix, the same plan id was regenerated and applied again with backup:
+
+- Re-apply backup:
+  `F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-backups/20260718T034749Z`
+- Copied notes: 4
+- Copied assets: 4
+- Backed up notes: 4
+- Backed up assets: 4
+
+Final publication result:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-result.json
+```
+
+Final postcheck:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-postcheck.json
+```
+
+Final postcheck summary:
+
+- Status: `pass`
+- File checks: 8
+- Hash matches: 8
+- Hash mismatches: 0
+- Markdown image links: 4
+- Missing Markdown images: 0
+
+Publication status:
+
+- Accepted: final postcheck passed.
+- Published vault root:
+  `F:/vault/20_Learning/vbook/投资训练营/韩珂龙头班：基础篇`
+- vtext source vault remained read-only.

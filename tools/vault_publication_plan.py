@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 
 
 _IMAGE_LINK_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+_IMAGE_TAG_RE = re.compile(r"(!\[[^\]]*\]\()([^)]+)(\))")
 _NOTE_PREFERENCE = ("note.md", "enhancement.md")
 
 
@@ -53,14 +54,15 @@ def create_publication_plan(
 ) -> PublicationPlanPackage:
     root = Path(experiment_root)
     output_dir = _plan_output_dir(root, plan_id)
+    output_dir.mkdir(parents=True, exist_ok=True)
     plan = _build_plan(
         experiment_root=root,
         route=route,
         variant=variant,
         target_vault_root=Path(target_vault_root),
         plan_id=plan_id,
+        plan_output_dir=output_dir,
     )
-    output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "publication-plan.json"
     markdown_path = output_dir / "publication-plan.md"
     json_path.write_text(
@@ -82,6 +84,7 @@ def _build_plan(
     variant: str,
     target_vault_root: Path,
     plan_id: str,
+    plan_output_dir: Path,
 ) -> dict[str, Any]:
     items = []
     render_root = experiment_root / "renders" / route / variant
@@ -90,6 +93,7 @@ def _build_plan(
             item = _publication_item(
                 lesson_dir=lesson_dir,
                 target_vault_root=target_vault_root,
+                plan_output_dir=plan_output_dir,
             )
             if item is not None:
                 items.append(item)
@@ -123,6 +127,7 @@ def _publication_item(
     *,
     lesson_dir: Path,
     target_vault_root: Path,
+    plan_output_dir: Path,
 ) -> dict[str, Any] | None:
     note = _note_path_for_lesson(lesson_dir)
     if note is None:
@@ -142,9 +147,26 @@ def _publication_item(
         }
         for asset in assets
     ]
+    link_rewrites = {
+        link: _vault_relative_asset_link(
+            target_vault_root=target_vault_root,
+            target_assets_dir=target_assets_dir,
+            asset_name=asset.name,
+        )
+        for link, path in zip(image_links, resolved)
+        for asset in assets
+        if path == asset
+    }
+    staged_note = _write_staged_note(
+        source_note=note,
+        output_dir=plan_output_dir,
+        lesson=lesson,
+        link_rewrites=link_rewrites,
+    )
     return {
         "lesson": lesson,
-        "source_note": str(note),
+        "source_note": str(staged_note),
+        "original_source_note": str(note),
         "target_note": str(target_note),
         "source_assets_dir": str(lesson_dir / "assets"),
         "target_assets_dir": str(target_assets_dir),
@@ -176,6 +198,55 @@ def _unique_paths(paths: list[Path]) -> list[Path]:
         seen.add(key)
         unique.append(path)
     return unique
+
+
+def _write_staged_note(
+    *,
+    source_note: Path,
+    output_dir: Path,
+    lesson: str,
+    link_rewrites: dict[str, str],
+) -> Path:
+    staged_dir = output_dir / "staged-notes"
+    staged_dir.mkdir(parents=True, exist_ok=True)
+    staged_note = staged_dir / f"{lesson}.md"
+    markdown = source_note.read_text(encoding="utf-8")
+    staged_note.write_text(
+        _rewrite_markdown_image_links(markdown, link_rewrites),
+        encoding="utf-8",
+    )
+    return staged_note
+
+
+def _rewrite_markdown_image_links(markdown: str, rewrites: dict[str, str]) -> str:
+    def replace(match: re.Match[str]) -> str:
+        raw_target = match.group(2).strip()
+        target = _strip_optional_title(raw_target)
+        replacement = rewrites.get(target)
+        if replacement is None:
+            return match.group(0)
+        return f"{match.group(1)}{_replace_link_target(raw_target, replacement)}{match.group(3)}"
+
+    return _IMAGE_TAG_RE.sub(replace, markdown)
+
+
+def _replace_link_target(raw_target: str, replacement: str) -> str:
+    if raw_target.startswith("<") and ">" in raw_target:
+        return f"<{replacement}>"
+    target = _strip_optional_title(raw_target)
+    if target == raw_target:
+        return replacement
+    return replacement + raw_target[len(target) :]
+
+
+def _vault_relative_asset_link(
+    *,
+    target_vault_root: Path,
+    target_assets_dir: Path,
+    asset_name: str,
+) -> str:
+    relative_parts = target_assets_dir.relative_to(target_vault_root).parts
+    return "/".join(quote(part, safe="") for part in (*relative_parts, asset_name))
 
 
 def _markdown_image_links(note: Path) -> list[str]:

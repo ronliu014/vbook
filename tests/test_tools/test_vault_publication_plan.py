@@ -107,6 +107,49 @@ class VaultPublicationPlanTest(unittest.TestCase):
         self.assertEqual(manifest["total_asset_count"], 1)
         self.assertEqual(manifest["items"][0]["assets"][0]["source"].endswith("frame_000003.jpg"), True)
 
+    def test_stages_note_with_vault_stable_asset_links(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "experiment"
+            lesson = "Lesson A"
+            lesson_dir = (
+                root
+                / "renders"
+                / "vtext_first_vault_enhance"
+                / "baseline"
+                / lesson
+            )
+            image = lesson_dir / "assets" / "note" / "frame_000001.jpg"
+            image.parent.mkdir(parents=True, exist_ok=True)
+            image.write_bytes(b"fake image")
+            original_note = lesson_dir / "note.md"
+            original_note.write_text(
+                "# Lesson A\n\n![completed page](assets/note/frame_000001.jpg)\n",
+                encoding="utf-8",
+            )
+
+            package = create_publication_plan(
+                experiment_root=root,
+                route="vtext_first_vault_enhance",
+                variant="baseline",
+                target_vault_root=Path(tmp) / "vault" / "20_Learning" / "vbook",
+                plan_id="plan-001",
+            )
+
+            manifest = json.loads(package.json_path.read_text(encoding="utf-8"))
+            item = manifest["items"][0]
+            staged_note = Path(item["source_note"])
+            staged_markdown = staged_note.read_text(encoding="utf-8")
+
+        self.assertNotEqual(staged_note, original_note)
+        self.assertEqual(item["original_source_note"], str(original_note))
+        self.assertIn("](assets/Lesson%20A/frame_000001.jpg)", staged_markdown)
+        self.assertEqual(
+            item["assets"][0]["target"].replace("\\", "/").endswith(
+                "assets/Lesson A/frame_000001.jpg"
+            ),
+            True,
+        )
+
     def test_rejects_plan_id_that_escapes_experiment_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "experiment"
