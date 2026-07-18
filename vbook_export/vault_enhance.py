@@ -18,6 +18,20 @@ from vbook_export.vault_preview import (
 from vbook_export.visual_selection import visual_value_key
 
 
+_GENERIC_ENTITY_KEYWORDS = {
+    "k线图",
+    "交易软件",
+    "股票交易",
+    "股票分析",
+    "黄金分割",
+    "黄金分割线",
+    "涨停板",
+    "支撑位",
+    "止损位",
+    "画线工具",
+}
+
+
 @dataclass(frozen=True)
 class VaultEnhancePackage:
     output_note_path: Path
@@ -416,6 +430,7 @@ def _match_score(
         elif heading_text and heading_text in normalized:
             score += 2
         score += _keyword_overlap_score(term, section_text, heading_text)
+        score += _entity_overlap_score(term, section_text, heading_text)
     return score
 
 
@@ -561,6 +576,17 @@ def _keyword_overlap_score(term: str, section_text: str, heading_text: str) -> i
     return min(score, 6)
 
 
+def _entity_overlap_score(term: str, section_text: str, heading_text: str) -> int:
+    score = 0
+    for keyword in _entity_keywords(term):
+        normalized = _normalize_text(keyword)
+        if len(normalized) < 3:
+            continue
+        if normalized in heading_text:
+            score += 8
+    return min(score, 12)
+
+
 def _matching_keywords(value: str) -> list[str]:
     keywords: list[str] = []
     for word in re.findall(r"[A-Za-z0-9_]{3,}", value.lower()):
@@ -571,6 +597,24 @@ def _matching_keywords(value: str) -> list[str]:
             continue
         keywords.extend(cjk_run[index : index + 2] for index in range(len(cjk_run) - 1))
     return _unique(keywords)
+
+
+def _entity_keywords(value: str) -> list[str]:
+    keywords: list[str] = []
+    keywords.extend(re.findall(r"(?<!\d)\d{6}(?!\d)", value))
+    for cjk_run in re.findall(r"[\u4e00-\u9fff]{3,}", value):
+        max_size = min(6, len(cjk_run))
+        for size in range(3, max_size + 1):
+            for index in range(len(cjk_run) - size + 1):
+                _append_entity_keyword(keywords, cjk_run[index : index + size])
+    return _unique(keywords)
+
+
+def _append_entity_keyword(keywords: list[str], keyword: str) -> None:
+    normalized = _normalize_text(keyword)
+    if normalized in _GENERIC_ENTITY_KEYWORDS:
+        return
+    keywords.append(keyword)
 
 
 def _domain_aliases(value: str) -> list[str]:

@@ -184,6 +184,173 @@ class VaultEnhanceTest(unittest.TestCase):
             enhanced.index("## 集合竞价选股（预告）"),
         )
 
+    def test_anchors_case_visual_by_stock_code_entity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_output = root / "lesson-output"
+            image = lesson_output / "frames" / "selected" / "frame_000004.jpg"
+            vtext_note = root / "vault" / "20_Learning" / "vtext" / "lesson.md"
+            image.parent.mkdir(parents=True)
+            vtext_note.parent.mkdir(parents=True)
+            (lesson_output / "vision").mkdir(parents=True)
+            (lesson_output / "fusion").mkdir(parents=True)
+            image.write_bytes(b"annotated kline image")
+            vtext_note.write_text(
+                "# Golden Ratio\n\n"
+                "## How to draw golden ratio\n\n"
+                "Open the drawing tool and draw from high to low.\n\n"
+                "## Case Two: Yunnan Germanium 002428\n\n"
+                "Use the completed chart to confirm the support line.\n\n"
+                "## Summary\n\n"
+                "Different methods use different ranges.\n",
+                encoding="utf-8",
+            )
+            (lesson_output / "manifest.json").write_text(
+                json.dumps({"stage_status": {"vision_analysis": "done"}}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (lesson_output / "vision" / "analysis.json").write_text(
+                json.dumps(
+                    {
+                        "analysis_count": 1,
+                        "analyses": [
+                            {
+                                "frame_id": "frame-000004",
+                                "image_path": str(image),
+                                "timestamp": 720.0,
+                                "ocr_text": "Yunnan Germanium 002428\nFibonacci 61.8",
+                                "vision_description": (
+                                    "Completed K-line case board for Yunnan Germanium "
+                                    "002428 with final support line."
+                                ),
+                                "structured_observations": {"topic": "K-line case"},
+                                "confidence": 0.95,
+                            }
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            (lesson_output / "fusion" / "sections.json").write_text(
+                json.dumps(
+                    {
+                        "sections": [
+                            {
+                                "title": "How to draw golden ratio",
+                                "summary": "Teacher explains how to draw golden ratio.",
+                                "source_timestamps": [600.0, 720.0],
+                                "image_refs": [str(image)],
+                                "key_points": [],
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+
+        self.assertLess(
+            enhanced.index("## Case Two: Yunnan Germanium 002428"),
+            enhanced.index("![How to draw golden ratio]"),
+        )
+        self.assertLess(
+            enhanced.index("![How to draw golden ratio]"),
+            enhanced.index("## Summary"),
+        )
+
+    def test_anchors_chinese_case_visual_by_stock_name_entity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lesson_output = root / "lesson-output"
+            image = lesson_output / "frames" / "selected" / "frame_000004.jpg"
+            vtext_note = root / "vault" / "20_Learning" / "vtext" / "lesson.md"
+            image.parent.mkdir(parents=True)
+            vtext_note.parent.mkdir(parents=True)
+            (lesson_output / "vision").mkdir(parents=True)
+            (lesson_output / "fusion").mkdir(parents=True)
+            image.write_bytes(b"annotated kline image")
+            vtext_note.write_text(
+                "# 黄金分割线绘制指南\n\n"
+                "## 一、核心原则与工具准备\n\n"
+                "交易软件里打开画线工具，选择黄金分割线，从高点往低点画。\n\n"
+                "## 案例二：云南锗业（三连板一字板）\n\n"
+                "从第三个涨停板最高价连到最后一个涨停板最低价，确认0.618支撑位。\n\n"
+                "## 四、注意事项\n\n"
+                "战法不同，画法不同。\n",
+                encoding="utf-8",
+            )
+            (lesson_output / "manifest.json").write_text(
+                json.dumps({"stage_status": {"vision_analysis": "done"}}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (lesson_output / "vision" / "analysis.json").write_text(
+                json.dumps(
+                    {
+                        "analysis_count": 1,
+                        "analyses": [
+                            {
+                                "frame_id": "frame-000004",
+                                "image_path": str(image),
+                                "timestamp": 720.0,
+                                "ocr_text": "股票交易软件界面 展示云南锗业 K线图 画线工具 黄金分割线",
+                                "vision_description": (
+                                    "股票交易软件界面，展示云南锗业的K线图，已经画出黄金分割线支撑位。"
+                                ),
+                                "structured_observations": {"topic": "股票交易分析"},
+                                "confidence": 0.95,
+                            }
+                        ],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            (lesson_output / "fusion" / "sections.json").write_text(
+                json.dumps(
+                    {
+                        "sections": [
+                            {
+                                "title": "我给你讲明白黄金分割线怎幺画。首先，",
+                                "summary": "讲师讲解交易软件和黄金分割线画线工具。",
+                                "source_timestamps": [600.0, 720.0],
+                                "image_refs": [str(image)],
+                                "key_points": [],
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            output_note = root / "vault" / "20_Learning" / "vbook" / "lesson.md"
+
+            write_vtext_first_package(
+                vtext_note_path=vtext_note,
+                lesson_output_dir=lesson_output,
+                output_note_path=output_note,
+            )
+
+            enhanced = output_note.read_text(encoding="utf-8")
+
+        self.assertLess(
+            enhanced.index("## 案例二：云南锗业（三连板一字板）"),
+            enhanced.index("![我给你讲明白黄金分割线怎幺画。首先，]"),
+        )
+        self.assertLess(
+            enhanced.index("![我给你讲明白黄金分割线怎幺画。首先，]"),
+            enhanced.index("## 四、注意事项"),
+        )
+
     def test_honors_explicit_manifest_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
