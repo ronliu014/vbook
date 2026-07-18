@@ -211,3 +211,7 @@ Safety rules:
 - Existing target files are rejected by default.
 - Use `--overwrite` only after a separate review confirms replacement is
   intended.
+
+For multi-lesson production runs, use
+[production-batch.md](./production-batch.md). The production workflow adds
+batch preview manifests and a publication postcheck after controlled publish.
