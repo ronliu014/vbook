@@ -78,6 +78,50 @@ class VtextFirstBatchPreviewTest(unittest.TestCase):
             self.assertTrue(note.is_file())
             self.assertNotIn("F:\\vault", str(note))
 
+    def test_rejects_vault_output_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            batch_input, _ = _write_valid_preview_fixture(root)
+
+            with self.assertRaises(ValueError):
+                run_batch_preview(
+                    batch_input_path=batch_input,
+                    output_root=Path("F:/vault/20_Learning/vbook/course"),
+                    route="vtext_first_vault_enhance",
+                    variant="baseline",
+                    max_images_per_note=1,
+                    min_image_gap_seconds=0,
+                )
+
+    def test_missing_lesson_output_is_recorded_as_failed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            batch_input, output_root = _write_valid_preview_fixture(root)
+            data = json.loads(batch_input.read_text(encoding="utf-8"))
+            missing = root / "missing-output"
+            data["lessons"][0]["lesson_output"] = str(missing)
+            batch_input.write_text(
+                json.dumps(data, ensure_ascii=False),
+                encoding="utf-8",
+            )
+
+            package = run_batch_preview(
+                batch_input_path=batch_input,
+                output_root=output_root,
+                route="vtext_first_vault_enhance",
+                variant="baseline",
+                max_images_per_note=1,
+                min_image_gap_seconds=0,
+            )
+
+            self.assertEqual(package.status, "preview_failed")
+            payload = json.loads(package.json_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["failed_count"], 1)
+            self.assertIn(
+                "lesson output does not exist",
+                payload["lessons"][0]["failure_reason"],
+            )
+
 
 def _write_valid_preview_fixture(root: Path) -> tuple[Path, Path]:
     vtext_note = root / "vtext" / "Lesson A.md"
