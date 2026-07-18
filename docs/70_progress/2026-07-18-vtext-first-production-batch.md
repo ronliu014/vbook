@@ -210,3 +210,74 @@ Important review finding for the new fourth lesson:
   preparation, selection time, and stock-pool maintenance, the single inserted
   image should be reviewed for whether it is sufficient or whether this lesson
   needs multiple scene images in a later tuning pass.
+
+## User Acceptance And Publication Prep
+
+The user accepted the current notes on 2026-07-18:
+
+```text
+我认为目前的笔记可以
+```
+
+The 4-lesson review round was finalized as the production candidate:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/review-manifest.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/review-sheet.csv
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/user-review.md
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/decision-template.md
+```
+
+Review decision summary:
+
+- Review status: `winner_selected`
+- Selected route: `vtext_first_vault_enhance`
+- Decision status: `candidate_for_production`
+- User review summary: `User said the current notes are acceptable.`
+
+The dry-run publication plan was generated:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-plan.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-plan.md
+```
+
+Publication plan summary:
+
+- Plan id: `vtext_first_vault_enhance-production-batch-002`
+- Dry run: `true`
+- Vault write: `disabled`
+- Target vault root:
+  `F:/vault/20_Learning/vbook/投资训练营/韩珂龙头班：基础篇`
+- Items: 4
+- Assets: 4
+- Markdown images: 4
+- Missing images: 0
+
+The read-only conflict report was generated:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-conflicts.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/publication-plans/vtext_first_vault_enhance-production-batch-002/publication-conflicts.md
+```
+
+Conflict summary:
+
+- Status: `conflicts_detected`
+- Existing target notes: 4
+- Existing target assets: 3
+- All 4 target notes exist and have different hashes from the current preview
+  notes, so an apply without overwrite must remain blocked.
+- Existing assets for `反抽 反弹 反转`, `如何筛选龙头股？`, and
+  `龙头股的上涨逻辑是什么？` have the same hashes as the current preview assets.
+- The new fourth lesson asset
+  `assets/如何高效选股，构建自己的短线股票池/frame_000007.jpg` is missing in
+  the target vault and would be copied on apply.
+
+Required next gate before any vault write:
+
+1. Confirm applying plan id `vtext_first_vault_enhance-production-batch-002`.
+2. Because all target notes already exist and differ, apply must use
+   `--overwrite --backup-existing`.
+3. After apply, run `tools/vault_publication_postcheck.py` against
+   `publication-result.json` and accept publication only when status is `pass`.
