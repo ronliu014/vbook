@@ -32,6 +32,13 @@ The current small real-course set is from `韩珂龙头班：基础篇`.
 | `如何筛选龙头股？` | `F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/如何筛选龙头股？.md` | `outputs/interval-sweep-qwen/240s/韩珂龙头班：基础篇/如何筛选龙头股？` | `outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/如何筛选龙头股？.md` |
 | `龙头股的上涨逻辑是什么？` | `F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？.md` | `outputs/interval-sweep-qwen/240s/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？` | `outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/龙头股的上涨逻辑是什么？.md` |
 | `反抽 反弹 反转` | `F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/反抽 反弹 反转.md` | `outputs/post-deploy-controlled-qwen/240s/韩珂龙头班：基础篇/反抽 反弹 反转` | `outputs/post-deploy-vault-enhance/240s/韩珂龙头班：基础篇/反抽 反弹 反转.md` |
+| `如何高效选股，构建自己的短线股票池` | `F:/vault/20_Learning/vtext/投资训练营/韩珂龙头班：基础篇/如何高效选股，构建自己的短线股票池.md` | `outputs/production-batch-expansion-qwen-240s/韩珂龙头班：基础篇/如何高效选股，构建自己的短线股票池` | `F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/renders/vtext_first_vault_enhance/baseline/如何高效选股，构建自己的短线股票池/note.md` |
+
+The fourth lesson was added on 2026-07-18 to expand the first production
+preview set from three to four locally matched lessons. Its 240s run produced
+10 selected frames and 10 Qwen visual analysis records. One record,
+`frame-000003`, returned `visual_type = other` with empty OCR and should be
+treated as non-value visual evidence during review.
 
 ## Baseline A: vtext-first Visual Enhancement
 

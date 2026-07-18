@@ -119,3 +119,94 @@ F:/vbook/experiments/E20260718-vtext-first-production-batch-preview/renders/vtex
 - Next: user reviews `reviews/round-001/user-review.md` and the three preview
   notes. After explicit approval, create a publication plan; otherwise generate
   or locate additional matched lesson-output packages and rerun a larger batch.
+
+## Follow-Up: 4-Lesson Expansion Preview
+
+After the first 3-lesson review package, the remaining local vtext source note
+was expanded into a comparable 240s lesson output:
+
+```text
+outputs/production-batch-expansion-qwen-240s/韩珂龙头班：基础篇/如何高效选股，构建自己的短线股票池
+```
+
+Build input:
+
+- Video: `F:/downloads/allwin/投资训练营/韩珂龙头班：基础篇/如何高效选股，构建自己的短线股票池.mp4`
+- Transcript: `outputs/vtext-bundles/韩珂龙头班：基础篇/如何高效选股，构建自己的短线股票池/transcript.raw.srt`
+- Frame interval: `240`
+- Minimum selected frame interval: `240`
+- Vision backend: `external-command`
+- Qwen profile: `vbook_visual_analysis_v1`
+- Qwen error mode: `--continue-on-error`
+
+Generated 240s lesson-output facts:
+
+- Selected frames: 10
+- Visual analysis records: 10
+- Manifest stage status: all build stages `done`, with `llm_fusion` skipped
+- Notable visual record: `frame-000003` returned `visual_type = other`, empty
+  OCR, and `vision_description = 模型返回格式错误`; it should not be treated as a
+  high-value note image.
+- Tooling note: the observed PTY command session reported exit code `1` after
+  printing `manifest.json`, but the written manifest and downstream preflight
+  confirmed usable artifacts.
+
+The 4-lesson batch input is:
+
+```text
+F:/vbook/inputs/invest-training-production-batch-002/batch-input.json
+```
+
+The 4-lesson preview output is:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/batch-preview-manifest.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/comparisons/vtext-first-preflight.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/renders/vtext_first_vault_enhance/baseline/
+```
+
+4-lesson preview result:
+
+- Batch status: `preview_ready`
+- Lessons requested: 4
+- Lessons done: 4
+- Lessons failed: 0
+- Lessons skipped: 0
+- Preflight: `ok: true`
+- Notes: 4
+- Manifests: 4
+- Markdown image links: 4
+- Missing images: 0
+- Errors: 0
+- Warnings: 0
+
+4-lesson review package:
+
+```text
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/review-manifest.json
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/review-sheet.csv
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/user-review.md
+F:/vbook/experiments/E20260718-vtext-first-production-batch-preview-004/reviews/round-001/decision-template.md
+```
+
+4-lesson review manifest summary:
+
+- Review round: `round-001`
+- Dataset: `invest-training-production-batch-002`
+- Candidate count: 4
+- Candidate route: `vtext_first_vault_enhance`
+- Candidate variant: `baseline`
+- Readable note candidate: `yes`
+- Preflight status: `pass`
+- Review status: awaiting user scoring and decision
+
+Important review finding for the new fourth lesson:
+
+- The generated enhanced note inserted one image:
+  `assets/note/frame_000007.jpg`.
+- The inserted image is not the Qwen malformed `frame_000003` record.
+- The note remains vtext-first and readable.
+- Because the lesson contains several visual topics, including stock-pool
+  preparation, selection time, and stock-pool maintenance, the single inserted
+  image should be reviewed for whether it is sufficient or whether this lesson
+  needs multiple scene images in a later tuning pass.
