@@ -24,6 +24,18 @@ class CliTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("vBook skeleton ready", stdout.getvalue())
 
+    def test_production_batch_preview_help_is_available(self) -> None:
+        stdout = io.StringIO()
+
+        with self.assertRaises(SystemExit) as ctx, redirect_stdout(stdout):
+            main(["production-batch-preview", "--help"])
+
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertIn(
+            "Run preview-only vtext-first production batch",
+            stdout.getvalue(),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

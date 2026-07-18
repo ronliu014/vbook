@@ -41,6 +41,7 @@ from vbook_vision.frames import (
     extract_frame_candidates,
     select_frame_candidates,
 )
+from tools.vtext_first_batch_preview import run_batch_preview
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -91,6 +92,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "semantic-visual-note":
         return _run_semantic_visual_note(args, parser)
+
+    if args.command == "production-batch-preview":
+        return _run_production_batch_preview(args, parser)
 
     parser.print_help()
     return 0
@@ -146,6 +150,25 @@ def _run_semantic_visual_note(
         parser.error(str(exc))
     print(package.manifest_path)
     return 0
+
+
+def _run_production_batch_preview(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> int:
+    try:
+        package = run_batch_preview(
+            batch_input_path=args.batch_input,
+            output_root=args.output_root,
+            route=args.route,
+            variant=args.variant,
+            max_images_per_note=args.max_images_per_note,
+            min_image_gap_seconds=args.min_image_gap_seconds,
+        )
+    except (ValueError, json.JSONDecodeError) as exc:
+        parser.error(str(exc))
+    print(package.json_path)
+    return 0 if package.status == "preview_ready" else 1
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -273,6 +296,22 @@ def _build_parser() -> argparse.ArgumentParser:
         "--max-visuals-per-request",
         type=int,
         help="Maximum non-error visual evidence records included in the model request",
+    )
+
+    production_batch_parser = subparsers.add_parser(
+        "production-batch-preview",
+        description="Run preview-only vtext-first production batch",
+        help="Run preview-only vtext-first production batch",
+    )
+    production_batch_parser.add_argument("--batch-input", required=True)
+    production_batch_parser.add_argument("--output-root", required=True)
+    production_batch_parser.add_argument("--route", default="vtext_first_vault_enhance")
+    production_batch_parser.add_argument("--variant", default="baseline")
+    production_batch_parser.add_argument("--max-images-per-note", type=int)
+    production_batch_parser.add_argument(
+        "--min-image-gap-seconds",
+        type=float,
+        default=0.0,
     )
 
     return parser
