@@ -8,6 +8,37 @@ vBook is a project for automatic video-course analysis and knowledge organizatio
 4. Align screenshots with transcript segments by timeline.
 5. Fuse speech, slide text, and visual case descriptions into structured Markdown notes and a searchable knowledge base.
 
+## Quick Start: Production Status
+
+Run commands from the repository root. The single entry point is:
+
+```powershell
+.\vstatus
+```
+
+It summarizes the current vBook, vtext, vision, fusion, run, control, and
+scheduler state. Use these commands for common inspections:
+
+| Need | Command |
+| --- | --- |
+| Show the complete current overview | `.\vstatus` |
+| Refresh every 30 seconds | `.\vstatus watch` |
+| Refresh at a custom interval | `.\vstatus watch 60` |
+| Inspect a lesson | `.\vstatus lesson "<lesson-name>"` |
+| Inspect a run | `.\vstatus run <run-id>` |
+| Inspect a task and its attempts | `.\vstatus task <task-id>` |
+| Inspect a stage wave | `.\vstatus wave <stage> <number>` |
+| Print JSON | `.\vstatus json` |
+| Write a JSON snapshot | `.\vstatus json <output-file>` |
+| Fail when blocked, paused, or stale | `.\vstatus check` |
+| Show quick commands and all options | `.\vstatus help` |
+
+Aliases `w`, `l`, `r`, `t`, and `j` are accepted for `watch`, `lesson`, `run`,
+`task`, and `json`. The command is read-only unless an output file is explicitly
+requested. See the
+[`production workflow status runbook`](docs/60_operations/production-workflow-status.md)
+for report interpretation, exit codes, and automation options.
+
 Start documentation from [`docs/README.md`](docs/README.md). For a quick project
 orientation, read [`docs/00_project/overview.md`](docs/00_project/overview.md),
 [`docs/00_project/glossary.md`](docs/00_project/glossary.md),
@@ -29,6 +60,7 @@ the operational task board and next recommended work.
 
 - `docs/` - numbered documentation layers; start at `docs/README.md`.
 - `sync/` - Git-backed coordination directory for Windows and Linux Codex agents.
+- `vstatus.cmd` - read-only production workflow status entry point for Windows.
 - `AGENTS.md` - contributor and agent guidelines.
 - `vbook_common/` - shared data contracts, config, version, and serialization.
 - `vbook_client/` - CLI entry point.

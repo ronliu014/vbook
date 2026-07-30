@@ -9,6 +9,9 @@ perform smoke tests, troubleshoot failures, and clean generated artifacts.
   contract checker, manifest, and note output.
 - [batch-processing.md](./batch-processing.md) - batch input, batch manifest,
   failure handling, and rerun strategy runbook.
+- [production-workflow-status.md](./production-workflow-status.md) - read-only
+  production overview, run/task/lesson drill-down, vision and fusion quality
+  gates, scheduler freshness, controls, JSON snapshots, and periodic refresh.
 - [qwen-vision-integration.md](./qwen-vision-integration.md) - service-ready
   integration runbook for Qwen Vision Service.
 - [vault-enhance.md](./vault-enhance.md) - current vtext-first workflow that

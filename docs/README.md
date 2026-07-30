@@ -3,6 +3,28 @@
 This directory uses numbered documentation layers. Start here before reading
 implementation code or dated progress logs.
 
+## Production Status Entry Point
+
+From the repository root, run `vstatus` to inspect the current cross-project
+production workflow without changing production data:
+
+| Need | Command |
+| --- | --- |
+| Current overview | `.\vstatus` |
+| Periodic refresh | `.\vstatus watch` |
+| Lesson pipeline | `.\vstatus lesson "<lesson-name>"` |
+| Run details | `.\vstatus run <run-id>` |
+| Task attempts | `.\vstatus task <task-id>` |
+| Stage wave | `.\vstatus wave <stage> <number>` |
+| Machine-readable output | `.\vstatus json [output-file]` |
+| Strict health gate | `.\vstatus check` |
+| Command help | `.\vstatus help` |
+
+The overview covers vBook orchestration, vtext progress, vision/fusion quality,
+run evidence, pause/stop controls, and scheduler freshness. Read the
+[production workflow status runbook](./60_operations/production-workflow-status.md)
+for field interpretation, exit codes, aliases, and advanced options.
+
 ## Fast Reading Path
 
 For project orientation:
