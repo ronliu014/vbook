@@ -86,6 +86,81 @@ class ProductionWorkflowStatusTest(unittest.TestCase):
         self.assertTrue(report["scheduler"]["stale"])
         self.assertEqual(report["scheduler"]["latest_actions"][0]["action"], "started")
 
+    def test_successful_recovery_resolves_terminal_failure_without_hiding_history(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = _write_fixture(Path(tmp))
+            failed_run = fixture["run_root"] / "R-test-vtext-wave-001"
+            recovery_run = fixture["run_root"] / "R-test-vtext-wave-001-recovery"
+            _write_json(
+                failed_run / "run.manifest.json",
+                {
+                    "kind": "vbook_production_workflow_run",
+                    "run_id": failed_run.name,
+                    "stage": "vtext",
+                    "wave_index": 1,
+                    "status": "failed",
+                    "task_count": 1,
+                },
+            )
+            _write_json(
+                failed_run / "summary.json",
+                {
+                    "kind": "vbook_production_workflow_run_summary",
+                    "run_id": failed_run.name,
+                    "stage": "vtext",
+                    "wave_index": 1,
+                    "status": "failed",
+                    "task_count": 1,
+                    "counts": {"failed": 1},
+                    "tasks": [{"status": "failed"}],
+                },
+            )
+            _write_json(
+                recovery_run / "run.manifest.json",
+                {
+                    "kind": "vbook_production_workflow_run",
+                    "run_id": recovery_run.name,
+                    "stage": "vtext",
+                    "wave_index": 1,
+                    "status": "completed",
+                    "task_count": 1,
+                    "recovery": True,
+                    "recovery_for": failed_run.name,
+                },
+            )
+            _write_json(
+                recovery_run / "summary.json",
+                {
+                    "kind": "vbook_production_workflow_run_summary",
+                    "run_id": recovery_run.name,
+                    "stage": "vtext",
+                    "wave_index": 1,
+                    "status": "completed",
+                    "task_count": 1,
+                    "counts": {"succeeded": 1},
+                    "tasks": [{"status": "succeeded"}],
+                    "recovery": True,
+                    "recovery_for": failed_run.name,
+                },
+            )
+
+            report = collect_workflow_status(
+                project_root=fixture["root"],
+                runtime_plan_path=fixture["runtime_plan"],
+            )
+
+        vtext = report["runs"]["by_stage"]["vtext"]
+        recovered = report["runs"]["recovered_failures"]
+        reason_codes = {item["code"] for item in report["health"]["reasons"]}
+        self.assertEqual(vtext["failed"], 0)
+        self.assertEqual(vtext["recovered"], 1)
+        self.assertEqual(report["runs"]["terminal_failures"], [])
+        self.assertEqual(recovered[0]["run_id"], failed_run.name)
+        self.assertEqual(recovered[0]["recovered_by"], [recovery_run.name])
+        self.assertNotIn("terminal_run_failures", reason_codes)
+
     def test_run_detail_reports_artifact_stages_and_vision_quality(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             fixture = _write_fixture(Path(tmp))

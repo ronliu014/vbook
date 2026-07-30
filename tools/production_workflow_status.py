@@ -274,6 +274,11 @@ def collect_workflow_status(
             "terminal_failures": [
                 _public_run(run) for run in runs if run["terminal_failure"]
             ],
+            "recovered_failures": [
+                _public_run(run)
+                for run in runs
+                if run["historical_terminal_failure"] and run["recovered_by"]
+            ],
         },
         "quality": quality,
         "issues": scan_issues,
@@ -422,6 +427,7 @@ def render_text(report: dict[str, Any], *, limit: int = 12) -> str:
                 name,
                 item["run_count"],
                 item["completed"],
+                item["recovered"],
                 item["failed"],
                 item["paused"],
                 item["recorded_active"],
@@ -430,7 +436,16 @@ def render_text(report: dict[str, Any], *, limit: int = 12) -> str:
         )
     lines.extend(
         _render_table(
-            ["Stage", "Runs", "Done", "Failed", "Paused", "Active*", "Latest"],
+            [
+                "Stage",
+                "Runs",
+                "Done",
+                "Recovered",
+                "Failed",
+                "Paused",
+                "Active*",
+                "Latest",
+            ],
             run_rows,
         )
     )
@@ -556,6 +571,9 @@ def _scan_runs(
                 and summary_status != "dry_run"
                 and not successful
             )
+            recovery_for = _optional_text(
+                summary.get("recovery_for") or manifest.get("recovery_for")
+            )
             records.append(
                 {
                     "run_id": str(manifest.get("run_id") or manifest_path.parent.name),
@@ -579,6 +597,14 @@ def _scan_runs(
                     "stale": stale,
                     "successful": successful,
                     "terminal_failure": terminal_failure,
+                    "historical_terminal_failure": terminal_failure,
+                    "recovery": bool(
+                        summary.get("recovery")
+                        or manifest.get("recovery")
+                        or recovery_for
+                    ),
+                    "recovery_for": recovery_for,
+                    "recovered_by": [],
                     "run_dir": str(manifest_path.parent.resolve()),
                     "manifest": str(manifest_path.resolve()),
                     "summary": str(summary_path.resolve()) if summary_path.is_file() else None,
@@ -594,6 +620,18 @@ def _scan_runs(
                     manifest_path,
                 )
             )
+    records_by_id = {record["run_id"]: record for record in records}
+    for recovery in records:
+        target = records_by_id.get(recovery["recovery_for"])
+        if (
+            not recovery["successful"]
+            or target is None
+            or target["stage"] != recovery["stage"]
+            or not target["historical_terminal_failure"]
+        ):
+            continue
+        target["terminal_failure"] = False
+        target["recovered_by"].append(recovery["run_id"])
     records.sort(key=lambda item: (_stage_rank(item["stage"]), item["wave_index"], item["run_id"]))
     return records
 
@@ -839,6 +877,11 @@ def _summarize_runs(runs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "run_count": len(selected),
             "completed": statuses.get("completed", 0),
             "failed": sum(1 for run in selected if run["terminal_failure"]),
+            "recovered": sum(
+                1
+                for run in selected
+                if run["historical_terminal_failure"] and run["recovered_by"]
+            ),
             "paused": statuses.get("paused", 0),
             "stopped": statuses.get("stopped", 0),
             "dry_run": statuses.get("dry_run", 0),
